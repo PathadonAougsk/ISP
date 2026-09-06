@@ -1,0 +1,21 @@
+services:
+  frontend-dev:
+    build:
+      context: "./frontend"
+      dockerfile: "dockerfile"
+    command: "npm run dev"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+  backend-dev:
+    build:
+      context: "./backend"
+      dockerfile: "dockerfile"
+    env_file: "./.env"
+    command: "fastapi dev --host 0.0.0.0 --port 8000 app/main.py"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/Backend

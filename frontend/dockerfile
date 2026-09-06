@@ -1,0 +1,30 @@
+ARG NODE_VERSION=22.14.0-slim
+
+FROM node:${NODE_VERSION} AS dev
+
+WORKDIR /app
+
+COPY --chown=node:node package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.cache/yarn \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+  if [ -f package-lock.json ]; then \
+    npm ci --no-audit --no-fund; \
+  elif [ -f yarn.lock ]; then \
+    npm install -g corepack && corepack enable yarn && yarn install --frozen-lockfile; \
+  elif [ -f pnpm-lock.yaml ]; then \
+    npm install -g corepack && corepack enable pnpm && pnpm install --frozen-lockfile; \
+  else \
+    echo "No lockfile found." && exit 1; \
+  fi
+
+COPY --chown=node:node . .
+
+ENV WATCHPACK_POLLING=true \
+    HOSTNAME="0.0.0.0" \
+    PORT=3000
+
+USER node
+
+EXPOSE 3000

@@ -1,0 +1,10 @@
+import os
+from supabase import create_client, Client
+
+url: str | None = os.environ.get("SUPABASE_URL")
+key: str | None = os.environ.get("SUPABASE_KEY")
+
+if (not url or not key):
+    raise ValueError("SUPABASE_URL or SUPABASE_KEY is missing from .env")
+
+supabase: Client = create_client(url, key)

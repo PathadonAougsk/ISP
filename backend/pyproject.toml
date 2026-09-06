@@ -1,0 +1,9 @@
+[project]
+name = "ISP-Backend"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "env>=0.1.0",
+    "fastapi[standard-no-fastapi-cloud-cli]>=0.141.1",
+    "supabase>=2.31.0",
+]
