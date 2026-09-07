@@ -1,0 +1,115 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "AD5diagram",
+      "name": "AD-5 Lab Staff Creates Category",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "start",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n1",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff selects \"Manage Categories\""
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "System displays category management"
+        },
+        {
+          "id": "n3",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff selects \"Create Category\""
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff enters new category information"
+        },
+        {
+          "id": "n5",
+          "type": "node",
+          "parent": "1",
+          "label": "System creates the new category"
+        },
+        {
+          "id": "n6",
+          "type": "node",
+          "parent": "1",
+          "label": "System updates the category list"
+        },
+        {
+          "id": "end",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "endRing",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "e1",
+          "type": "edge",
+          "parent": "1",
+          "source": "start",
+          "target": "n1"
+        },
+        {
+          "id": "e2",
+          "type": "edge",
+          "parent": "1",
+          "source": "n1",
+          "target": "n2"
+        },
+        {
+          "id": "e3",
+          "type": "edge",
+          "parent": "1",
+          "source": "n2",
+          "target": "n3"
+        },
+        {
+          "id": "e4",
+          "type": "edge",
+          "parent": "1",
+          "source": "n3",
+          "target": "n4"
+        },
+        {
+          "id": "e5",
+          "type": "edge",
+          "parent": "1",
+          "source": "n4",
+          "target": "n5"
+        },
+        {
+          "id": "e6",
+          "type": "edge",
+          "parent": "1",
+          "source": "n5",
+          "target": "n6"
+        },
+        {
+          "id": "e7",
+          "type": "edge",
+          "parent": "1",
+          "source": "n6",
+          "target": "end"
+        }
+      ]
+    }
+  ]
+}

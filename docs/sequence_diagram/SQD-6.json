@@ -1,0 +1,166 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "seqdiag",
+      "name": "Sequence",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff"
+        },
+        {
+          "id": "n3",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "Web Client"
+        },
+        {
+          "id": "n5",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n6",
+          "type": "node",
+          "parent": "1",
+          "label": "Backend Controller"
+        },
+        {
+          "id": "n7",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n8",
+          "type": "node",
+          "parent": "1",
+          "label": "Authentication/Authorisation Module"
+        },
+        {
+          "id": "n9",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n10",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Logic"
+        },
+        {
+          "id": "n11",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n12",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Database"
+        },
+        {
+          "id": "n13",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n14",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n15",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n16",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n17",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n18",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n19",
+          "type": "edge",
+          "parent": "1",
+          "label": "Enter new category information"
+        },
+        {
+          "id": "n20",
+          "type": "edge",
+          "parent": "1",
+          "label": "POST /categories"
+        },
+        {
+          "id": "n21",
+          "type": "edge",
+          "parent": "1",
+          "label": "Verify Lab Staff role"
+        },
+        {
+          "id": "n22",
+          "type": "edge",
+          "parent": "1",
+          "label": "Authorized"
+        },
+        {
+          "id": "n23",
+          "type": "edge",
+          "parent": "1",
+          "label": "Create new category"
+        },
+        {
+          "id": "n24",
+          "type": "edge",
+          "parent": "1",
+          "label": "Insert category record"
+        },
+        {
+          "id": "n25",
+          "type": "edge",
+          "parent": "1",
+          "label": "Confirm saved"
+        },
+        {
+          "id": "n26",
+          "type": "edge",
+          "parent": "1",
+          "label": "New category created"
+        },
+        {
+          "id": "n27",
+          "type": "edge",
+          "parent": "1",
+          "label": "201 Created"
+        },
+        {
+          "id": "n28",
+          "type": "edge",
+          "parent": "1",
+          "label": "Show updated category list"
+        }
+      ]
+    }
+  ]
+}
