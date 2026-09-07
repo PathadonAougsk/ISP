@@ -1,9 +1,44 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.dependencies import supabase
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from supabase_auth.types import User as AuthUser
 
-userRouter = APIRouter(prefix="/user")
+from app.database import getSession
+from app.model import Account
+from app.service import user_service
+
+userRouter = APIRouter(prefix="/user", dependencies=[Depends(user_service.get_current_auth_user)])
 
 @userRouter.get("/", tags=["User"])
-async def retrieve_users():
+async def retrieve_users(session : Annotated[AsyncSession, Depends(getSession)]):
+    accounts = await session.scalars(select(Account))
+    return { "Users" : accounts.all()}
+
+@userRouter.post("/", tags=["User"])
+async def create_user(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],
+):
+    return await user_service.create_account(session, auth_user.id, auth_user.email)
+
+@userRouter.get("/{user_id}", tags=["User"])
+async def retrieve_user(user_id: str):
+    pass
+
+@userRouter.put("/{user_id}", tags=["User"])
+async def update_user(user_id: str):
+    pass
+
+@userRouter.delete("/{user_id}", tags=["User"])
+async def delete_user(user_id: str):
+    pass
+
+@userRouter.post("/admin", tags=["Admin"])
+async def admin_create_user():
+    pass
+
+@userRouter.put("/{user_id}/role", tags=["Admin"])
+async def assign_role(user_id: str, role_id: int):
     pass
