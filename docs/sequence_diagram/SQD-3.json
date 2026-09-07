@@ -1,0 +1,150 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "seqdiag",
+      "name": "Sequence",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member"
+        },
+        {
+          "id": "n3",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "Web Client"
+        },
+        {
+          "id": "n5",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n6",
+          "type": "node",
+          "parent": "1",
+          "label": "Backend Controller"
+        },
+        {
+          "id": "n7",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n8",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Logic"
+        },
+        {
+          "id": "n9",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n10",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Database"
+        },
+        {
+          "id": "n11",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n12",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n13",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n14",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n15",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n16",
+          "type": "edge",
+          "parent": "1",
+          "label": "Edit description / add additional information"
+        },
+        {
+          "id": "n17",
+          "type": "edge",
+          "parent": "1",
+          "label": "PATCH /requests/{id}"
+        },
+        {
+          "id": "n18",
+          "type": "edge",
+          "parent": "1",
+          "label": "Validate edit request"
+        },
+        {
+          "id": "n19",
+          "type": "edge",
+          "parent": "1",
+          "label": "Check request is assigned to this Lab Member"
+        },
+        {
+          "id": "n20",
+          "type": "edge",
+          "parent": "1",
+          "label": "Validate edited fields"
+        },
+        {
+          "id": "n21",
+          "type": "edge",
+          "parent": "1",
+          "label": "Update request record"
+        },
+        {
+          "id": "n22",
+          "type": "edge",
+          "parent": "1",
+          "label": "Confirm update"
+        },
+        {
+          "id": "n23",
+          "type": "edge",
+          "parent": "1",
+          "label": "Return updated request"
+        },
+        {
+          "id": "n24",
+          "type": "edge",
+          "parent": "1",
+          "label": "200 OK + updated request"
+        },
+        {
+          "id": "n25",
+          "type": "edge",
+          "parent": "1",
+          "label": "Show updated request information"
+        }
+      ]
+    }
+  ]
+}

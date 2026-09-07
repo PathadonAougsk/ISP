@@ -1,0 +1,152 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "seqdiag",
+      "name": "Sequence",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member"
+        },
+        {
+          "id": "n3",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n5",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n7",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n9",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n11",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n12",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n13",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n14",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n15",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n16",
+          "type": "edge",
+          "parent": "1",
+          "target": "n15",
+          "label": "Submit new request (title, description, category, priority)"
+        },
+        {
+          "id": "n17",
+          "type": "edge",
+          "parent": "1",
+          "label": "POST /requests"
+        },
+        {
+          "id": "n18",
+          "type": "edge",
+          "parent": "1",
+          "label": "Validate request data"
+        },
+        {
+          "id": "n19",
+          "type": "edge",
+          "parent": "1",
+          "label": "Check category is allowed"
+        },
+        {
+          "id": "n20",
+          "type": "edge",
+          "parent": "1",
+          "label": "Generate unique request ID"
+        },
+        {
+          "id": "n21",
+          "type": "edge",
+          "parent": "1",
+          "label": "Insert new request record"
+        },
+        {
+          "id": "n22",
+          "type": "edge",
+          "parent": "1",
+          "label": "Confirm saved"
+        },
+        {
+          "id": "n23",
+          "type": "edge",
+          "parent": "1",
+          "label": "Return created request (ID, status)"
+        },
+        {
+          "id": "n24",
+          "type": "edge",
+          "parent": "1",
+          "label": "201 Created + request details"
+        },
+        {
+          "id": "n25",
+          "type": "edge",
+          "parent": "1",
+          "source": "n15",
+          "label": "Show new request with ID"
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "Web Client"
+        },
+        {
+          "id": "n6",
+          "type": "node",
+          "parent": "1",
+          "label": "Backend Controller"
+        },
+        {
+          "id": "n8",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Logic"
+        },
+        {
+          "id": "n10",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Database"
+        }
+      ]
+    }
+  ]
+}

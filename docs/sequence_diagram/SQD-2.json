@@ -1,0 +1,138 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "seqdiag",
+      "name": "Sequence",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member"
+        },
+        {
+          "id": "n3",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "Web Client"
+        },
+        {
+          "id": "n5",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n6",
+          "type": "node",
+          "parent": "1",
+          "label": "Backend Controller"
+        },
+        {
+          "id": "n7",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n8",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Logic"
+        },
+        {
+          "id": "n9",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n10",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Database"
+        },
+        {
+          "id": "n11",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n12",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n13",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n14",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n15",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n16",
+          "type": "edge",
+          "parent": "1",
+          "label": "Select a request to view"
+        },
+        {
+          "id": "n17",
+          "type": "edge",
+          "parent": "1",
+          "label": "GET /requests/{id}"
+        },
+        {
+          "id": "n18",
+          "type": "edge",
+          "parent": "1",
+          "label": "Retrieve latest request info"
+        },
+        {
+          "id": "n19",
+          "type": "edge",
+          "parent": "1",
+          "label": "Query request by ID"
+        },
+        {
+          "id": "n20",
+          "type": "edge",
+          "parent": "1",
+          "label": "Return request record"
+        },
+        {
+          "id": "n21",
+          "type": "edge",
+          "parent": "1",
+          "label": "Title, priority, status, last updated"
+        },
+        {
+          "id": "n22",
+          "type": "edge",
+          "parent": "1",
+          "label": "Request details"
+        },
+        {
+          "id": "n23",
+          "type": "edge",
+          "parent": "1",
+          "label": "Display title, priority, status, latest update"
+        }
+      ]
+    }
+  ]
+}

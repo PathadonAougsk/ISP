@@ -1,0 +1,76 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "AD2diagram",
+      "name": "AD-2 Lab Member Views and Tracks Request",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "start",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n1",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member selects a request"
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "System retrieves the latest request information"
+        },
+        {
+          "id": "n3",
+          "type": "node",
+          "parent": "1",
+          "label": "System displays request information\n(title, priority, current status)"
+        },
+        {
+          "id": "end",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "endRing",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "e1",
+          "type": "edge",
+          "parent": "1",
+          "source": "start",
+          "target": "n1"
+        },
+        {
+          "id": "e2",
+          "type": "edge",
+          "parent": "1",
+          "source": "n1",
+          "target": "n2"
+        },
+        {
+          "id": "e3",
+          "type": "edge",
+          "parent": "1",
+          "source": "n2",
+          "target": "n3"
+        },
+        {
+          "id": "e4",
+          "type": "edge",
+          "parent": "1",
+          "source": "n3",
+          "target": "end"
+        }
+      ]
+    }
+  ]
+}

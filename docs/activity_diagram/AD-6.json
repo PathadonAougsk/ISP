@@ -1,0 +1,102 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "AD6diagram",
+      "name": "AD-6 Lab Staff Creates Temporary Lab Member",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "start",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n1",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff selects \"Create Temporary Lab Member\""
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "System displays temporary lab member creation form"
+        },
+        {
+          "id": "n3",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff enters temporary lab member information and request limit"
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "System creates the temporary lab member with the specified request limit"
+        },
+        {
+          "id": "n5",
+          "type": "node",
+          "parent": "1",
+          "label": "System displays the temporary lab member"
+        },
+        {
+          "id": "end",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "endRing",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "e1",
+          "type": "edge",
+          "parent": "1",
+          "source": "start",
+          "target": "n1"
+        },
+        {
+          "id": "e2",
+          "type": "edge",
+          "parent": "1",
+          "source": "n1",
+          "target": "n2"
+        },
+        {
+          "id": "e3",
+          "type": "edge",
+          "parent": "1",
+          "source": "n2",
+          "target": "n3"
+        },
+        {
+          "id": "e4",
+          "type": "edge",
+          "parent": "1",
+          "source": "n3",
+          "target": "n4"
+        },
+        {
+          "id": "e5",
+          "type": "edge",
+          "parent": "1",
+          "source": "n4",
+          "target": "n5"
+        },
+        {
+          "id": "e6",
+          "type": "edge",
+          "parent": "1",
+          "source": "n5",
+          "target": "end"
+        }
+      ]
+    }
+  ]
+}

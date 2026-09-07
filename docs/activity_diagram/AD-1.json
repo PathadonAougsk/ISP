@@ -1,0 +1,142 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "Ww4WrnykboTa3q3gXtsG",
+      "name": "AD-1 Lab Member Submits Request",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-1",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member opens request submission"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-3",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member enters request information\n(title, description, category, priority)"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-4",
+          "type": "node",
+          "parent": "1",
+          "label": "System validates request information"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-5",
+          "type": "node",
+          "parent": "1",
+          "label": "Valid?"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-6",
+          "type": "node",
+          "parent": "1",
+          "label": "System displays validation error"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-7",
+          "type": "node",
+          "parent": "1",
+          "label": "System saves request"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-8",
+          "type": "node",
+          "parent": "1",
+          "label": "System generates unique request ID"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-9",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-10",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-11",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-1",
+          "target": "NqREToCRqiWGfUvJQg2I-2"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-12",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-2",
+          "target": "NqREToCRqiWGfUvJQg2I-3"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-13",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-3",
+          "target": "NqREToCRqiWGfUvJQg2I-4"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-14",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-4",
+          "target": "NqREToCRqiWGfUvJQg2I-5"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-15",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-5",
+          "target": "NqREToCRqiWGfUvJQg2I-7",
+          "label": "Yes"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-16",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-5",
+          "target": "NqREToCRqiWGfUvJQg2I-6",
+          "label": "No"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-17",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-6",
+          "target": "NqREToCRqiWGfUvJQg2I-3"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-18",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-7",
+          "target": "NqREToCRqiWGfUvJQg2I-8"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-19",
+          "type": "edge",
+          "parent": "1",
+          "source": "NqREToCRqiWGfUvJQg2I-8",
+          "target": "NqREToCRqiWGfUvJQg2I-9"
+        },
+        {
+          "id": "NqREToCRqiWGfUvJQg2I-23",
+          "type": "node",
+          "parent": "1"
+        }
+      ]
+    }
+  ]
+}

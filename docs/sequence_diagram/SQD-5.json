@@ -1,0 +1,138 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "seqdiag",
+      "name": "Sequence",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "n2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member"
+        },
+        {
+          "id": "n3",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n4",
+          "type": "node",
+          "parent": "1",
+          "label": "Web Client"
+        },
+        {
+          "id": "n5",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n6",
+          "type": "node",
+          "parent": "1",
+          "label": "Backend Controller"
+        },
+        {
+          "id": "n7",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n8",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Logic"
+        },
+        {
+          "id": "n9",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n10",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Database"
+        },
+        {
+          "id": "n11",
+          "type": "edge",
+          "parent": "1"
+        },
+        {
+          "id": "n12",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n13",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n14",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n15",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "n16",
+          "type": "edge",
+          "parent": "1",
+          "label": "Enter search/filter criteria (ID, category, priority, status)"
+        },
+        {
+          "id": "n17",
+          "type": "edge",
+          "parent": "1",
+          "label": "GET /requests?filters"
+        },
+        {
+          "id": "n18",
+          "type": "edge",
+          "parent": "1",
+          "label": "Apply search & filter logic"
+        },
+        {
+          "id": "n19",
+          "type": "edge",
+          "parent": "1",
+          "label": "Query requests matching filters"
+        },
+        {
+          "id": "n20",
+          "type": "edge",
+          "parent": "1",
+          "label": "Matching requests (incl. completed/closed)"
+        },
+        {
+          "id": "n21",
+          "type": "edge",
+          "parent": "1",
+          "label": "Filtered request list"
+        },
+        {
+          "id": "n22",
+          "type": "edge",
+          "parent": "1",
+          "label": "Request history results"
+        },
+        {
+          "id": "n23",
+          "type": "edge",
+          "parent": "1",
+          "label": "Display filtered request history"
+        }
+      ]
+    }
+  ]
+}

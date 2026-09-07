@@ -1,0 +1,244 @@
+{
+  "version": "31.3.2",
+  "pages": [
+    {
+      "id": "uai7pjYFJ3wIByAPrmAq",
+      "name": "Page-1",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-1",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-7",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-2"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-2",
+          "type": "node",
+          "parent": "1",
+          "label": "Ticket Progress&nbsp;"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-3",
+          "type": "node",
+          "parent": "1",
+          "label": "Requests List"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-4",
+          "type": "node",
+          "parent": "1",
+          "label": "Filter/Browser Requests"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-5",
+          "type": "node",
+          "parent": "1",
+          "label": "Create ticket"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-4",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-11"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-11",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-12",
+          "type": "node",
+          "parent": "1",
+          "label": "Report Page"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-13",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-17",
+          "target": "mgbSiVz_04dFZZVufa-B-19"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-14",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-17",
+          "target": "mgbSiVz_04dFZZVufa-B-20"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-15",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-17",
+          "target": "mgbSiVz_04dFZZVufa-B-22"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-16",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-17",
+          "target": "mgbSiVz_04dFZZVufa-B-26"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-17",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Staff"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-18",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-19",
+          "target": "mgbSiVz_04dFZZVufa-B-23"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-19",
+          "type": "node",
+          "parent": "1",
+          "label": "Edit requests"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-20",
+          "type": "node",
+          "parent": "1",
+          "label": "Archive requests"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-21",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-22",
+          "target": "mgbSiVz_04dFZZVufa-B-23"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-22",
+          "type": "node",
+          "parent": "1",
+          "label": "Give lab member permission"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-23",
+          "type": "node",
+          "parent": "1",
+          "label": "Validate requests"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-24",
+          "type": "node",
+          "parent": "1",
+          "label": "&lt;&lt;Include&gt;&gt;"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-25",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-26",
+          "target": "mgbSiVz_04dFZZVufa-B-23"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-26",
+          "type": "node",
+          "parent": "1",
+          "label": "Create temporary lab members with a limited set amount of tickets.&nbsp;"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-29",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-27",
+          "target": "mgbSiVz_04dFZZVufa-B-28"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-33",
+          "type": "edge",
+          "parent": "1",
+          "target": "mgbSiVz_04dFZZVufa-B-32"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-34",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-27",
+          "target": "mgbSiVz_04dFZZVufa-B-30"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-27",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Owner"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-28",
+          "type": "node",
+          "parent": "1",
+          "label": "Create lab member with custom username and password"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-30",
+          "type": "node",
+          "parent": "1",
+          "label": "Grant Permissons"
+        },
+        {
+          "id": "mgbSiVz_04dFZZVufa-B-32",
+          "type": "node",
+          "parent": "1",
+          "label": "Remove Permissions / User"
+        },
+        {
+          "id": "P29aQsrvS57dJxNkIrI--2",
+          "type": "node",
+          "parent": "1",
+          "label": "Login via Custom email and password"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-6",
+          "type": "edge",
+          "parent": "1",
+          "source": "P29aQsrvS57dJxNkIrI--2",
+          "target": "mgbSiVz_04dFZZVufa-B-11"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-8",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-3",
+          "target": "mgbSiVz_04dFZZVufa-B-11"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-9",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-4",
+          "target": "mgbSiVz_04dFZZVufa-B-11"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-10",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-5",
+          "target": "mgbSiVz_04dFZZVufa-B-11"
+        },
+        {
+          "id": "hUuzo-wuAJLfnKlI6dZ8-11",
+          "type": "edge",
+          "parent": "1",
+          "source": "mgbSiVz_04dFZZVufa-B-12",
+          "target": "mgbSiVz_04dFZZVufa-B-11"
+        }
+      ]
+    }
+  ]
+}
