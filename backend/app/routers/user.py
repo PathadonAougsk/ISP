@@ -22,3 +22,23 @@ async def create_user(
     auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],
 ):
     return await user_service.create_account(session, auth_user.id, auth_user.email)
+
+@userRouter.get("/{user_id}", tags=["User"])
+async def retrieve_user(user_id: str):
+    pass
+
+@userRouter.put("/{user_id}", tags=["User"])
+async def update_user(user_id: str):
+    pass
+
+@userRouter.delete("/{user_id}", tags=["User"])
+async def delete_user(user_id: str):
+    pass
+
+@userRouter.post("/admin", tags=["Admin"])
+async def admin_create_user():
+    pass
+
+@userRouter.put("/{user_id}/role", tags=["Admin"])
+async def assign_role(user_id: str, role_id: int):
+    pass

@@ -14,3 +14,19 @@ announcementRouter = APIRouter(prefix="/announcement", dependencies=[Depends(use
 async def retrieve_announcements(session: Annotated[AsyncSession, Depends(getSession)]):
     announcements = await session.scalars(select(Announcement))
     return {"Announcements": announcements.all()}
+
+@announcementRouter.get("/{announcement_id}", tags=["Announcement"])
+async def retrieve_announcement(announcement_id: int):
+    pass
+
+@announcementRouter.post("/", tags=["Announcement"])
+async def create_announcement():
+    pass
+
+@announcementRouter.put("/{announcement_id}", tags=["Announcement"])
+async def update_announcement(announcement_id: int):
+    pass
+
+@announcementRouter.delete("/{announcement_id}", tags=["Announcement"])
+async def delete_announcement(announcement_id: int):
+    pass

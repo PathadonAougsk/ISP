@@ -32,3 +32,11 @@ async def signup(body: SignUpRequest):
 async def login(body: SignInRequest):
     auth_response = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
     return TokenResponse(access_token=auth_response.session.access_token)
+
+@authRouter.post("/logout")
+async def logout():
+    pass
+
+@authRouter.post("/refresh", response_model=TokenResponse)
+async def refresh():
+    pass
