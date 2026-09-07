@@ -1,24 +1,24 @@
-from fastapi import APIRouter
-from pydantic.main import BaseModel
-from sqlalchemy.orm import Session
+from typing import Annotated
 
-from app.database import engine
-from app.dependencies import supabase
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from supabase_auth.types import User as AuthUser
+
+from app.database import getSession
 from app.model import Account
-userRouter = APIRouter(prefix="/user")
+from app.service import user_service
 
-class info(BaseModel):
-    email: str
+userRouter = APIRouter(prefix="/user", dependencies=[Depends(user_service.get_current_auth_user)])
 
 @userRouter.get("/", tags=["User"])
-async def retrieve_users():
-    pass
+async def retrieve_users(session : Annotated[AsyncSession, Depends(getSession)]):
+    accounts = await session.scalars(select(Account))
+    return { "Users" : accounts.all()}
 
-@userRouter.post("/Create", tags=["User"])
-async def create_user(info : info):
-    data = supabase.auth.sign_up({
-        "email" : info.email,
-        "password" : "12345678"
-    })
-
-    return data.user.id
+@userRouter.post("/", tags=["User"])
+async def create_user(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],
+):
+    return await user_service.create_account(session, auth_user.id, auth_user.email)

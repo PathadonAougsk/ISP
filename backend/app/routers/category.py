@@ -1,9 +1,16 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.dependencies import supabase
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-categoryRouter = APIRouter(prefix="/category")
+from app.database import getSession
+from app.model import Category
+from app.service import user_service
+
+categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(user_service.get_current_auth_user)])
 
 @categoryRouter.get("/", tags=["Category"])
-async def retrieve_categories():
-    pass
+async def retrieve_categories(session: Annotated[AsyncSession, Depends(getSession)]):
+    categories = await session.scalars(select(Category))
+    return {"Categories": categories.all()}

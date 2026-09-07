@@ -3,9 +3,11 @@ name = "ISP-Backend"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "asyncpg>=0.31.0",
     "env>=0.1.0",
     "fastapi[standard-no-fastapi-cloud-cli]>=0.141.1",
     "psycopg2-binary>=2.9",
+    "python-dotenv>=1.2.3",
     "sqlalchemy>=2.0.52",
     "supabase>=2.31.0",
 ]
