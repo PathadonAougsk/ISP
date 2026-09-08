@@ -114,6 +114,18 @@ class Status(Base):
     announcements: Mapped[list[Announcement]] = relationship(back_populates="status")
 
 
+class Urgency(Base):
+    __tablename__ = "urgency"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    priority_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    tasks: Mapped[list[Task]] = relationship(back_populates="urgency")
+    tickets: Mapped[list[Ticket]] = relationship(back_populates="urgency")
+    announcements: Mapped[list[Announcement]] = relationship(back_populates="urgency")
+
+
 class Category(Base):
     __tablename__ = "category"
 
@@ -138,6 +150,7 @@ class Task(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
+    urgency_id: Mapped[int] = mapped_column(ForeignKey("urgency.id"), nullable=False)
     created_by: Mapped[uuid_pkg.UUID] = mapped_column(ForeignKey("account.id"), nullable=False)
     assigned_id: Mapped[uuid_pkg.UUID | None] = mapped_column(ForeignKey("account.id"), nullable=True)
     created: Mapped[datetime.datetime] = mapped_column(
@@ -148,6 +161,7 @@ class Task(Base):
     )
 
     status: Mapped[Status] = relationship(back_populates="tasks")
+    urgency: Mapped[Urgency] = relationship(back_populates="tasks")
     creator: Mapped[Account] = relationship(back_populates="created_tasks", foreign_keys=[created_by])
     assignee: Mapped[Account | None] = relationship(
         back_populates="assigned_tasks", foreign_keys=[assigned_id]
@@ -164,6 +178,7 @@ class Ticket(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
+    urgency_id: Mapped[int] = mapped_column(ForeignKey("urgency.id"), nullable=False)
     created_by: Mapped[uuid_pkg.UUID] = mapped_column(ForeignKey("account.id"), nullable=False)
     assigned_id: Mapped[uuid_pkg.UUID | None] = mapped_column(ForeignKey("account.id"), nullable=True)
     created: Mapped[datetime.datetime] = mapped_column(
@@ -174,6 +189,7 @@ class Ticket(Base):
     )
 
     status: Mapped[Status] = relationship(back_populates="tickets")
+    urgency: Mapped[Urgency] = relationship(back_populates="tickets")
     creator: Mapped[Account] = relationship(back_populates="created_tickets", foreign_keys=[created_by])
     assignee: Mapped[Account | None] = relationship(
         back_populates="assigned_tickets", foreign_keys=[assigned_id]
@@ -190,6 +206,7 @@ class Announcement(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
+    urgency_id: Mapped[int] = mapped_column(ForeignKey("urgency.id"), nullable=False)
     created_by: Mapped[uuid_pkg.UUID] = mapped_column(ForeignKey("account.id"), nullable=False)
     created: Mapped[datetime.datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
@@ -199,6 +216,7 @@ class Announcement(Base):
     )
 
     status: Mapped[Status] = relationship(back_populates="announcements")
+    urgency: Mapped[Urgency] = relationship(back_populates="announcements")
     creator: Mapped[Account] = relationship(
         back_populates="created_announcements", foreign_keys=[created_by]
     )
