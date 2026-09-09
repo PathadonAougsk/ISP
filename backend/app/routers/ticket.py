@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,8 +16,14 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
     return {"Tickets": tickets.all()}
 
 @ticketRouter.get("/{ticket_id}", tags=["Tickets"])
-async def retrieve_ticket(ticket_id: int):
-    pass
+async def retrieve_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
+    result = await session.scalars(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.first()
+
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    return {"Tickets": ticket}
 
 @ticketRouter.post("/", tags=["Tickets"])
 async def create_ticket():
@@ -28,5 +34,14 @@ async def update_ticket(ticket_id: int):
     pass
 
 @ticketRouter.delete("/{ticket_id}", tags=["Tickets"])
-async def delete_ticket(ticket_id: int):
-    pass
+async def delete_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
+    result = await session.scalars(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.first()
+
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    await session.delete(ticket)
+    await session.commit()
+
+    return {"message": "Ticket deleted successfully"}
