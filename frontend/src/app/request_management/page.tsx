@@ -13,6 +13,12 @@ interface Ticket {
   createdBy: string;
 }
 
+interface Member {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export default function RequestTable() {
   const [searchTerm, setSearchTerm]  = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -31,6 +37,25 @@ export default function RequestTable() {
       createdBy: "Pasin Mclaren"
     },
   ]);
+
+  const members: Member[] = [
+    { id: "m1", name: "John Doe", email: "john.d@ku.th" },
+    { id: "m2", name: "Jane Smith", email: "jane.s@ku.th" },
+    { id: "m3", name: "Alex Lee", email: "alex.l@ku.th" },
+    { id: "m4", name: "Sam Park", email: "sam.p@ku.th" },
+    { id: "m5", name: "Chris Kim", email: "chris.k@ku.th" },
+    { id: "m6", name: "Pat Ito", email: "pat.i@ku.th" },
+  ];
+
+  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([]);
+
+  function toggleAssign(memberId: string) {
+    setAssignedMemberIds((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
+    );
+  }
 
   function handleDecision(newStatus: Ticket["status"]) {
     if (!selectedTicket) return;
@@ -108,6 +133,23 @@ export default function RequestTable() {
             <button onClick={() => handleDecision("Closed")}>Reject</button>
             <button onClick={() => handleDecision("In-process")}>Revised</button>
             <button onClick={() => handleDecision("Open")}>Approve</button>
+          </div>
+          <div>
+            <p>Assign - Members ({members.length})</p>
+            {members.map((member) => (
+              <label
+                key={member.id}
+                style={{ display: "flex", alignItems: "center", gap: "8px", marginbottom: "8px"}}
+              >
+                <input
+                  type="checkbox"
+                  checked={assignedMemberIds.includes(member.id)}
+                  onChange={() => toggleAssign(member.id)}
+                />
+                {member.name} <br />
+                <small>{member.email}</small>
+              </label>
+            ))}
           </div>
         </div>
       )}
