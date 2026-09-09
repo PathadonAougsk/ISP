@@ -1,254 +1,370 @@
 from __future__ import annotations
 
-import datetime
-import uuid as uuid_pkg
+import datetime as dt
+import uuid
+from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
     Column,
+    DateTime,
+    DDL,
+    FetchedValue,
     ForeignKey,
+    Identity,
     Index,
     Integer,
+    String,
     Table,
     Text,
+    event,
     func,
+    text,
 )
-from sqlalchemy.dialects.postgresql import CHAR, JSONB, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
     pass
 
-
-task_category = Table(
-    "task_category",
+auth_users = Table(
+    "users",
     Base.metadata,
-    Column("task_id", ForeignKey("task.id", ondelete="CASCADE"), primary_key=True),
-    Column("category_id", ForeignKey("category.id", ondelete="CASCADE"), primary_key=True),
+    Column("id", UUID(as_uuid=True), primary_key=True),
+    schema="auth",
 )
-
-ticket_category = Table(
-    "ticket_category",
-    Base.metadata,
-    Column("ticket_id", ForeignKey("ticket.id", ondelete="CASCADE"), primary_key=True),
-    Column("category_id", ForeignKey("category.id", ondelete="CASCADE"), primary_key=True),
-)
-
-announcement_category = Table(
-    "announcement_category",
-    Base.metadata,
-    Column("announcement_id", ForeignKey("announcement.id", ondelete="CASCADE"), primary_key=True),
-    Column("category_id", ForeignKey("category.id", ondelete="CASCADE"), primary_key=True),
-)
-
 
 class Permission(Base):
     __tablename__ = "permission"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    can_edit: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-    can_complete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-    can_grant_role: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-    can_revoke_role: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-
-    role: Mapped[Role | None] = relationship(back_populates="permission", uselist=False)
-
-
-class Role(Base):
-    __tablename__ = "role"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    permission_id: Mapped[int] = mapped_column(
-        ForeignKey("permission.id"), nullable=False, unique=True
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    can_overwrite: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    can_edit_role: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
     )
 
-    permission: Mapped[Permission] = relationship(back_populates="role")
-    accounts: Mapped[list[Account]] = relationship(back_populates="role")
+    role: Mapped[Optional["Role"]] = relationship(back_populates="permission")
 
-
-class Account(Base):
-    __tablename__ = "account"
-
-    id: Mapped[uuid_pkg.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, comment="same uuid as auth.users.id"
-    )
-    email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    role_id: Mapped[int] = mapped_column(ForeignKey("role.id"), nullable=False)
-    quota: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="temp account limit")
-    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-
-    role: Mapped[Role] = relationship(back_populates="accounts")
-
-    created_tasks: Mapped[list[Task]] = relationship(
-        back_populates="creator", foreign_keys="Task.created_by"
-    )
-    assigned_tasks: Mapped[list[Task]] = relationship(
-        back_populates="assignee", foreign_keys="Task.assigned_id"
-    )
-    created_tickets: Mapped[list[Ticket]] = relationship(
-        back_populates="creator", foreign_keys="Ticket.created_by"
-    )
-    assigned_tickets: Mapped[list[Ticket]] = relationship(
-        back_populates="assignee", foreign_keys="Ticket.assigned_id"
-    )
-    created_announcements: Mapped[list[Announcement]] = relationship(
-        back_populates="creator", foreign_keys="Announcement.created_by"
-    )
-    audit_entries: Mapped[list[AuditLog]] = relationship(back_populates="actor_account")
+    def __repr__(self) -> str:
+        return f"<Permission {self.id} overwrite={self.can_overwrite} edit_role={self.can_edit_role}>"
 
 
 class Status(Base):
     __tablename__ = "status"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    priority_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    name: Mapped[str] = mapped_column(String(29), nullable=False, unique=True)
 
-    tasks: Mapped[list[Task]] = relationship(back_populates="status")
-    tickets: Mapped[list[Ticket]] = relationship(back_populates="status")
-    announcements: Mapped[list[Announcement]] = relationship(back_populates="status")
+    tasks: Mapped[list["Task"]] = relationship(back_populates="status")
+    tickets: Mapped[list["Ticket"]] = relationship(back_populates="status")
+    announcements: Mapped[list["Announcement"]] = relationship(back_populates="status")
 
-
-class Urgency(Base):
-    __tablename__ = "urgency"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    priority_rank: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    tasks: Mapped[list[Task]] = relationship(back_populates="urgency")
-    tickets: Mapped[list[Ticket]] = relationship(back_populates="urgency")
-    announcements: Mapped[list[Announcement]] = relationship(back_populates="urgency")
-
+    def __repr__(self) -> str:
+        return f"<Status {self.id} {self.name!r}>"
 
 class Category(Base):
     __tablename__ = "category"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
 
-    tasks: Mapped[list[Task]] = relationship(
-        secondary=task_category, back_populates="categories"
-    )
-    tickets: Mapped[list[Ticket]] = relationship(
-        secondary=ticket_category, back_populates="categories"
-    )
-    announcements: Mapped[list[Announcement]] = relationship(
-        secondary=announcement_category, back_populates="categories"
+    tasks: Mapped[list["Task"]] = relationship(back_populates="category")
+    tickets: Mapped[list["Ticket"]] = relationship(back_populates="category")
+
+    def __repr__(self) -> str:
+        return f"<Category {self.id} {self.name!r}>"
+
+class Role(Base):
+    __tablename__ = "role"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    permission_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("permission.id", ondelete="RESTRICT"),
+        nullable=False,
+        unique=True,
     )
 
+    permission: Mapped[Permission] = relationship(back_populates="role")
+    accounts: Mapped[list["Account"]] = relationship(back_populates="role")
+
+    def __repr__(self) -> str:
+        return f"<Role {self.id} {self.name!r}>"
+
+class Account(Base):
+
+    __tablename__ = "account"
+    __table_args__ = (CheckConstraint("quota >= 0", name="account_quota_check"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    role_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("role.id", ondelete="RESTRICT"), nullable=False
+    )
+    quota: Mapped[Optional[int]] = mapped_column(Integer)
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+
+    role: Mapped[Role] = relationship(back_populates="accounts")
+
+    tasks_created: Mapped[list["Task"]] = relationship(
+        back_populates="creator", foreign_keys="Task.created_by"
+    )
+    tasks_completed: Mapped[list["Task"]] = relationship(
+        back_populates="completer", foreign_keys="Task.completed_by"
+    )
+    tasks_assigned: Mapped[list["Task"]] = relationship(
+        secondary=lambda: task_assigned_to, back_populates="assignees"
+    )
+
+    tickets_created: Mapped[list["Ticket"]] = relationship(
+        back_populates="creator", foreign_keys="Ticket.created_by"
+    )
+    tickets_completed: Mapped[list["Ticket"]] = relationship(
+        back_populates="completer", foreign_keys="Ticket.completed_by"
+    )
+    tickets_assigned: Mapped[list["Ticket"]] = relationship(
+        back_populates="assignee", foreign_keys="Ticket.assigned_id"
+    )
+
+    announcements: Mapped[list["Announcement"]] = relationship(back_populates="creator")
+    audit_entries: Mapped[list["AuditLog"]] = relationship(back_populates="actor")
+
+    def __repr__(self) -> str:
+        return f"<Account {self.username!r} role_id={self.role_id} active={self.active}>"
+
+task_assigned_to = Table(
+    "task_assigned_to",
+    Base.metadata,
+    Column(
+        "task_id",
+        Integer,
+        ForeignKey("task.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
+    ),
+    Column(
+        "assigned_id",
+        UUID(as_uuid=True),
+        ForeignKey("account.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
+    ),
+    Index("idx_tat_account", "assigned_id"),
+)
 
 class Task(Base):
     __tablename__ = "task"
+    __table_args__ = (Index("idx_task_due", "due_date"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
-    urgency_id: Mapped[int] = mapped_column(ForeignKey("urgency.id"), nullable=False)
-    created_by: Mapped[uuid_pkg.UUID] = mapped_column(ForeignKey("account.id"), nullable=False)
-    assigned_id: Mapped[uuid_pkg.UUID | None] = mapped_column(ForeignKey("account.id"), nullable=True)
-    created: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    status_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
     )
-    updated: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    category_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("category.id", ondelete="RESTRICT"), nullable=False
     )
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
+    )
+    completed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
+    )
+    created: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    updated: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
+    )
+    completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
+    due_date: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     status: Mapped[Status] = relationship(back_populates="tasks")
-    urgency: Mapped[Urgency] = relationship(back_populates="tasks")
-    creator: Mapped[Account] = relationship(back_populates="created_tasks", foreign_keys=[created_by])
-    assignee: Mapped[Account | None] = relationship(
-        back_populates="assigned_tasks", foreign_keys=[assigned_id]
+    category: Mapped[Category] = relationship(back_populates="tasks")
+    creator: Mapped[Account] = relationship(
+        back_populates="tasks_created", foreign_keys=[created_by]
     )
-    categories: Mapped[list[Category]] = relationship(
-        secondary=task_category, back_populates="tasks"
+    completer: Mapped[Optional[Account]] = relationship(
+        back_populates="tasks_completed", foreign_keys=[completed_by]
+    )
+    assignees: Mapped[list[Account]] = relationship(
+        secondary=task_assigned_to, back_populates="tasks_assigned"
     )
 
+    def __repr__(self) -> str:
+        return f"<Task {self.id} {self.name!r}>"
 
 class Ticket(Base):
     __tablename__ = "ticket"
+    __table_args__ = (Index("idx_ticket_due", "due_date"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
-    urgency_id: Mapped[int] = mapped_column(ForeignKey("urgency.id"), nullable=False)
-    created_by: Mapped[uuid_pkg.UUID] = mapped_column(ForeignKey("account.id"), nullable=False)
-    assigned_id: Mapped[uuid_pkg.UUID | None] = mapped_column(ForeignKey("account.id"), nullable=True)
-    created: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    status_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
     )
-    updated: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    category_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("category.id", ondelete="RESTRICT"), nullable=False
     )
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
+    )
+    completed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
+    )
+
+    assigned_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
+    )
+    created: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
+    )
+    completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
+    due_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
 
     status: Mapped[Status] = relationship(back_populates="tickets")
-    urgency: Mapped[Urgency] = relationship(back_populates="tickets")
-    creator: Mapped[Account] = relationship(back_populates="created_tickets", foreign_keys=[created_by])
-    assignee: Mapped[Account | None] = relationship(
-        back_populates="assigned_tickets", foreign_keys=[assigned_id]
+    category: Mapped[Category] = relationship(back_populates="tickets")
+    creator: Mapped[Account] = relationship(
+        back_populates="tickets_created", foreign_keys=[created_by]
     )
-    categories: Mapped[list[Category]] = relationship(
-        secondary=ticket_category, back_populates="tickets"
+    completer: Mapped[Optional[Account]] = relationship(
+        back_populates="tickets_completed", foreign_keys=[completed_by]
+    )
+    assignee: Mapped[Optional[Account]] = relationship(
+        back_populates="tickets_assigned", foreign_keys=[assigned_id]
     )
 
+    def __repr__(self) -> str:
+        return f"<Ticket {self.id} {self.name!r}>"
 
 class Announcement(Base):
     __tablename__ = "announcement"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
-    urgency_id: Mapped[int] = mapped_column(ForeignKey("urgency.id"), nullable=False)
-    created_by: Mapped[uuid_pkg.UUID] = mapped_column(ForeignKey("account.id"), nullable=False)
-    created: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    status_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
     )
-    updated: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
+    )
+    created: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
     )
 
     status: Mapped[Status] = relationship(back_populates="announcements")
-    urgency: Mapped[Urgency] = relationship(back_populates="announcements")
-    creator: Mapped[Account] = relationship(
-        back_populates="created_announcements", foreign_keys=[created_by]
-    )
-    categories: Mapped[list[Category]] = relationship(
-        secondary=announcement_category, back_populates="announcements"
-    )
+    creator: Mapped[Account] = relationship(back_populates="announcements")
 
+    def __repr__(self) -> str:
+        return f"<Announcement {self.id} {self.name!r}>"
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
     __table_args__ = (
-        CheckConstraint("op IN ('I', 'U', 'D')", name="ck_audit_log_op"),
-        Index("ix_audit_log_table_name_row_id", "table_name", "row_id"),
-        Index("ix_audit_log_actor_at", "actor", "at"),
+        Index("idx_audit_row", "from_table", "row_id", "occurred_at"),
+        Index("idx_audit_actor", "by_whom"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    table_name: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="which table the row lives in"
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
+    from_table: Mapped[str] = mapped_column(String(64), nullable=False)
+    row_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    column_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    old_value: Mapped[Optional[str]] = mapped_column(Text)
+    new_value: Mapped[Optional[str]] = mapped_column(Text)
+    by_whom: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
     )
-    row_id: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="no FK: holds both int and uuid ids"
-    )
-    op: Mapped[str] = mapped_column(CHAR(1), nullable=False, comment="I, U or D")
-    changed: Mapped[dict | None] = mapped_column(
-        JSONB, nullable=True, comment="full row for I/D, changed keys only for U"
-    )
-    actor: Mapped[uuid_pkg.UUID | None] = mapped_column(
-        ForeignKey("account.id"), nullable=True, comment="auth.uid(); null for service-role writes"
-    )
-    at: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    occurred_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    actor_account: Mapped[Account | None] = relationship(back_populates="audit_entries")
+    actor: Mapped[Optional[Account]] = relationship(back_populates="audit_entries")
+
+    def __repr__(self) -> str:
+        return f"<AuditLog {self.id} {self.from_table}.{self.column_name} row={self.row_id}>"
+
+_TOUCH_UPDATED_FN = DDL(
+    """
+CREATE OR REPLACE FUNCTION public.touch_updated()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated := now();
+  RETURN NEW;
+END;
+$$;
+"""
+)
+
+event.listen(Base.metadata, "before_create", _TOUCH_UPDATED_FN)
+
+for _table, _trigger in (
+    (Task.__table__, "trg_task_updated"),
+    (Ticket.__table__, "trg_ticket_updated"),
+    (Announcement.__table__, "trg_ann_updated"),
+):
+    event.listen(
+        _table,
+        "after_create",
+        DDL(
+            "CREATE TRIGGER %s BEFORE UPDATE ON %s "
+            "FOR EACH ROW EXECUTE FUNCTION public.touch_updated();"
+            % (_trigger, _table.name)
+        ),
+    )
+
+
+def create_public_schema(engine) -> None:
+    """create_all() for everything except the Supabase-owned auth.users stub."""
+    Base.metadata.create_all(
+        engine,
+        tables=[t for t in Base.metadata.sorted_tables if t.schema != "auth"],
+    )
+
+
+__all__ = [
+    "Base",
+    "Permission",
+    "Status",
+    "Category",
+    "Role",
+    "Account",
+    "Task",
+    "task_assigned_to",
+    "Ticket",
+    "Announcement",
+    "AuditLog",
+    "create_public_schema",
+]

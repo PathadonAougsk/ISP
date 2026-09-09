@@ -24,11 +24,11 @@ def get_current_auth_user(
     return response.user
 
 
-async def create_account(session: AsyncSession, id: str, email: str) -> Account:
+async def create_account(session: AsyncSession, id: str, email: str, username: str) -> Account:
     role_id = await session.scalar(select(Role.id).where(Role.name == DEFAULT_ROLE_NAME))
     stmt = (
         insert(Account)
-        .values(id=id, email=email, role_id=role_id)
+        .values(id=id, email=email, username=username, role_id=role_id)
         .on_conflict_do_nothing(index_elements=[Account.id])
         .returning(Account)
     )
