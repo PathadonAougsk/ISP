@@ -19,9 +19,14 @@ class TaskRequest(BaseModel):
 
 taskRouter = APIRouter(prefix="/task", dependencies=[Depends(user_service.get_current_auth_user)])
 
+# Categories param here is optional. If there's none, then get all. 
 @taskRouter.get("/", tags=["Task"])
-async def retrieve_tasks(session: Annotated[AsyncSession, Depends(getSession)]):
-    tasks = await session.scalars(select(Task))
+async def retrieve_tasks(session: Annotated[AsyncSession, Depends(getSession)], categories: list[str] | None = Query(None)):
+    tasks = select(Task)
+    if categories:
+        tasks = tasks.where(Task.categories.in_(categories))
+    
+    tasks = await session.scalars(tasks)
     return {"Tasks": tasks.all()}
 
 @taskRouter.get("/{task_id}", tags=["Task"])
@@ -84,5 +89,4 @@ async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(get
     session.delete(task)
     await session.commit()
 
-    return {"Tasks": task_id} # This should return something that's NOT the task itself <!>
-    pass
+    return {"Message": f"{task_id} has been successfully deleted!"} # This should return something that's NOT the task itself <!>
