@@ -6,19 +6,12 @@ const COLORS = {
   primary_color_3: "#C4DFAA",
 };
 
-const FONT_SIZE = {
-  header: "40px",
-  normal: "18px",
-};
-
 function Announcement() {
   return (
-    <div
-      className="h-[415px] w-full rounded-[30px] p-[20px]"
-      style={{
-        backgroundColor: COLORS.panel_bg,
-      }}
-    >
+    <div className="h-[400px] w-full rounded-[30px] p-[20px]" style={{ backgroundColor: COLORS.panel_bg }}>
+      <div className="flex flex-1 items-start p-[20px] font-bold text-3xl" style={{ color: "#000000" }}>
+        <p>Test Announcement 001</p>
+      </div>
     </div>
   );
 }
@@ -28,36 +21,19 @@ function ActiveTask() {
     <div className="flex h-[120px] w-full gap-[20px]">
 
       {/* Task Active */}
-      <div
-        className="w-[66%] rounded-[30px] p-[20px]"
-        style={{
-          backgroundColor: COLORS.panel_bg,
-        }}
-      >
+      <div className="w-[66%] rounded-[30px] p-[20px]" style={{ backgroundColor: COLORS.panel_bg }}>
       </div>
 
       {/* Task Active Detail */}
       <div className="flex flex-1 flex-col">
 
         {/* Due Tasks */}
-        <div
-          className="flex flex-1 items-start pl-[30px] font-bold"
-          style={{
-            color: "#000000",
-            fontSize: FONT_SIZE.normal,
-          }}
-        >
+        <div className="flex flex-1 items-start pl-[30px] font-bold text-lg" style={{ color: "#000000" }}>
           <p>Due Tasks</p>
         </div>
 
         {/* Test texts */}
-        <div
-          className="flex flex-1 flex-col items-start pl-[30px] font-medium"
-          style={{
-            color: "#000000",
-            fontSize: FONT_SIZE.normal,
-          }}
-        >
+        <div className="flex flex-1 flex-col items-start pl-[30px] font-medium text-lg" style={{ color: "#000000" }}>
           <p>1</p>
           <p>2</p>
           <p>3</p>
@@ -70,12 +46,7 @@ function ActiveTask() {
 
 function LabOverview() {
   return (
-    <div
-      className="min-h-[400px] flex-1 rounded-t-[30px] rounded-b-none p-[20px]"
-      style={{
-        backgroundColor: COLORS.panel_bg,
-      }}
-    >
+    <div className="min-h-[400px] flex-1 rounded-t-[30px] rounded-b-none p-[20px]" style={{ backgroundColor: COLORS.panel_bg }}>
     </div>
   );
 }
@@ -83,12 +54,7 @@ function LabOverview() {
 function TaskTicketList() {
   return (
     <div className="flex flex-1">
-      <div
-        className="h-full w-full rounded-t-[30px] rounded-b-none p-[20px]"
-        style={{
-          backgroundColor: COLORS.panel_bg,
-        }}
-      >
+      <div className="h-full w-full rounded-t-[30px] rounded-b-none p-[20px]" style={{ backgroundColor: COLORS.panel_bg }}>
       </div>
     </div>
   );
@@ -105,11 +71,10 @@ export default function Dashboard() {
 
       {/* Header */}
       <header
-        className="flex h-[80px] w-full items-center pl-[30px] font-bold"
+        className="flex h-[80px] w-full items-center pl-[30px] font-bold text-4xl"
         style={{
           backgroundColor: COLORS.primary_color_3,
           color: "#000000",
-          fontSize: FONT_SIZE.header,
         }}
       >
         Dashboard
