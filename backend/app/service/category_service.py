@@ -7,5 +7,5 @@ from app.model import Category
 async def get_category_or_404(session: AsyncSession, category_id: int) -> Category:
     target = await session.scalar(select(Category).where(Category.id == category_id))
     if target is None:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Couldnt find category")
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=f"Category with id {category_id} not found")
     return target

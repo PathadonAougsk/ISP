@@ -11,9 +11,9 @@ from app.service import urgency_service, user_service
 
 urgencyRouter = APIRouter(prefix="/urgency", dependencies=[Depends(user_service.get_current_auth_user)])
 
-class ReqBody(BaseModel):
-    name : str
-    priority_rank : int
+class UrgencyRequestBody(BaseModel):
+    name : str | None = None
+    priority_rank : int | None = None
 
 @urgencyRouter.get("/", tags=["Urgency"])
 async def retrieve_urgency(session: Annotated[AsyncSession, Depends(getSession)]):
@@ -26,28 +26,27 @@ async def retrieve_urgency_by_id(urgency_id: int, session: Annotated[AsyncSessio
     return {"Urgency": urgency}
 
 @urgencyRouter.post("/", tags=["Urgency"])
-async def create_urgency(ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
-    newUrgency = Urgency(name=ReqBody.name, priority_rank=ReqBody.priority_rank)
+async def create_urgency(body : UrgencyRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
+    newUrgency = Urgency(name=body.name, priority_rank=body.priority_rank)
     session.add(newUrgency)
     await session.commit()
-    await session.refresh(Urgency)
+    await session.refresh(newUrgency)
 
     return {"Message" : "Succesfuly Create new urgency"}
 
 @urgencyRouter.put("/{urgency_id}", tags=["Urgency"])
-async def update_urgency(urgency_id: int, ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
+async def update_urgency(urgency_id: int, body : UrgencyRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
     targetUrgency = await urgency_service.get_urgency_or_404(session, urgency_id)
-    targetUrgency.name = ReqBody.name
-    targetUrgency.priority_rank = ReqBody.priority_rank
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(targetUrgency, field, value)
     await session.commit()
-    await session.refresh(Urgency)
+    await session.refresh(targetUrgency)
 
-    return {"Message" : f"Succesfuly update {ReqBody.name} urgency"}
+    return {"Message" : "Succesfuly update urgency"}
 
 @urgencyRouter.delete("/{urgency_id}", tags=["Urgency"])
 async def delete_urgency(urgency_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
     targetUrgency = await urgency_service.get_urgency_or_404(session, urgency_id)
     await session.delete(targetUrgency)
     await session.commit()
-    await session.refresh(Urgency)
     return {"Message" : "Succesfuly delete urgency"}

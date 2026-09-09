@@ -11,7 +11,7 @@ from app.service import category_service, user_service
 
 categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(user_service.get_current_auth_user)])
 
-class ReqBody(BaseModel):
+class CategoryRequestBody(BaseModel):
     name : str
 
 @categoryRouter.get("/", tags=["Category"])
@@ -25,25 +25,24 @@ async def retrieve_category(category_id: int, session: Annotated[AsyncSession, D
     return {"Category" : category}
 
 @categoryRouter.post("/", tags=["Category"])
-async def create_category(ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
-    newCategory = Category(name=ReqBody.name)
+async def create_category(body : CategoryRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
+    newCategory = Category(name=body.name)
     session.add(newCategory)
     await session.commit()
-    await session.refresh(Category)
+    await session.refresh(newCategory)
     return {"Message" : "Succesfuly Create new category"}
 
 @categoryRouter.put("/{category_id}", tags=["Category"])
-async def update_category(category_id: int, ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
+async def update_category(category_id: int, body : CategoryRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
     targetCategory = await category_service.get_category_or_404(session, category_id)
-    targetCategory.name = ReqBody.name
+    targetCategory.name = body.name
     await session.commit()
-    await session.refresh(Category)
-    return {"Message" : f"Succesfuly update {ReqBody.name} category"}
+    await session.refresh(targetCategory)
+    return {"Message" : f"Succesfuly update {body.name} category"}
 
 @categoryRouter.delete("/{category_id}", tags=["Category"])
 async def delete_category(category_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
     targetCategory = await category_service.get_category_or_404(session, category_id)
     await session.delete(targetCategory)
     await session.commit()
-    await session.refresh(Category)
     return {"Message" : "Succesfuly delete category"}

@@ -11,10 +11,10 @@ from app.service import role_service, user_service
 
 roleRouter = APIRouter(prefix="/role", dependencies=[Depends(user_service.get_current_auth_user)])
 
-class ReqBody(BaseModel):
-    name : str
-    description : str
-    permission_id : int
+class RoleRequestBody(BaseModel):
+    name : str | None = None
+    description : str | None = None
+    permission_id : int | None = None
 
 @roleRouter.get("/", tags=["Role"])
 async def retrieve_roles(session: Annotated[AsyncSession, Depends(getSession)]):
@@ -27,29 +27,27 @@ async def retrieve_role(role_id: int, session: Annotated[AsyncSession, Depends(g
     return {"Role": role}
 
 @roleRouter.post("/", tags=["Role"])
-async def create_role(ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
-    newRole = Role(name=ReqBody.name, description=ReqBody.description, permission_id=ReqBody.permission_id)
+async def create_role(body : RoleRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
+    newRole = Role(name=body.name, description=body.description, permission_id=body.permission_id)
     session.add(newRole)
     await session.commit()
-    await session.refresh(Role)
+    await session.refresh(newRole)
     return {"Message" : "Succesfuly Create new role"}
 
 @roleRouter.put("/{role_id}", tags=["Role"])
-async def update_role(role_id: int, ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
+async def update_role(role_id: int, body : RoleRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
     targetRole = await role_service.get_role_or_404(session, role_id)
-    targetRole.name = ReqBody.name
-    targetRole.description = ReqBody.description
-    targetRole.permission_id = ReqBody.permission_id
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(targetRole, field, value)
     await session.commit()
-    await session.refresh(Role)
+    await session.refresh(targetRole)
 
-    return {"Message" : f"Succesfuly update {ReqBody.name} role"}
+    return {"Message" : f"Succesfuly update {body.name} role"}
 
 @roleRouter.delete("/{role_id}", tags=["Role"])
 async def delete_role(role_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
     targetRole = await role_service.get_role_or_404(session, role_id)
     await session.delete(targetRole)
     await session.commit()
-    await session.refresh(Role)
 
     return {"Message" : "Succesfuly delete role"}
