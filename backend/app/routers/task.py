@@ -19,12 +19,21 @@ class TaskRequest(BaseModel):
 
 taskRouter = APIRouter(prefix="/task", dependencies=[Depends(user_service.get_current_auth_user)])
 
-# Categories param here is optional. If there's none, then get all. 
+# Filter params here are optional. If given none, then get all. 
+# Filters: categories, users, status, urgency
 @taskRouter.get("/", tags=["Task"])
-async def retrieve_tasks(session: Annotated[AsyncSession, Depends(getSession)], categories: list[str] | None = Query(None)):
+async def retrieve_tasks(session: Annotated[AsyncSession, Depends(getSession)], categories: list[str] | None = Query(None),
+users: list[str] | None = Query(None), status: list[str] | None = Query(None),urgency: list[str] | None = Query(None)):
     tasks = select(Task)
+    # Then, we filter each attribute one by one.
     if categories:
         tasks = tasks.where(Task.categories.in_(categories))
+    if users:
+        tasks = tasks.where(Task.created_by.in_(users))
+    if status:
+        tasks = tasks.where(Task.status_id.in_(status))
+    if urgency:
+        tasks = tasks.where(Task.urgency_id.in_(urgency))
     
     tasks = await session.scalars(tasks)
     return {"Tasks": tasks.all()}
