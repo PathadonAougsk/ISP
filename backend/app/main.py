@@ -13,6 +13,7 @@ from app.routers.role import roleRouter
 from app.routers.status import statusRouter
 from app.routers.task import taskRouter
 from app.routers.ticket import ticketRouter
+from app.routers.urgency import urgencyRouter
 from app.routers.user import userRouter
 
 app = FastAPI()
@@ -50,3 +51,4 @@ app.include_router(roleRouter)
 app.include_router(permissionRouter)
 app.include_router(taskRouter)
 app.include_router(auditLogRouter)
+app.include_router(urgencyRouter)
