@@ -18,7 +18,7 @@ export default function RequestTable() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
-  const tickets: Ticket[] = [
+  const [tickets, setTickets] = useState<Ticket[]>([
     {
       id: "TCK-001",
       title: "Cannot upload experiment results",
@@ -30,7 +30,19 @@ export default function RequestTable() {
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren"
     },
-  ];
+  ]);
+
+  function handleDecision(newStatus: Ticket["status"]) {
+    if (!selectedTicket) return;
+
+    setTickets((prevTickets) =>
+      prevTickets.map((t) =>
+        t.id === selectedTicket.id ? { ...t, status: newStatus } : t
+      )
+    );
+
+    setSelectedTicket(null);
+  }
 
   const filteredTickets = tickets
     .filter((ticket) =>
@@ -93,7 +105,9 @@ export default function RequestTable() {
             <p>Urgency: {selectedTicket.urgency}</p>
             <p>Description: {selectedTicket.description}</p>
 
-            <button onClick={() => setSelectedTicket(null)}>Close</button>
+            <button onClick={() => handleDecision("Closed")}>Reject</button>
+            <button onClick={() => handleDecision("In-process")}>Revised</button>
+            <button onClick={() => handleDecision("Open")}>Approve</button>
           </div>
         </div>
       )}
