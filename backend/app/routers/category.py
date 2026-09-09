@@ -12,7 +12,6 @@ from app.service import category_service, user_service
 categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(user_service.get_current_auth_user)])
 
 class ReqBody(BaseModel):
-    id : int | None
     name : str
 
 @categoryRouter.get("/", tags=["Category"])
@@ -30,6 +29,7 @@ async def create_category(ReqBody : ReqBody, session: Annotated[AsyncSession, De
     newCategory = Category(name=ReqBody.name)
     session.add(newCategory)
     await session.commit()
+    await session.refresh(Category)
     return {"Message" : "Succesfuly Create new category"}
 
 @categoryRouter.put("/{category_id}", tags=["Category"])
@@ -37,7 +37,7 @@ async def update_category(category_id: int, ReqBody : ReqBody, session: Annotate
     targetCategory = await category_service.get_category_or_404(session, category_id)
     targetCategory.name = ReqBody.name
     await session.commit()
-
+    await session.refresh(Category)
     return {"Message" : f"Succesfuly update {ReqBody.name} category"}
 
 @categoryRouter.delete("/{category_id}", tags=["Category"])
@@ -45,5 +45,5 @@ async def delete_category(category_id: int, session: Annotated[AsyncSession, Dep
     targetCategory = await category_service.get_category_or_404(session, category_id)
     await session.delete(targetCategory)
     await session.commit()
-
+    await session.refresh(Category)
     return {"Message" : "Succesfuly delete category"}

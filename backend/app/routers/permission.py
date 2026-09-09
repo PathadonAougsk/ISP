@@ -12,7 +12,6 @@ from app.service import permission_service, user_service
 permissionRouter = APIRouter(prefix="/permission", dependencies=[Depends(user_service.get_current_auth_user)])
 
 class ReqBody(BaseModel):
-    id : int | None
     can_edit : bool = False
     can_complete : bool = False
     can_grant_role : bool = False
@@ -38,6 +37,8 @@ async def create_permission(ReqBody : ReqBody, session: Annotated[AsyncSession, 
     )
     session.add(newPermission)
     await session.commit()
+    await session.refresh(Permission)
+
     return {"Message" : "Succesfuly Create new permission"}
 
 @permissionRouter.put("/{permission_id}", tags=["Permission"])
@@ -48,6 +49,7 @@ async def update_permission(permission_id: int, ReqBody : ReqBody, session: Anno
     targetPermission.can_grant_role = ReqBody.can_grant_role
     targetPermission.can_revoke_role = ReqBody.can_revoke_role
     await session.commit()
+    await session.refresh(Permission)
 
     return {"Message" : "Succesfuly update permission"}
 
@@ -56,5 +58,6 @@ async def delete_permission(permission_id: int, session: Annotated[AsyncSession,
     targetPermission = await permission_service.get_permission_or_404(session, permission_id)
     await session.delete(targetPermission)
     await session.commit()
+    await session.refresh(Permission)
 
     return {"Message" : "Succesfuly delete permission"}

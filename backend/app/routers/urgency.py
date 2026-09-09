@@ -12,7 +12,6 @@ from app.service import urgency_service, user_service
 urgencyRouter = APIRouter(prefix="/urgency", dependencies=[Depends(user_service.get_current_auth_user)])
 
 class ReqBody(BaseModel):
-    id : int | None
     name : str
     priority_rank : int
 
@@ -31,6 +30,8 @@ async def create_urgency(ReqBody : ReqBody, session: Annotated[AsyncSession, Dep
     newUrgency = Urgency(name=ReqBody.name, priority_rank=ReqBody.priority_rank)
     session.add(newUrgency)
     await session.commit()
+    await session.refresh(Urgency)
+
     return {"Message" : "Succesfuly Create new urgency"}
 
 @urgencyRouter.put("/{urgency_id}", tags=["Urgency"])
@@ -39,6 +40,7 @@ async def update_urgency(urgency_id: int, ReqBody : ReqBody, session: Annotated[
     targetUrgency.name = ReqBody.name
     targetUrgency.priority_rank = ReqBody.priority_rank
     await session.commit()
+    await session.refresh(Urgency)
 
     return {"Message" : f"Succesfuly update {ReqBody.name} urgency"}
 
@@ -47,5 +49,5 @@ async def delete_urgency(urgency_id: int, session: Annotated[AsyncSession, Depen
     targetUrgency = await urgency_service.get_urgency_or_404(session, urgency_id)
     await session.delete(targetUrgency)
     await session.commit()
-
+    await session.refresh(Urgency)
     return {"Message" : "Succesfuly delete urgency"}

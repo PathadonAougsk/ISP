@@ -9,8 +9,7 @@ from app.database import getSession
 from app.model import Status
 from app.service import status_service, user_service
 
-class ReqBody(BaseModel):
-    id : str | None
+class reqBody(BaseModel):
     name : str
 
 statusRouter = APIRouter(prefix="/status", dependencies=[Depends(user_service.get_current_auth_user)])
@@ -26,18 +25,20 @@ async def retrieve_status_by_id(status_id: int, session: Annotated[AsyncSession,
     return {"Status": target}
 
 @statusRouter.post("/", tags=["Status"])
-async def create_status(ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
+async def create_status(ReqBody : reqBody, session: Annotated[AsyncSession, Depends(getSession)]):
     newStatus = Status(name=ReqBody.name)
     session.add(newStatus)
     await session.commit()
-    return {"Message" : "Succesfuly Create new status"}
+    await session.refresh(Status)
+    return {"Message" : "Succesfuly create new status"}
 
 
 @statusRouter.put("/{status_id}", tags=["Status"])
-async def update_status(status_id: int, ReqBody : ReqBody, session: Annotated[AsyncSession, Depends(getSession)]):
+async def update_status(status_id: int, ReqBody : reqBody, session: Annotated[AsyncSession, Depends(getSession)]):
     targetStatus = await status_service.get_status_or_404(session, status_id)
     targetStatus.name = ReqBody.name
     await session.commit()
+    await session.refresh(Status)
 
     return {"Message" : f"Succesfuly update {ReqBody.name} category"}
 
@@ -46,5 +47,6 @@ async def delete_status(status_id: int, session: Annotated[AsyncSession, Depends
     targetStatus = await status_service.get_status_or_404(session, status_id)
     await session.delete(targetStatus)
     await session.commit()
+    await session.refresh(Status)
 
     return {"Message" : "Succesfuly delete status"}

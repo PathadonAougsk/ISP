@@ -12,7 +12,6 @@ from app.service import role_service, user_service
 roleRouter = APIRouter(prefix="/role", dependencies=[Depends(user_service.get_current_auth_user)])
 
 class ReqBody(BaseModel):
-    id : int | None
     name : str
     description : str | None
     permission_id : int
@@ -32,6 +31,7 @@ async def create_role(ReqBody : ReqBody, session: Annotated[AsyncSession, Depend
     newRole = Role(name=ReqBody.name, description=ReqBody.description, permission_id=ReqBody.permission_id)
     session.add(newRole)
     await session.commit()
+    await session.refresh(Role)
     return {"Message" : "Succesfuly Create new role"}
 
 @roleRouter.put("/{role_id}", tags=["Role"])
@@ -41,6 +41,7 @@ async def update_role(role_id: int, ReqBody : ReqBody, session: Annotated[AsyncS
     targetRole.description = ReqBody.description
     targetRole.permission_id = ReqBody.permission_id
     await session.commit()
+    await session.refresh(Role)
 
     return {"Message" : f"Succesfuly update {ReqBody.name} role"}
 
@@ -49,5 +50,6 @@ async def delete_role(role_id: int, session: Annotated[AsyncSession, Depends(get
     targetRole = await role_service.get_role_or_404(session, role_id)
     await session.delete(targetRole)
     await session.commit()
+    await session.refresh(Role)
 
     return {"Message" : "Succesfuly delete role"}
