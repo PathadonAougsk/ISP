@@ -13,7 +13,7 @@ roleRouter = APIRouter(prefix="/role", dependencies=[Depends(user_service.get_cu
 
 class ReqBody(BaseModel):
     name : str
-    description : str | None
+    description : str
     permission_id : int
 
 @roleRouter.get("/", tags=["Role"])
