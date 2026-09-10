@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import datetime as dt
+<<<<<<< HEAD
+import enum
+=======
+>>>>>>> main
 import uuid
 from typing import Optional
 
@@ -10,7 +14,11 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
+<<<<<<< HEAD
+    Enum as SAEnum,
+=======
     DDL,
+>>>>>>> main
     FetchedValue,
     ForeignKey,
     Identity,
@@ -37,6 +45,31 @@ auth_users = Table(
     schema="auth",
 )
 
+<<<<<<< HEAD
+class TicketStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+class TaskStatus(str, enum.Enum):
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+class AccountRole(str, enum.Enum):
+    LAB_OWNER = "Lab Owner"  # can only be set from the Supabase dashboard
+    LAB_ADMIN = "Lab Admin"
+    LAB_USER = "Lab user"
+
+def _enum_values(e: type[enum.Enum]) -> list[str]:
+    # Store the lowercase values ("in_progress"), not the member names ("IN_PROGRESS")
+    return [m.value for m in e]
+
+ticket_status_type = SAEnum(TicketStatus, name="ticket_status", values_callable=_enum_values)
+task_status_type = SAEnum(TaskStatus, name="task_status", values_callable=_enum_values)
+account_role_type = SAEnum(AccountRole, name="account_role", values_callable=_enum_values)
+=======
 class Permission(Base):
     __tablename__ = "permission"
 
@@ -66,6 +99,7 @@ class Status(Base):
 
     def __repr__(self) -> str:
         return f"<Status {self.id} {self.name!r}>"
+>>>>>>> main
 
 class Category(Base):
     __tablename__ = "category"
@@ -79,6 +113,29 @@ class Category(Base):
     def __repr__(self) -> str:
         return f"<Category {self.id} {self.name!r}>"
 
+<<<<<<< HEAD
+class Account(Base):
+    __tablename__ = "account"
+    __table_args__ = (CheckConstraint("quota >= 0", name="account_quota_check"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    role: Mapped[AccountRole] = mapped_column(
+        account_role_type,
+        nullable=False,
+        server_default=AccountRole.LAB_USER.value,
+    )
+    quota: Mapped[Optional[int]] = mapped_column(Integer)
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+
+=======
 class Role(Base):
     __tablename__ = "role"
 
@@ -120,6 +177,7 @@ class Account(Base):
 
     role: Mapped[Role] = relationship(back_populates="accounts")
 
+>>>>>>> main
     tasks_created: Mapped[list["Task"]] = relationship(
         back_populates="creator", foreign_keys="Task.created_by"
     )
@@ -144,7 +202,11 @@ class Account(Base):
     audit_entries: Mapped[list["AuditLog"]] = relationship(back_populates="actor")
 
     def __repr__(self) -> str:
+<<<<<<< HEAD
+        return f"<Account {self.username!r} role={self.role.value} active={self.active}>"
+=======
         return f"<Account {self.username!r} role_id={self.role_id} active={self.active}>"
+>>>>>>> main
 
 task_assigned_to = Table(
     "task_assigned_to",
@@ -173,8 +235,15 @@ class Task(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
+<<<<<<< HEAD
+    status: Mapped[TaskStatus] = mapped_column(
+        task_status_type,
+        nullable=False,
+        server_default=TaskStatus.IN_PROGRESS.value,
+=======
     status_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
+>>>>>>> main
     )
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("category.id", ondelete="RESTRICT"), nullable=False
@@ -188,7 +257,10 @@ class Task(Base):
     created: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
     updated: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -198,7 +270,10 @@ class Task(Base):
     completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
     due_date: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+<<<<<<< HEAD
+=======
     status: Mapped[Status] = relationship(back_populates="tasks")
+>>>>>>> main
     category: Mapped[Category] = relationship(back_populates="tasks")
     creator: Mapped[Account] = relationship(
         back_populates="tasks_created", foreign_keys=[created_by]
@@ -211,7 +286,11 @@ class Task(Base):
     )
 
     def __repr__(self) -> str:
+<<<<<<< HEAD
+        return f"<Task {self.id} {self.name!r} {self.status.value}>"
+=======
         return f"<Task {self.id} {self.name!r}>"
+>>>>>>> main
 
 class Ticket(Base):
     __tablename__ = "ticket"
@@ -220,8 +299,15 @@ class Ticket(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
+<<<<<<< HEAD
+    status: Mapped[TicketStatus] = mapped_column(
+        ticket_status_type,
+        nullable=False,
+        server_default=TicketStatus.PENDING.value,
+=======
     status_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
+>>>>>>> main
     )
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("category.id", ondelete="RESTRICT"), nullable=False
@@ -232,7 +318,10 @@ class Ticket(Base):
     completed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
     )
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
     assigned_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
     )
@@ -248,7 +337,10 @@ class Ticket(Base):
     completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
     due_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
 
+<<<<<<< HEAD
+=======
     status: Mapped[Status] = relationship(back_populates="tickets")
+>>>>>>> main
     category: Mapped[Category] = relationship(back_populates="tickets")
     creator: Mapped[Account] = relationship(
         back_populates="tickets_created", foreign_keys=[created_by]
@@ -261,7 +353,11 @@ class Ticket(Base):
     )
 
     def __repr__(self) -> str:
+<<<<<<< HEAD
+        return f"<Ticket {self.id} {self.name!r} {self.status.value}>"
+=======
         return f"<Ticket {self.id} {self.name!r}>"
+>>>>>>> main
 
 class Announcement(Base):
     __tablename__ = "announcement"
@@ -269,12 +365,18 @@ class Announcement(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
+<<<<<<< HEAD
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
+    )
+=======
     status_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
     )
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
     )
+>>>>>>> main
     created: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -285,7 +387,10 @@ class Announcement(Base):
         server_onupdate=FetchedValue(),
     )
 
+<<<<<<< HEAD
+=======
     status: Mapped[Status] = relationship(back_populates="announcements")
+>>>>>>> main
     creator: Mapped[Account] = relationship(back_populates="announcements")
 
     def __repr__(self) -> str:
@@ -300,7 +405,11 @@ class AuditLog(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
     from_table: Mapped[str] = mapped_column(String(64), nullable=False)
+<<<<<<< HEAD
+    row_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+=======
     row_id: Mapped[str] = mapped_column(String(36), nullable=False)
+>>>>>>> main
     column_name: Mapped[str] = mapped_column(String(64), nullable=False)
     old_value: Mapped[Optional[str]] = mapped_column(Text)
     new_value: Mapped[Optional[str]] = mapped_column(Text)
@@ -315,6 +424,8 @@ class AuditLog(Base):
 
     def __repr__(self) -> str:
         return f"<AuditLog {self.id} {self.from_table}.{self.column_name} row={self.row_id}>"
+<<<<<<< HEAD
+=======
 
 _TOUCH_UPDATED_FN = DDL(
     """
@@ -368,3 +479,4 @@ __all__ = [
     "AuditLog",
     "create_public_schema",
 ]
+>>>>>>> main
