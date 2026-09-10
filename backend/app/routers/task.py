@@ -22,7 +22,7 @@ taskRouter = APIRouter(prefix="/task", dependencies=[Depends(user_service.get_cu
 # Filter params here are optional. If given none, then get all. 
 # Filters: categories, users, status, urgency
 @taskRouter.get("/", tags=["Task"])
-async def retrieve_tasks(session: Annotated[AsyncSession, Depends(getSession)], categories: list[str] | None = Query(None),
+async def retrieve_tasks(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],session: Annotated[AsyncSession, Depends(getSession)], categories: list[str] | None = Query(None),
 users: list[str] | None = Query(None), status: list[str] | None = Query(None),urgency: list[str] | None = Query(None)):
     tasks = select(Task)
     # Then, we filter each attribute one by one.
@@ -39,7 +39,7 @@ users: list[str] | None = Query(None), status: list[str] | None = Query(None),ur
     return {"Tasks": tasks.all()}
 
 @taskRouter.get("/{task_id}", tags=["Task"])
-async def retrieve_task(task_id: int,session: Annotated[AsyncSession, Depends(getSession)]):
+async def retrieve_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],task_id: int,session: Annotated[AsyncSession, Depends(getSession)]):
     # Request a query to get task from id
     tasks = await session.scalars(
         select(Task).filter(Task.id == task_id)
@@ -51,7 +51,7 @@ async def retrieve_task(task_id: int,session: Annotated[AsyncSession, Depends(ge
     return {"Tasks": tasks}
 
 @taskRouter.post("/", tags=["Task"])
-async def create_task(body: TaskRequest ,session: Annotated[AsyncSession, Depends(getSession)],current_user=Depends(user_service.get_current_auth_user)):
+async def create_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],body: TaskRequest ,session: Annotated[AsyncSession, Depends(getSession)],current_user=Depends(user_service.get_current_auth_user)):
     # Create new task based on the body.
     task = Task(
         name=body.name,
@@ -68,7 +68,7 @@ async def create_task(body: TaskRequest ,session: Annotated[AsyncSession, Depend
     return {"Tasks": task}
 
 @taskRouter.put("/{task_id}", tags=["Task"])
-async def update_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], body: TaskRequest):
+async def update_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],task_id: int, session: Annotated[AsyncSession, Depends(getSession)], body: TaskRequest):
     tasks = await session.scalar(
         select(Task).filter(Task.id == task_id)
     )
@@ -87,7 +87,7 @@ async def update_task(task_id: int, session: Annotated[AsyncSession, Depends(get
     return {"Tasks": task}
 
 @taskRouter.delete("/{task_id}", tags=["Task"])
-async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
+async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)],auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)]):
     task = await session.scalar(
         select(Task).filter(Task.id == task_id)
     )
