@@ -322,7 +322,7 @@ export default function RequestTable() {
       {selectedTicket && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
-            <div className="bg-gray-400 text-white text-center py-3 rounded-t-lg font-semibold">
+            <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Judge tickets
             </div>
 
@@ -398,19 +398,19 @@ export default function RequestTable() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
                 onClick={() => handleDecision("Closed")}
-                className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
               >
                 Reject
               </button>
               <button
                 onClick={() => handleDecision("In-process")}
-                className="px-5 py-2 rounded bg-gray-300 hover:bg-gray-400 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-gray-400 text-sm"
               >
                 Revised
               </button>
               <button
                 onClick={() => handleDecision("Open")}
-                className="px-5 py-2 rounded bg-gray-700 text-white hover:bg-gray-800 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
               >
                 Approve
               </button>
@@ -423,7 +423,7 @@ export default function RequestTable() {
       {isCreatingTask && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
-            <div className="bg-gray-400 text-white text-center py-3 rounded-t-lg font-semibold">
+            <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Create new tasks
             </div>
 
@@ -499,13 +499,13 @@ export default function RequestTable() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
                 onClick={resetTaskForm}
-                className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTask}
-                className="px-5 py-2 rounded bg-gray-700 text-white hover:bg-gray-800 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
               >
                 Submit
               </button>
