@@ -48,11 +48,18 @@ class TaskStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
 
+class AccountRole(str, enum.Enum):
+    LAB_OWNER = "Lab Owner"  # can only be set from the Supabase dashboard
+    LAB_ADMIN = "Lab Admin"
+    LAB_USER = "Lab user"
+
 def _enum_values(e: type[enum.Enum]) -> list[str]:
+    # Store the lowercase values ("in_progress"), not the member names ("IN_PROGRESS")
     return [m.value for m in e]
 
 ticket_status_type = SAEnum(TicketStatus, name="ticket_status", values_callable=_enum_values)
 task_status_type = SAEnum(TaskStatus, name="task_status", values_callable=_enum_values)
+account_role_type = SAEnum(AccountRole, name="account_role", values_callable=_enum_values)
 
 class Category(Base):
     __tablename__ = "category"
@@ -66,18 +73,6 @@ class Category(Base):
     def __repr__(self) -> str:
         return f"<Category {self.id} {self.name!r}>"
 
-class Role(Base):
-    __tablename__ = "role"
-
-    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    description: Mapped[Optional[str]] = mapped_column(Text)
-
-    accounts: Mapped[list["Account"]] = relationship(back_populates="role")
-
-    def __repr__(self) -> str:
-        return f"<Role {self.id} {self.name!r}>"
-
 class Account(Base):
     __tablename__ = "account"
     __table_args__ = (CheckConstraint("quota >= 0", name="account_quota_check"),)
@@ -89,15 +84,15 @@ class Account(Base):
     )
     username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    role_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("role.id", ondelete="RESTRICT"), nullable=False
+    role: Mapped[AccountRole] = mapped_column(
+        account_role_type,
+        nullable=False,
+        server_default=AccountRole.LAB_USER.value,
     )
     quota: Mapped[Optional[int]] = mapped_column(Integer)
     active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )
-
-    role: Mapped[Role] = relationship(back_populates="accounts")
 
     tasks_created: Mapped[list["Task"]] = relationship(
         back_populates="creator", foreign_keys="Task.created_by"
@@ -123,7 +118,7 @@ class Account(Base):
     audit_entries: Mapped[list["AuditLog"]] = relationship(back_populates="actor")
 
     def __repr__(self) -> str:
-        return f"<Account {self.username!r} role_id={self.role_id} active={self.active}>"
+        return f"<Account {self.username!r} role={self.role.value} active={self.active}>"
 
 task_assigned_to = Table(
     "task_assigned_to",

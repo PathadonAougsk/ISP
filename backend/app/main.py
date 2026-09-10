@@ -8,7 +8,6 @@ from app.routers.announcement import announcementRouter
 from app.routers.audit_log import auditLogRouter
 from app.routers.auth import authRouter
 from app.routers.category import categoryRouter
-from app.routers.role import roleRouter
 from app.routers.task import taskRouter
 from app.routers.ticket import ticketRouter
 from app.routers.user import userRouter
@@ -43,6 +42,5 @@ app.include_router(userRouter)
 app.include_router(authRouter)
 app.include_router(categoryRouter)
 app.include_router(announcementRouter)
-app.include_router(roleRouter)
 app.include_router(taskRouter)
 app.include_router(auditLogRouter)
