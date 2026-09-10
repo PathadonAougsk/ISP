@@ -1,3 +1,3 @@
-export function Report() {
-  return {}
+export default function Report() {
+  return (<div></div>)
 }
