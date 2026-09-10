@@ -1,3 +1,5 @@
-export function RequestTable() {
-  return {}
+export default function RequestTable() {
+  return (
+    <div></div>
+  )
 }

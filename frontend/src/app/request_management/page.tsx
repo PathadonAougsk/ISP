@@ -166,16 +166,7 @@ export default function RequestTable() {
     );
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900">
-      {/* Header bar - standalone box */}
-      <div className="flex items-center justify-between bg-gray-500 text-white px-6 py-4 shadow">
-        <h1 className="text-xl font-bold">Request Management</h1>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gray-300" />
-          <span>Pasin Mclaren | Lab Staff</span>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-white text-gray-900">
       <div className="p-6 space-y-6">
         {/* My Tickets section */}
         <div>
@@ -207,7 +198,7 @@ export default function RequestTable() {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gray-500 text-white text-left text-sm">
+                <tr className="bg-(--primary-color-2) text-white text-left text-sm">
                   <th className="px-4 py-2">Ticket-ID</th>
                   <th className="px-4 py-2">Title</th>
                   <th className="px-4 py-2">Status</th>
@@ -256,7 +247,7 @@ export default function RequestTable() {
               My Task
               <button
                 onClick={() => setIsCreatingTask(true)}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-500 text-white text-sm hover:bg-gray-600"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-gray-600"
               >
                 +
               </button>
@@ -289,7 +280,7 @@ export default function RequestTable() {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gray-500 text-white text-left text-sm">
+                <tr className="bg-(--primary-color-2) text-white text-left text-sm">
                   <th className="px-4 py-2">Task-ID</th>
                   <th className="px-4 py-2">Title</th>
                   <th className="px-4 py-2">Description</th>

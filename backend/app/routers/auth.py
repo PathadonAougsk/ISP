@@ -21,7 +21,7 @@ class TokenResponse(BaseModel):
 
 
 @authRouter.post("/signup", response_model=TokenResponse)
-async def signup(body: SignUpRequest):
+def signup(body: SignUpRequest):
     auth_response = supabase.auth.sign_up({"email": body.email, "password": body.password})
     if auth_response.session is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Check your email to confirm your account")
