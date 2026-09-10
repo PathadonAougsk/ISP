@@ -1,17 +1,8 @@
-const JWT_STORAGE_KEY = "jwt";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-export function getStoredToken(): string | null {
-  try {
-    return localStorage.getItem(JWT_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setStoredToken(token: string): void {
-  try {
-    localStorage.setItem(JWT_STORAGE_KEY, token);
-  } catch {
-    // localStorage unavailable (private mode, blocked cookies, etc.) - ignore
-  }
+export async function logout(): Promise<void> {
+  await fetch(`${API_URL}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
 }
