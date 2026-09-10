@@ -1,7 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Cookie, HTTPException, status
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from supabase_auth.types import User as AuthUser
@@ -9,13 +8,11 @@ from supabase_auth.types import User as AuthUser
 from app.dependencies import supabase
 from app.model import Account
 
-bearer_scheme = HTTPBearer()
 
-
-def get_current_auth_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
-) -> AuthUser:
-    response = supabase.auth.get_user(credentials.credentials)
+def get_current_auth_user(jwt: Annotated[str | None, Cookie()] = None) -> AuthUser:
+    if jwt is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    response = supabase.auth.get_user(jwt)
     if response is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     return response.user
