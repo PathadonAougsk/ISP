@@ -22,18 +22,9 @@ def get_current_auth_user(
 
 
 async def create_account(session: AsyncSession, id: str, email: str, username: str) -> Account:
-<<<<<<< HEAD
     stmt = (
         insert(Account)
         .values(id=id, email=email, username=username)
-=======
-    role_id = await session.scalar(select(Role.id).where(Role.name == DEFAULT_ROLE_NAME))
-    stmt = (
-        insert(Account)
-        .values(id=id, email=email, username=username, role_id=role_id)
->>>>>>> main
-        .on_conflict_do_nothing(index_elements=[Account.id])
-        .returning(Account)
     )
     account = await session.scalar(stmt)
     if account is None:
