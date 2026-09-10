@@ -25,13 +25,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${notoSansThai.variable} ${anuphan.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col md:flex-row">
-        <div className="order-2 md:order-1">
-          <Sidebar></Sidebar>
-        </div>
-        <div className="order-1 md:order-2 flex flex-col flex-1 min-w-0">
-          <Topbar></Topbar>
-          {children}
+      <body className="h-screen overflow-hidden flex flex-row">
+        <Sidebar />
+
+        <div className="flex flex-1 min-w-0 h-screen flex-col">
+          <Topbar />
+
+          <main className="flex-1 min-h-0 overflow-y-auto">
+            {children}
+          </main>
         </div>
       </body>
     </html>
