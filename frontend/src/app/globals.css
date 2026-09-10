@@ -5,12 +5,13 @@
   --foreground: #171717;
 
   /* color palatte 1 */
-  --panel-bg: #eaf1e3;
+  --primary-color-1-hover: #87B7B9;
+  --primary-color-2-hover: #acd6c1;
+
   --primary-color-1: #73a9ad;
   --primary-color-2: #90c8ac;
   --primary-color-3: #c4dfaa;
-
-  --primary-color-2-hover: #acd6c1;
+  --panel-bg: #eaf1e3;
 }
 
 body {
@@ -21,6 +22,7 @@ h1 {
   font-family: var(--font-noto-sans-thai);
 }
 
-p {
+p,
+button {
   font-family: var(--font-anuphan);
 }
