@@ -14,7 +14,6 @@ roleRouter = APIRouter(prefix="/role", dependencies=[Depends(user_service.get_cu
 class RoleRequestBody(BaseModel):
     name : str | None = None
     description : str | None = None
-    permission_id : int | None = None
 
 @roleRouter.get("/", tags=["Role"])
 async def retrieve_roles(session: Annotated[AsyncSession, Depends(getSession)]):
@@ -28,7 +27,7 @@ async def retrieve_role(role_id: int, session: Annotated[AsyncSession, Depends(g
 
 @roleRouter.post("/", tags=["Role"])
 async def create_role(body : RoleRequestBody, session: Annotated[AsyncSession, Depends(getSession)]):
-    newRole = Role(name=body.name, description=body.description, permission_id=body.permission_id)
+    newRole = Role(name=body.name, description=body.description)
     session.add(newRole)
     await session.commit()
     await session.refresh(newRole)

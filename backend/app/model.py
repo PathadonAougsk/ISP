@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import enum
 import uuid
 from typing import Optional
 
@@ -10,7 +11,7 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
-    DDL,
+    Enum as SAEnum,
     FetchedValue,
     ForeignKey,
     Identity,
@@ -19,7 +20,6 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    event,
     func,
     text,
 )
@@ -37,35 +37,22 @@ auth_users = Table(
     schema="auth",
 )
 
-class Permission(Base):
-    __tablename__ = "permission"
+class TicketStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
 
-    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
-    can_overwrite: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false")
-    )
-    can_edit_role: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false")
-    )
+class TaskStatus(str, enum.Enum):
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
 
-    role: Mapped[Optional["Role"]] = relationship(back_populates="permission")
+def _enum_values(e: type[enum.Enum]) -> list[str]:
+    return [m.value for m in e]
 
-    def __repr__(self) -> str:
-        return f"<Permission {self.id} overwrite={self.can_overwrite} edit_role={self.can_edit_role}>"
-
-
-class Status(Base):
-    __tablename__ = "status"
-
-    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
-    name: Mapped[str] = mapped_column(String(29), nullable=False, unique=True)
-
-    tasks: Mapped[list["Task"]] = relationship(back_populates="status")
-    tickets: Mapped[list["Ticket"]] = relationship(back_populates="status")
-    announcements: Mapped[list["Announcement"]] = relationship(back_populates="status")
-
-    def __repr__(self) -> str:
-        return f"<Status {self.id} {self.name!r}>"
+ticket_status_type = SAEnum(TicketStatus, name="ticket_status", values_callable=_enum_values)
+task_status_type = SAEnum(TaskStatus, name="task_status", values_callable=_enum_values)
 
 class Category(Base):
     __tablename__ = "category"
@@ -85,21 +72,13 @@ class Role(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    permission_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("permission.id", ondelete="RESTRICT"),
-        nullable=False,
-        unique=True,
-    )
 
-    permission: Mapped[Permission] = relationship(back_populates="role")
     accounts: Mapped[list["Account"]] = relationship(back_populates="role")
 
     def __repr__(self) -> str:
         return f"<Role {self.id} {self.name!r}>"
 
 class Account(Base):
-
     __tablename__ = "account"
     __table_args__ = (CheckConstraint("quota >= 0", name="account_quota_check"),)
 
@@ -173,8 +152,10 @@ class Task(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    status_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
+    status: Mapped[TaskStatus] = mapped_column(
+        task_status_type,
+        nullable=False,
+        server_default=TaskStatus.IN_PROGRESS.value,
     )
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("category.id", ondelete="RESTRICT"), nullable=False
@@ -188,7 +169,6 @@ class Task(Base):
     created: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-
     updated: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -198,7 +178,6 @@ class Task(Base):
     completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
     due_date: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    status: Mapped[Status] = relationship(back_populates="tasks")
     category: Mapped[Category] = relationship(back_populates="tasks")
     creator: Mapped[Account] = relationship(
         back_populates="tasks_created", foreign_keys=[created_by]
@@ -211,7 +190,7 @@ class Task(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Task {self.id} {self.name!r}>"
+        return f"<Task {self.id} {self.name!r} {self.status.value}>"
 
 class Ticket(Base):
     __tablename__ = "ticket"
@@ -220,8 +199,10 @@ class Ticket(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    status_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
+    status: Mapped[TicketStatus] = mapped_column(
+        ticket_status_type,
+        nullable=False,
+        server_default=TicketStatus.PENDING.value,
     )
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("category.id", ondelete="RESTRICT"), nullable=False
@@ -232,7 +213,6 @@ class Ticket(Base):
     completed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
     )
-
     assigned_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="SET NULL")
     )
@@ -248,7 +228,6 @@ class Ticket(Base):
     completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
     due_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
 
-    status: Mapped[Status] = relationship(back_populates="tickets")
     category: Mapped[Category] = relationship(back_populates="tickets")
     creator: Mapped[Account] = relationship(
         back_populates="tickets_created", foreign_keys=[created_by]
@@ -261,7 +240,7 @@ class Ticket(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Ticket {self.id} {self.name!r}>"
+        return f"<Ticket {self.id} {self.name!r} {self.status.value}>"
 
 class Announcement(Base):
     __tablename__ = "announcement"
@@ -269,9 +248,6 @@ class Announcement(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    status_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("status.id", ondelete="RESTRICT"), nullable=False
-    )
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
     )
@@ -285,7 +261,6 @@ class Announcement(Base):
         server_onupdate=FetchedValue(),
     )
 
-    status: Mapped[Status] = relationship(back_populates="announcements")
     creator: Mapped[Account] = relationship(back_populates="announcements")
 
     def __repr__(self) -> str:
@@ -300,7 +275,7 @@ class AuditLog(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
     from_table: Mapped[str] = mapped_column(String(64), nullable=False)
-    row_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    row_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     column_name: Mapped[str] = mapped_column(String(64), nullable=False)
     old_value: Mapped[Optional[str]] = mapped_column(Text)
     new_value: Mapped[Optional[str]] = mapped_column(Text)
@@ -315,56 +290,3 @@ class AuditLog(Base):
 
     def __repr__(self) -> str:
         return f"<AuditLog {self.id} {self.from_table}.{self.column_name} row={self.row_id}>"
-
-_TOUCH_UPDATED_FN = DDL(
-    """
-CREATE OR REPLACE FUNCTION public.touch_updated()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.updated := now();
-  RETURN NEW;
-END;
-$$;
-"""
-)
-
-event.listen(Base.metadata, "before_create", _TOUCH_UPDATED_FN)
-
-for _table, _trigger in (
-    (Task.__table__, "trg_task_updated"),
-    (Ticket.__table__, "trg_ticket_updated"),
-    (Announcement.__table__, "trg_ann_updated"),
-):
-    event.listen(
-        _table,
-        "after_create",
-        DDL(
-            "CREATE TRIGGER %s BEFORE UPDATE ON %s "
-            "FOR EACH ROW EXECUTE FUNCTION public.touch_updated();"
-            % (_trigger, _table.name)
-        ),
-    )
-
-
-def create_public_schema(engine) -> None:
-    """create_all() for everything except the Supabase-owned auth.users stub."""
-    Base.metadata.create_all(
-        engine,
-        tables=[t for t in Base.metadata.sorted_tables if t.schema != "auth"],
-    )
-
-
-__all__ = [
-    "Base",
-    "Permission",
-    "Status",
-    "Category",
-    "Role",
-    "Account",
-    "Task",
-    "task_assigned_to",
-    "Ticket",
-    "Announcement",
-    "AuditLog",
-    "create_public_schema",
-]
