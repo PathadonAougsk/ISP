@@ -1,9 +1,15 @@
-from fastapi import APIRouter, HTTPException, status
+import os
+
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel
 
 from app.dependencies import supabase
 
 authRouter = APIRouter(prefix="/auth", tags=["Auth"])
+
+JWT_COOKIE_KEY = "jwt"
+COOKIE_SECURE = os.environ.get("ENVIRONMENT", "development") == "production"
+
 
 class SignUpRequest(BaseModel):
     email: str
@@ -15,28 +21,43 @@ class SignInRequest(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class AuthResponse(BaseModel):
+    success: bool = True
 
 
-@authRouter.post("/signup", response_model=TokenResponse)
-def signup(body: SignUpRequest):
+def _set_jwt_cookie(response: Response, access_token: str) -> None:
+    response.set_cookie(
+        key=JWT_COOKIE_KEY,
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        path="/",
+    )
+
+
+@authRouter.post("/signup", response_model=AuthResponse)
+def signup(body: SignUpRequest, response: Response):
     auth_response = supabase.auth.sign_up({"email": body.email, "password": body.password})
     if auth_response.session is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Check your email to confirm your account")
-    return TokenResponse(access_token=auth_response.session.access_token)
+    _set_jwt_cookie(response, auth_response.session.access_token)
+    return AuthResponse()
 
 
-@authRouter.post("/login", response_model=TokenResponse)
-async def login(body: SignInRequest):
+@authRouter.post("/login", response_model=AuthResponse)
+async def login(body: SignInRequest, response: Response):
     auth_response = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
-    return TokenResponse(access_token=auth_response.session.access_token)
+    _set_jwt_cookie(response, auth_response.session.access_token)
+    return AuthResponse()
+
 
 @authRouter.post("/logout")
-async def logout():
-    pass
+async def logout(response: Response):
+    response.delete_cookie(key=JWT_COOKIE_KEY, path="/")
+    return AuthResponse()
 
-@authRouter.post("/refresh", response_model=TokenResponse)
+
+@authRouter.post("/refresh", response_model=AuthResponse)
 async def refresh():
     pass
