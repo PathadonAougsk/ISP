@@ -16,7 +16,7 @@ export default function Sidebar() {
 
         {icons.map((urlName) =>
           pathname === urlName ? (
-            <div key={urlName} className="flex h-15 w-full select-none items-center justify-center bg-(--primary-color-1)">
+            <div key={urlName} className="flex h-15 w-full select-none items-center justify-center bg-(--primary-color-1) hover:bg-(--primary-color-1-hover)">
               <Image src={`./${urlName}.svg`} width={20} height={20} alt={urlName} draggable={false} /></div>
           ) : (
             <div key={urlName} className="flex h-15 w-full select-none items-center justify-center hover:bg-(--primary-color-2-hover)" onClick={() => router.replace(`/${urlName}`)}>
