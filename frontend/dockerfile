@@ -4,7 +4,7 @@ FROM node:${NODE_VERSION} AS dev
 
 WORKDIR /app
 
-COPY --chown=node:node package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/root/.cache/yarn \
@@ -20,6 +20,8 @@ RUN --mount=type=cache,target=/root/.npm \
   fi
 
 COPY --chown=node:node . .
+
+RUN mkdir -p /app/.next && chown node:node /app /app/.next
 
 ENV WATCHPACK_POLLING=true \
     HOSTNAME="0.0.0.0" \
