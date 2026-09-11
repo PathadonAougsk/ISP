@@ -43,9 +43,9 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
             Ticket.due_date,
             status_order,
         )
-    
+
     result = await session.scalars(query)
-    
+
     return {"Tickets": result.all()}
 
 @ticketRouter.get("/{ticket_id}", tags=["Tickets"])
@@ -55,7 +55,7 @@ async def retrieve_ticket(ticket_id: int, session: Annotated[AsyncSession, Depen
 
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    
+
     return {"Tickets": ticket}
 
 @ticketRouter.post("/", tags=["Tickets"])

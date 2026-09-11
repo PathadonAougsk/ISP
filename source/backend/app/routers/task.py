@@ -14,7 +14,7 @@ from app.service import user_service
 
 # Base Task model.
 class TaskRequest(BaseModel):
-    name: str
+    name: uuid.UUID
     description: str | None = None
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
