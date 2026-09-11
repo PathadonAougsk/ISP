@@ -9,7 +9,7 @@ https://youtu.be/dQw4w9WgXcQ`;
     <div className="h-90 w-full overflow-hidden rounded-[30px] bg-(--panel-bg)">
       {/* Main announcement */}
       <div className="flex h-full flex-col p-5 pb-0">
-        <h1 className="line-clamp-2 text-3xl font-bold text-black">
+        <h1 className="text-3xl font-bold text-black line-clamp-2">
           Test Topic Announcement 001 and show Line wrapping Test Topic
           Announcement 001 and show Line wrapping
         </h1>
@@ -33,10 +33,10 @@ https://youtu.be/dQw4w9WgXcQ`;
 
 function ActiveTask() {
   return (
-    <div className="flex h-25 w-full">
+    <div className="flex h-25 w-full gap-5">
       {/* Task Active */}
-      <div className="w-[70%] rounded-[30px] bg-(--panel-bg) p-5">
-        <div className="flex flex-row">
+      <div className="flex-1 rounded-[30px] bg-(--panel-bg) p-5">
+        <div className="flex">
           <div className="flex flex-1 items-start text-base font-bold text-black">
             <h1></h1>
           </div>
@@ -44,40 +44,38 @@ function ActiveTask() {
       </div>
 
       {/* Task Active Detail */}
-      <div className="flex flex-1 flex-col pl-7.5">
-        <div className="flex flex-1 items-start text-base font-bold text-black">
+      <div className="flex w-fit shrink-0 flex-col pr-5">
+        <div className="flex items-start text-base font-bold text-black">
           <p>Due Tasks</p>
         </div>
 
-        <div className="flex flex-2">
+        <div className="flex flex-1">
           {/* Bar Chart Area */}
           <div className="flex w-7.5 items-start">
-            <div className="h-full w-5 rounded-[20px] bg-(--panel-bg)"></div>
+            <div className="h-full w-5 rounded-[20px] bg-(--panel-bg)" />
           </div>
 
-          {/* Due tasks */}
-          <div className="flex flex-2 flex-col text-lg font-medium text-black">
-            {/* This week */}
-            <div className="flex">
-              <div className="flex w-7.5 items-start">
-                <div className="h-5 w-5 rounded-full bg-(--panel-bg)"></div>
+          {/* Due Tasks */}
+          <div className="flex flex-1 flex-col justify-between text-lg font-medium text-black">
+            {/* This week - Top */}
+            <div className="flex items-center">
+              <div className="flex w-7.5 items-center">
+                <div className="h-5 w-5 rounded-full bg-(--panel-bg)" />
               </div>
 
-              <div className="flex w-5 items-start text-base">
+              <div className="flex w-5 items-center text-base">
                 <p>1</p>
               </div>
 
-              <div className="flex flex-1 items-start text-base">
-                <p>
-                  <span className="trancute">This week</span>
-                </p>
+              <div className="flex flex-1 items-center text-base">
+                <p>This week</p>
               </div>
             </div>
 
-            {/* Next week */}
-            <div className="flex">
+            {/* Next week - Middle */}
+            <div className="flex items-center">
               <div className="flex w-7.5 items-center">
-                <div className="h-5 w-5 rounded-full bg-(--panel-bg)"></div>
+                <div className="h-5 w-5 rounded-full bg-(--panel-bg)" />
               </div>
 
               <div className="flex w-5 items-center text-base">
@@ -85,26 +83,22 @@ function ActiveTask() {
               </div>
 
               <div className="flex flex-1 items-center text-base">
-                <p>
-                  <span className="trancute">Next week</span>
-                </p>
+                <p>Next week</p>
               </div>
             </div>
 
-            {/* Later */}
-            <div className="flex">
-              <div className="flex w-7.5 items-end">
-                <div className="h-5 w-5 rounded-full bg-(--panel-bg)"></div>
+            {/* Later - Bottom */}
+            <div className="flex items-center">
+              <div className="flex w-7.5 items-center">
+                <div className="h-5 w-5 rounded-full bg-(--panel-bg)" />
               </div>
 
-              <div className="flex w-5 items-end text-base">
+              <div className="flex w-5 items-center text-base">
                 <p>3</p>
               </div>
 
-              <div className="flex flex-1 items-end text-base">
-                <p>
-                  <span className="trancute">Later</span>
-                </p>
+              <div className="flex flex-1 items-center text-base">
+                <p>Later</p>
               </div>
             </div>
           </div>
@@ -116,23 +110,23 @@ function ActiveTask() {
 
 function LabOverview() {
   return (
-    <div className="min-h-100 flex-1 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-5"></div>
+    <div className="min-h-100 flex-1 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-5" />
   );
 }
 
 function TaskTicketList() {
   return (
-    <div className="flex flex-1">
-      <div className="h-full w-full rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-5"></div>
+    <div className="flex min-w-150 max-w-275 flex-1 shrink-0">
+      <div className="h-full w-full rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-5" />
     </div>
   );
 }
 
 export default function Dashboard() {
   return (
-    <main className="flex min-h-full w-full gap-5 bg-white px-5 pt-5">
+    <main className="flex min-h-full min-w-max w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       {/* Left Side */}
-      <div className="flex w-[45%] min-w-100 flex-col gap-5">
+      <div className="flex w-[40%] min-w-100 max-w-175 shrink-0 flex-col gap-5">
         <Announcement />
 
         <ActiveTask />
