@@ -1,29 +1,32 @@
+import { Fragment } from "react";
+
 function Announcement() {
-  const description = `Please be informed that all classes scheduled for today have been canceled due to an unexpected situation. Students are advised not to attend their scheduled classes and may use this time for rest or personal activities.
-
-For further information regarding the situation and additional instructions, please watch the following official announcement:
-
-https://youtu.be/dQw4w9WgXcQ`;
+  const description = "Please be informed that all classes today are canceled due to an unexpected situation. Students should not attend and may use this time for rest or personal activities.\n\ngoogle.com and www.google.com\n\nhttps://youtu.be/dQw4w9WgXcQ";
+  const urlRegex = /((?:https?:\/\/|www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\/[^\s.,!?;:]*)?)/g;
+  const parts = description.split(urlRegex);
 
   return (
     <div className="h-90 w-full overflow-hidden rounded-[30px] bg-(--panel-bg)">
-      {/* Main announcement */}
       <div className="flex h-full flex-col p-5 pb-0">
         <h1 className="text-3xl font-bold text-black line-clamp-2">
-          Test Topic Announcement 001 and show Line wrapping Test Topic
-          Announcement 001 and show Line wrapping
+          Test Topic Announcement 001 and show Line wrapping Test Topic Announcement 001 and show Line wrapping
         </h1>
 
-        <div className="mt-4 text-base font-normal text-gray-700 line-clamp-6 whitespace-pre-line">
-          {description}
+        <div className="mt-4 text-base font-normal text-gray-700 line-clamp-7 whitespace-pre-line">
+          {parts.map((part, index) => (
+            <Fragment key={index}>
+              {index % 2 === 1 ? (
+                <a href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="underline">
+                  {part}
+                </a>
+              ) : part}
+            </Fragment>
+          ))}
         </div>
 
-        {/* Readmore */}
         <div className="-mx-5 mt-auto">
           <div className="rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center">
-            <button className="text-base font-semibold text-black underline">
-              Readmore
-            </button>
+            <button className="text-base font-semibold text-black underline">Readmore</button>
           </div>
         </div>
       </div>
@@ -45,9 +48,7 @@ function ActiveTask() {
 
       {/* Task Active Detail */}
       <div className="flex w-fit shrink-0 flex-col pr-5">
-        <div className="flex items-start text-base font-bold text-black">
-          <p>Due Tasks</p>
-        </div>
+        <div className="flex items-start text-base font-bold text-black"><p>Due Tasks</p></div>
 
         <div className="flex flex-1">
           {/* Bar Chart Area */}
@@ -59,47 +60,23 @@ function ActiveTask() {
           <div className="flex flex-1 flex-col justify-between text-lg font-medium text-black">
             {/* This week - Top */}
             <div className="flex items-center">
-              <div className="flex w-7.5 items-center">
-                <div className="h-5 w-5 rounded-full bg-(--panel-bg)" />
-              </div>
-
-              <div className="flex w-5 items-center text-base">
-                <p>1</p>
-              </div>
-
-              <div className="flex flex-1 items-center text-base">
-                <p>This week</p>
-              </div>
+              <div className="flex w-7.5 items-center"><div className="h-5 w-5 rounded-full bg-(--panel-bg)" /></div>
+              <div className="flex w-5 items-center text-base"><p>1</p></div>
+              <div className="flex flex-1 items-center text-base"><p>This week</p></div>
             </div>
 
             {/* Next week - Middle */}
             <div className="flex items-center">
-              <div className="flex w-7.5 items-center">
-                <div className="h-5 w-5 rounded-full bg-(--panel-bg)" />
-              </div>
-
-              <div className="flex w-5 items-center text-base">
-                <p>2</p>
-              </div>
-
-              <div className="flex flex-1 items-center text-base">
-                <p>Next week</p>
-              </div>
+              <div className="flex w-7.5 items-center"><div className="h-5 w-5 rounded-full bg-(--panel-bg)" /></div>
+              <div className="flex w-5 items-center text-base"><p>2</p></div>
+              <div className="flex flex-1 items-center text-base"><p>Next week</p></div>
             </div>
 
             {/* Later - Bottom */}
             <div className="flex items-center">
-              <div className="flex w-7.5 items-center">
-                <div className="h-5 w-5 rounded-full bg-(--panel-bg)" />
-              </div>
-
-              <div className="flex w-5 items-center text-base">
-                <p>3</p>
-              </div>
-
-              <div className="flex flex-1 items-center text-base">
-                <p>Later</p>
-              </div>
+              <div className="flex w-7.5 items-center"><div className="h-5 w-5 rounded-full bg-(--panel-bg)" /></div>
+              <div className="flex w-5 items-center text-base"><p>3</p></div>
+              <div className="flex flex-1 items-center text-base"><p>Later</p></div>
             </div>
           </div>
         </div>
@@ -109,9 +86,7 @@ function ActiveTask() {
 }
 
 function LabOverview() {
-  return (
-    <div className="min-h-100 flex-1 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-5" />
-  );
+  return <div className="min-h-100 flex-1 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-5" />;
 }
 
 function TaskTicketList() {
@@ -128,9 +103,7 @@ export default function Dashboard() {
       {/* Left Side */}
       <div className="flex w-[40%] min-w-100 max-w-175 shrink-0 flex-col gap-5">
         <Announcement />
-
         <ActiveTask />
-
         <LabOverview />
       </div>
 
