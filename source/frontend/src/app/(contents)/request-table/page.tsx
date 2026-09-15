@@ -22,6 +22,7 @@ interface Task {
   assignedTo: string;
   createdDate: string;
   lastUpdate: string;
+  status: "Pending" | "Done";
 }
 
 interface Member {
@@ -34,7 +35,7 @@ export default function RequestTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskCategory, setNewTaskCategory] = useState("");
@@ -50,9 +51,11 @@ export default function RequestTable() {
 
   // TODO: wire this up to real auth/session later
   function getUserRole(): "admin" | "member" {
-    return "admin"; // TODO: wire to real auth
+    return "member"; // TODO: wire to real auth
   }
   const userRole = getUserRole();
+
+  const currentUserName = "Chris Kim"; // TODO: wire to real auth
 
   const [tickets, setTickets] = useState<Ticket[]>([
     {
@@ -78,6 +81,29 @@ export default function RequestTable() {
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren",
       assignedTo: "",
+    },
+  ]);
+
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: "TASK-1",
+      title: "bing bong",
+      description: "blah blah blah....",
+      category: "idk",
+      assignedTo: "John Doe",
+      status: "Pending",
+      createdDate: "15/09/2026, 10:02:13",
+      lastUpdate: "15/09/2026, 10:02:13",
+    },
+    {
+      id: "TASK-2",
+      title: "bing bong",
+      description: "blah blah blah....",
+      category: "idk",
+      assignedTo: "Chris Kim",
+      status: "Pending",
+      createdDate: "15/09/2026, 10:02:13",
+      lastUpdate: "15/09/2026, 10:02:13",
     },
   ]);
 
@@ -108,6 +134,13 @@ export default function RequestTable() {
     );
   }
 
+  function isAssignedToCurrentUser(task: Task) {
+    return task.assignedTo
+      .split(",")
+      .map((name) => name.trim())
+      .includes(currentUserName);
+  }
+
   function handleCreateTask() {
     if (!newTaskTitle.trim()) return;
 
@@ -121,6 +154,7 @@ export default function RequestTable() {
         .join(", "),
       createdDate: new Date().toLocaleString(),
       lastUpdate: new Date().toLocaleString(),
+      status: "Pending",
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -180,6 +214,20 @@ function resetTicketForm() {
     setAssignedMemberIds([]);
   }
 
+  function handleSubmitTask() {
+    if (!selectedTask) return;
+
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === selectedTask.id
+          ? { ...t, status: "Done", lastUpdate: new Date().toLocaleString() }
+          : t
+      )
+    );
+
+    setSelectedTask(null);
+  }
+
   const filteredTickets = tickets
     .filter((ticket) =>
       ticket.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -198,6 +246,9 @@ function resetTicketForm() {
     )
     .filter((task) =>
       taskCategoryFilter === "All" ? true : task.category === taskCategoryFilter
+    )
+    .filter((task) =>
+    userRole === "admin" ? true : isAssignedToCurrentUser(task)
     );
 
   return (
@@ -211,7 +262,7 @@ function resetTicketForm() {
               {(userRole === "admin" || userRole === "member") && (
                 <button
                   onClick={() => setIsCreatingTicket(true)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-gray-600"
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
                 >
                   +
                 </button>
@@ -293,7 +344,7 @@ function resetTicketForm() {
               {userRole === "admin" && (
               <button
                 onClick={() => setIsCreatingTask(true)}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-gray-600"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
               >
                 +
               </button>
@@ -333,18 +384,24 @@ function resetTicketForm() {
                   <th className="px-4 py-2">Description</th>
                   <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Assigned</th>
+                  <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTasks.map((task) => (
-                  <tr key={task.id} className="border-b border-gray-200 last:border-b-0 text-sm">
+                  <tr
+                    key={task.id}
+                    onClick={() => setSelectedTask(task)}
+                    className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
+                  >
                     <td className="px-4 py-3">{task.id}</td>
                     <td className="px-4 py-3">{task.title}</td>
                     <td className="px-4 py-3">{task.description}</td>
                     <td className="px-4 py-3">{task.category}</td>
                     <td className="px-4 py-3">{task.assignedTo}</td>
+                    <td className="px-4 py-3">{task.status}</td>
                     <td className="px-4 py-3">{task.createdDate}</td>
                     <td className="px-4 py-3">{task.lastUpdate}</td>
                   </tr>
@@ -444,20 +501,29 @@ function resetTicketForm() {
             {/* Footer: action buttons, bottom-right */}
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
+                onClick={() => {
+                  setSelectedTicket(null);
+                  setAssignedMemberIds([]);
+                }}
+                className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm"
+              >
+                Cancel
+              </button>
+              <button
                 onClick={() => handleDecision("Closed")}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
               >
                 Reject
               </button>
               <button
                 onClick={() => handleDecision("In-process")}
-                className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-gray-400 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-(--primary-color-1-hover) text-sm"
               >
                 Revised
               </button>
               <button
                 onClick={() => handleDecision("Open")}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
               >
                 Approve
               </button>
@@ -506,13 +572,13 @@ function resetTicketForm() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
                 onClick={resetTicketForm}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTicket}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
               >
                 Submit
               </button>
@@ -601,13 +667,79 @@ function resetTicketForm() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
                 onClick={resetTaskForm}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTask}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task detail / submit modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+            <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
+              Task detail
+            </div>
+
+            <div className="flex gap-6 p-6 flex-1">
+              <div className="flex-1 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Title</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                    {selectedTask.title}
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-1">Category</label>
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                      {selectedTask.category}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-1">Status</label>
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                      {selectedTask.status}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24">
+                    {selectedTask.description}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assigned</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                    {selectedTask.assignedTo || "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitTask}
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
               >
                 Submit
               </button>

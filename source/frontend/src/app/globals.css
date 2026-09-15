@@ -7,17 +7,26 @@
   /* color palatte 1 */
   --primary-color-1-hover: #87b7b9;
   --primary-color-2-hover: #acd6c1;
+<<<<<<< HEAD
   --primary-color-3-hover: #d0edb4;
+=======
+  --primary-color-3-hover: #D0E5BB;
+>>>>>>> e3caf9a (add task submission flow, task visibility by assignee, ticket modal cancel button, add new hover color, and role helper refactor)
 
   --primary-color-1: #73a9ad;
   --primary-color-2: #90c8ac;
   --primary-color-3: #c4dfaa;
 
+<<<<<<< HEAD
   --primary-red: #e74a4a;
   --primary-yellow: #fcdc5d;
   --primary-blue: #a2dcf8;
 
   --panel-bg: #eaf1e3;
+=======
+  --primary-red-hover: #E18686;
+  --primary-red: #D96868;
+>>>>>>> e3caf9a (add task submission flow, task visibility by assignee, ticket modal cancel button, add new hover color, and role helper refactor)
 }
 
 body {
