@@ -40,10 +40,19 @@ export default function RequestTable() {
   const [newTaskCategory, setNewTaskCategory] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [newTicketTitle, setNewTicketTitle] = useState("");
+  const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
 
   // Task table search + filter
   const [taskSearchTerm, setTaskSearchTerm] = useState("");
   const [taskCategoryFilter, setTaskCategoryFilter] = useState("All");
+
+  // TODO: wire this up to real auth/session later
+  function getUserRole(): "admin" | "member" {
+    return "admin"; // TODO: wire to real auth
+  }
+  const userRole = getUserRole();
 
   const [tickets, setTickets] = useState<Ticket[]>([
     {
@@ -51,8 +60,8 @@ export default function RequestTable() {
       title: "Cannot upload experiment results",
       status: "In-process",
       urgency: "High",
-      createdDate: "Tue 01 Sep 26, 12:00",
-      lastUpdate: "Tue 01 Sep 26, 12:00",
+      createdDate: "15/09/2026, 10:02:13",
+      lastUpdate: "15/09/2026, 10:02:13",
       category: "Bug fix",
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren",
@@ -63,8 +72,8 @@ export default function RequestTable() {
       title: "Cannot upload experiment results",
       status: "In-process",
       urgency: "High",
-      createdDate: "Tue 01 Sep 26, 12:00",
-      lastUpdate: "Tue 01 Sep 26, 12:00",
+      createdDate: "15/09/2026, 10:02:13",
+      lastUpdate: "15/09/2026, 10:02:13",
       category: "Bug fix",
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren",
@@ -126,6 +135,32 @@ export default function RequestTable() {
     setIsCreatingTask(false);
   }
 
+  function handleCreateTicket() {
+    if (!newTicketTitle.trim()) return;
+
+    const newTicket: Ticket = {
+      id: `TCK-${String(tickets.length + 1).padStart(3, "0")}`,
+      title: newTicketTitle,
+      status: "In-process",
+      urgency: newTicketUrgency,
+      createdDate: new Date().toLocaleString(),
+      lastUpdate: new Date().toLocaleString(),
+      category: "",
+      description: "",
+      createdBy: "",
+      assignedTo: "",
+    };
+
+    setTickets((prev) => [...prev, newTicket]);
+    resetTicketForm();
+  }
+
+function resetTicketForm() {
+  setNewTicketTitle("");
+  setNewTicketUrgency("Low");
+  setIsCreatingTicket(false);
+}
+
   function handleDecision(newStatus: Ticket["status"]) {
     if (!selectedTicket) return;
 
@@ -171,7 +206,17 @@ export default function RequestTable() {
         {/* My Tickets section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold flex items-center">My Tickets</h2>
+            <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
+              My Tickets
+              {(userRole === "admin" || userRole === "member") && (
+                <button
+                  onClick={() => setIsCreatingTicket(true)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-gray-600"
+                >
+                  +
+                </button>
+              )}
+            </h2>
 
             <div className="h-9 flex items-center gap-2">
               <input
@@ -245,12 +290,14 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Task
+              {userRole === "admin" && (
               <button
                 onClick={() => setIsCreatingTask(true)}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-gray-600"
               >
                 +
               </button>
+              )}
             </h2>
 
             <div className="h-9 flex items-center gap-2">
@@ -413,6 +460,61 @@ export default function RequestTable() {
                 className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
               >
                 Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create new ticket modal */}
+      {isCreatingTicket && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+            <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
+              Create new ticket
+            </div>
+
+            <div className="flex gap-6 p-6 flex-1">
+              <div className="flex-1 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={newTicketTitle}
+                    onChange={(e) => setNewTicketTitle(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Urgency</label>
+                  <select
+                    value={newTicketUrgency}
+                    onChange={(e) =>
+                      setNewTicketUrgency(e.target.value as Ticket["urgency"])
+                    }
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={resetTicketForm}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTicket}
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
+              >
+                Submit
               </button>
             </div>
           </div>
