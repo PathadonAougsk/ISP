@@ -7,12 +7,14 @@
   /* color palatte 1 */
   --primary-color-1-hover: #87B7B9;
   --primary-color-2-hover: #acd6c1;
+  --primary-color-3-hover: #D0E5BB;
 
   --primary-color-1: #73a9ad;
   --primary-color-2: #90c8ac;
   --primary-color-3: #c4dfaa;
   --panel-bg: #eaf1e3;
 
+  --primary-red-hover: #E18686;
   --primary-red: #D96868;
 }
 
