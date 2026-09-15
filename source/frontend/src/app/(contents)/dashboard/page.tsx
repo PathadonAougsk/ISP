@@ -16,7 +16,7 @@ function Announcement() {
           {parts.map((part, index) => (
             <Fragment key={index}>
               {index % 2 === 1 ? (
-                <a href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="underline">
+                <a href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="italic underline">
                   {part}
                 </a>
               ) : part}
