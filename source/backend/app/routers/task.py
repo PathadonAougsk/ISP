@@ -64,8 +64,8 @@ async def retrieve_tasks(
 
     tasks = (await session.scalars(tasks)).all()
     # Asking for a specific task that does not exist is a 404.
-    if userId and not tasks:
-        raise HTTPException(status_code=404, detail=f"Task with id {userId} not found")
+    if id and not tasks:
+        raise HTTPException(status_code=404, detail=f"Task with id {id} not found")
 
     return {"Tasks": tasks}
 
