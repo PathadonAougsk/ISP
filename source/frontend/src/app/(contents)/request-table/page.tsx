@@ -55,6 +55,10 @@ export default function RequestTable() {
   const [editTaskCategory, setEditTaskCategory] = useState("");
   const [editTaskDescription, setEditTaskDescription] = useState("");
   const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>([]);
+  const [editTicketTitle, setEditTicketTitle] = useState("");
+  const [editTicketCategory, setEditTicketCategory] = useState("");
+  const [editTicketDescription, setEditTicketDescription] = useState("");
+  const [editTicketUrgency, setEditTicketUrgency] = useState<Ticket["urgency"]>("Low");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicketTitle, setNewTicketTitle] = useState("");
   const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
@@ -205,7 +209,7 @@ export default function RequestTable() {
       lastUpdate: formatDateTime(),
       category: newTicketCategory,
       description: newTicketDescription,
-      createdBy: "",
+      createdBy: currentUserName,
       assignedTo: "",
     };
 
@@ -242,6 +246,27 @@ function resetTicketForm() {
 
     setSelectedTicket(null);
     setAssignedMemberIds([]);
+  }
+
+  function handleUpdateTicket() {
+    if (!selectedTicket) return;
+
+    setTickets((prev) =>
+      prev.map((t) =>
+        t.id === selectedTicket.id
+          ? {
+              ...t,
+              title: editTicketTitle,
+              category: editTicketCategory,
+              description: editTicketDescription,
+              urgency: editTicketUrgency,
+              lastUpdate: formatDateTime(),
+            }
+          : t
+      )
+    );
+
+    setSelectedTicket(null);
   }
 
   function handleSubmitTask() {
@@ -292,6 +317,9 @@ function resetTicketForm() {
     )
     .filter((ticket) =>
       statusFilter === "All" ? true : ticket.status === statusFilter
+    )
+    .filter((ticket) =>
+      userRole === "admin" ? true : ticket.createdBy === currentUserName
     );
 
   const taskCategories = Array.from(
@@ -363,6 +391,7 @@ function resetTicketForm() {
                   <th className="px-4 py-2">Title</th>
                   <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Urgency</th>
+                  <th className="px-4 py-2">Created By</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
@@ -374,6 +403,10 @@ function resetTicketForm() {
                     onClick={() => {
                       setSelectedTicket(ticket);
                       setAssignedMemberIds([]);
+                      setEditTicketTitle(ticket.title);
+                      setEditTicketCategory(ticket.category);
+                      setEditTicketDescription(ticket.description);
+                      setEditTicketUrgency(ticket.urgency);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
@@ -383,6 +416,9 @@ function resetTicketForm() {
                     </td>
                     <td className="px-4 py-3">{ticket.status}</td>
                     <td className="px-4 py-3">{ticket.urgency}</td>
+                    <td className="px-4 py-3 max-w-[120px] truncate" title={ticket.createdBy}>
+                      {ticket.createdBy}
+                    </td>
                     <td className="px-4 py-3">{ticket.createdDate}</td>
                     <td className="px-4 py-3">{ticket.lastUpdate}</td>
                   </tr>
@@ -514,72 +550,110 @@ function resetTicketForm() {
               Judge tickets
             </div>
 
-            <div className="flex gap-6 p-6 flex-1 min-w-0">
-              {/* Left column: form fields */}
-              <div className="flex-1 space-y-4">
+            <div className="flex gap-6 p-6 flex-1">
+              <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                    {selectedTicket.title}
-                  </div>
+                  {userRole === "admin" ? (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTicket.title}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={editTicketTitle}
+                      onChange={(e) => setEditTicketTitle(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  )}
                 </div>
 
                 <div className="flex gap-4">
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                      {selectedTicket.category}
-                    </div>
+                    {userRole === "admin" ? (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTicket.category}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={editTicketCategory}
+                        onChange={(e) => setEditTicketCategory(e.target.value)}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Urgency</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                      {selectedTicket.urgency}
-                    </div>
+                    {userRole === "admin" ? (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTicket.urgency}
+                      </div>
+                    ) : (
+                      <select
+                        value={editTicketUrgency}
+                        onChange={(e) => setEditTicketUrgency(e.target.value as Ticket["urgency"])}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
-                    {selectedTicket.description}
+                  {userRole === "admin" ? (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
+                      {selectedTicket.description}
+                    </div>
+                  ) : (
+                    <textarea
+                      value={editTicketDescription}
+                      onChange={(e) => setEditTicketDescription(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Created By</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words">
+                    {selectedTicket.createdBy}
                   </div>
                 </div>
               </div>
 
-              {/* Right column: assign members */}
-              <div className="w-64 border-l border-gray-200 pl-4">
-                <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                  <span>Assign</span>
-                  <span>Members — {members.length}</span>
-                </div>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {members.map((member) => (
-                    <label
-                      key={member.id}
-                      className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={assignedMemberIds.includes(member.id)}
-                        onChange={() => toggleAssign(member.id)}
-                        className="w-4 h-4"
-                      />
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium leading-tight">
-                            {member.name}
-                          </div>
-                          <div className="text-xs text-gray-400 leading-tight">
-                            {member.email}
+              {userRole === "admin" && (
+                <div className="w-64 border-l border-gray-200 pl-4">
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
+                    <span>Assign</span>
+                    <span>Members — {members.length}</span>
+                  </div>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {members.map((member) => (
+                      <label key={member.id} className="grid grid-cols-[auto_1fr] gap-x-3 items-center">
+                        <input
+                          type="checkbox"
+                          checked={assignedMemberIds.includes(member.id)}
+                          onChange={() => toggleAssign(member.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium leading-tight">{member.name}</div>
+                            <div className="text-xs text-gray-400 leading-tight">{member.email}</div>
                           </div>
                         </div>
-                      </div>
-                    </label>
-                  ))}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer: action buttons, bottom-right */}
@@ -593,24 +667,36 @@ function resetTicketForm() {
               >
                 Cancel
               </button>
-              <button
-                onClick={() => handleDecision("Closed")}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => handleDecision("In-process")}
-                className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-(--primary-color-1-hover) text-sm"
-              >
-                Revised
-              </button>
-              <button
-                onClick={() => handleDecision("Open")}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
-              >
-                Approve
-              </button>
+
+              {userRole === "admin" ? (
+                <>
+                  <button
+                    onClick={() => handleDecision("Closed")}
+                    className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleDecision("In-process")}
+                    className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-(--primary-color-1-hover) text-sm"
+                  >
+                    Revised
+                  </button>
+                  <button
+                    onClick={() => handleDecision("Open")}
+                    className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                  >
+                    Approve
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleUpdateTicket}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                >
+                  Save Changes
+                </button>
+              )}
             </div>
           </div>
         </div>
