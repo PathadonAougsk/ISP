@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Fragment } from "react";
 
 const categoryMap: Record<number, string> = { 1: "Report", 2: "Project" };
@@ -89,9 +90,15 @@ function Announcement() {
           <div className="flex items-center gap-2"><Image src="/clock.svg" alt="" width={16} height={16} /><span>Friday 28 August 2026, 09:47</span></div>
         </div>
         <div className="mt-2 text-base font-normal text-gray-700 line-clamp-7 whitespace-pre-line">
-          {parts.map((part, index) => <Fragment key={index}>{index % 2 === 1 ? <a href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="italic underline">{part}</a> : part}</Fragment>)}
+          {parts.map((part, index) => <Fragment key={index}>{index % 2 === 1 ? <a href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="italic underline hover:text-gray-500">{part}</a> : part}</Fragment>)}
         </div>
-        <div className="-mx-5 mt-auto"><div className="rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center"><button className="text-base font-semibold text-black underline">Readmore</button></div></div>
+        <div className="-mx-5 mt-auto">
+          <Link href="/announcement" className="group block rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center hover:bg-(--primary-color-3-hover)">
+            <span className="text-base font-semibold text-black underline group-hover:font-bold group-hover:text-gray-800">
+              Readmore
+            </span>
+          </Link>
+        </div>
       </div>
     </div>
   );
