@@ -238,7 +238,7 @@ function TicketList() {
 
 function TaskTicketList() {
   return (
-    <div className="flex min-w-150 max-w-275 flex-1 shrink-0">
+    <div className="flex min-w-0 flex-1 shrink-0">
       <div className="flex h-full w-full flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
         <TaskList />
         <TicketList />
@@ -249,12 +249,13 @@ function TaskTicketList() {
 
 export default function Dashboard() {
   return (
-    <main className="flex min-h-full min-w-max w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
-      <div className="flex w-[40%] min-w-100 max-w-175 shrink-0 flex-col gap-5">
+    <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
+      <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
         <ActiveTask />
         <TaskOverview />
       </div>
+
       <TaskTicketList />
     </main>
   );
