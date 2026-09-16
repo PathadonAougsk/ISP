@@ -13,7 +13,7 @@ export default function Topbar() {
       <div className="flex flex-row items-center justify-center gap-5 text-center">
         <Image src="./profile.svg" width={36} height={36} alt="Profile" />
         <div className="hidden flex-row items-center gap-2 text-lg md:flex">
-          <h1 className="font-bold">Pasin Mclearn</h1>
+          <h1 className="font-bold">Pasin Mclaren</h1>
           <h1 className="font-bold">|</h1>
           <h1 className="font-bold">Lab Member</h1>
         </div>
