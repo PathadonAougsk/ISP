@@ -41,8 +41,6 @@ class TicketStatus(str, enum.Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
 
 class TaskStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
