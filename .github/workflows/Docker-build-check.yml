@@ -1,0 +1,36 @@
+name: Docker-Build-Check
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  builds:
+    name: builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p source
+          cat > source/.env <<EOF
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_KEY=$SUPABASE_KEY
+          SUPABASE_DB_URL=$SUPABASE_DB_URL
+          EOF
+
+      - name: Build / Run docker compose
+        run: docker compose -f docker-compose.yaml up --build -d --wait --wait-timeout 120
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yaml logs
+
+      - name: Shutdown containers
+        if: always()
+        run: docker compose -f docker-compose.yaml down -v
