@@ -51,6 +51,10 @@ export default function RequestTable() {
   const [newTaskCategory, setNewTaskCategory] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
+  const [editTaskTitle, setEditTaskTitle] = useState("");
+  const [editTaskCategory, setEditTaskCategory] = useState("");
+  const [editTaskDescription, setEditTaskDescription] = useState("");
+  const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>([]);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicketTitle, setNewTicketTitle] = useState("");
   const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
@@ -63,7 +67,7 @@ export default function RequestTable() {
 
   // TODO: wire this up to real auth/session later
   function getUserRole(): "admin" | "member" {
-    return "admin"; // TODO: wire to real auth
+    return "member"; // TODO: wire to real auth
   }
   const userRole = getUserRole();
 
@@ -140,6 +144,14 @@ export default function RequestTable() {
 
   function toggleNewTaskAssign(memberId: string) {
     setNewTaskAssignedIds((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
+    );
+  }
+
+  function toggleEditTaskAssign(memberId: string) {
+    setEditTaskAssignedIds((prev) =>
       prev.includes(memberId)
         ? prev.filter((id) => id !== memberId)
         : [...prev, memberId]
@@ -239,6 +251,29 @@ function resetTicketForm() {
       prevTasks.map((t) =>
         t.id === selectedTask.id
           ? { ...t, status: "Done", lastUpdate: formatDateTime() }
+          : t
+      )
+    );
+
+    setSelectedTask(null);
+  }
+
+  function handleUpdateTask() {
+    if (!selectedTask) return;
+
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === selectedTask.id
+          ? {
+              ...t,
+              title: editTaskTitle,
+              category: editTaskCategory,
+              description: editTaskDescription,
+              assignedTo: editTaskAssignedIds
+                .map((id) => members.find((m) => m.id === id)?.name)
+                .join(", "),
+              lastUpdate: formatDateTime(),
+            }
           : t
       )
     );
@@ -424,7 +459,17 @@ function resetTicketForm() {
                 {filteredTasks.map((task) => (
                   <tr
                     key={task.id}
-                    onClick={() => setSelectedTask(task)}
+                    onClick={() => {
+                      setSelectedTask(task);
+                      setEditTaskTitle(task.title);
+                      setEditTaskCategory(task.category);
+                      setEditTaskDescription(task.description);
+                      setEditTaskAssignedIds(
+                        members
+                          .filter((m) => task.assignedTo.split(",").map((n) => n.trim()).includes(m.name))
+                          .map((m) => m.id)
+                      );
+                    }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-4 py-3">{task.id}</td>
@@ -752,17 +797,35 @@ function resetTicketForm() {
               <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                    {selectedTask.title}
-                  </div>
+                  {userRole === "admin" ? (
+                    <input
+                      type="text"
+                      value={editTaskTitle}
+                      onChange={(e) => setEditTaskTitle(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  ) : (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTask.title}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4">
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                      {selectedTask.category}
-                    </div>
+                    {userRole === "admin" ? (
+                      <input
+                        type="text"
+                        value={editTaskCategory}
+                        onChange={(e) => setEditTaskCategory(e.target.value)}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    ) : (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTask.category}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Status</label>
@@ -774,18 +837,56 @@ function resetTicketForm() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
-                    {selectedTask.description}
-                  </div>
+                  {userRole === "admin" ? (
+                    <textarea
+                      value={editTaskDescription}
+                      onChange={(e) => setEditTaskDescription(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  ) : (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
+                      {selectedTask.description}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Assigned</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                    {selectedTask.assignedTo || "—"}
+                {userRole !== "admin" && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Assigned</label>
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTask.assignedTo || "—"}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {userRole === "admin" && (
+                <div className="w-64 border-l border-gray-200 pl-4">
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
+                    <span>Assign</span>
+                    <span>Members — {members.length}</span>
+                  </div>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {members.map((member) => (
+                      <label key={member.id} className="grid grid-cols-[auto_1fr] gap-x-3 items-center">
+                        <input
+                          type="checkbox"
+                          checked={editTaskAssignedIds.includes(member.id)}
+                          onChange={() => toggleEditTaskAssign(member.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium leading-tight">{member.name}</div>
+                            <div className="text-xs text-gray-400 leading-tight">{member.email}</div>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
@@ -795,12 +896,21 @@ function resetTicketForm() {
               >
                 Cancel
               </button>
-              <button
-                onClick={handleSubmitTask}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
-              >
-                Submit
-              </button>
+                {userRole === "admin" ? (
+                <button
+                  onClick={handleUpdateTask}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                >
+                  Save Changes
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmitTask}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                >
+                  Submit
+                </button>
+              )}
             </div>
           </div>
         </div>
