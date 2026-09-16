@@ -7,37 +7,18 @@
   /* color palatte 1 */
   --primary-color-1-hover: #87b7b9;
   --primary-color-2-hover: #acd6c1;
-<<<<<<< HEAD
-<<<<<<< HEAD
   --primary-color-3-hover: #d0edb4;
-=======
-  --primary-color-3-hover: #D0E5BB;
->>>>>>> e3caf9a (add task submission flow, task visibility by assignee, ticket modal cancel button, add new hover color, and role helper refactor)
-=======
-  --primary-color-3-hover: #d0edb4;
-  --primary-red-hover: #E18686;
->>>>>>> 8f2f1da (add createdBy field to Task, set to approving admin for ticket-converted tasks, and add colors in the global)
 
   --primary-color-1: #73a9ad;
   --primary-color-2: #90c8ac;
   --primary-color-3: #c4dfaa;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 8f2f1da (add createdBy field to Task, set to approving admin for ticket-converted tasks, and add colors in the global)
   --primary-red: #e74a4a;
   --primary-yellow: #fcdc5d;
   --primary-blue: #a2dcf8;
 
   --panel-bg: #eaf1e3;
-<<<<<<< HEAD
-=======
   --primary-red-hover: #E18686;
-  --primary-red: #D96868;
->>>>>>> e3caf9a (add task submission flow, task visibility by assignee, ticket modal cancel button, add new hover color, and role helper refactor)
-=======
->>>>>>> 8f2f1da (add createdBy field to Task, set to approving admin for ticket-converted tasks, and add colors in the global)
 }
 
 body {
