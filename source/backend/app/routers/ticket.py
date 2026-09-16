@@ -19,7 +19,7 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
                            category_id: int | None = None,
                            due_before: dt.datetime | None = None,
                            onlyOwned: bool = False,
-                           limit: int | None = 20,
+                           limit: int | None = 20
 ):
     query = select(Ticket)
 
@@ -45,11 +45,14 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
     )
 
     if me.role == AccountRole.LAB_ADMIN:
-        query = query.order_by(status_order)
+        query = query.order_by(
+            status_order,
+            Ticket.due_date
+        )
     else:
         query = query.order_by(
             Ticket.due_date,
-            status_order,
+            status_order
         )
 
     if limit:
@@ -60,11 +63,11 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
     return {"Tickets": result.all()}
 
 @ticketRouter.post("/", tags=["Tickets"])
-async def create_ticket():
+async def create_ticket(session: Annotated[AsyncSession, Depends(getSession)]):
     pass
 
 @ticketRouter.put("/{ticket_id}", tags=["Tickets"])
-async def update_ticket(ticket_id: int):
+async def update_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
     pass
 
 @ticketRouter.delete("/{ticket_id}", tags=["Tickets"])
