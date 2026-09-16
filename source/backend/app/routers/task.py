@@ -4,12 +4,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
-from app.model import Account, Task, TaskStatus
+from app.model import Account, AccountRole, Task, TaskStatus
 from app.service import user_service
 
 # Base Task model.
@@ -24,38 +25,49 @@ class TaskRequest(BaseModel):
 taskRouter = APIRouter(prefix="/task", dependencies=[Depends(user_service.get_current_auth_user)])
 
 # Filter params here are optional. If given none, then get all.
-# Filters: categories, users (assignees), status
+# Filters: id, categories, users (assignees), status, limit
+# Admins and the lab owner see every task, a plain lab user only sees their own.
 @taskRouter.get("/", tags=["Task"])
 async def retrieve_tasks(
-    auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)],
+    me: Annotated[Account, Depends(user_service.get_current_account)],
     session: Annotated[AsyncSession, Depends(getSession)],
-    categories: list[int] | None = Query(None),
-    users: list[uuid.UUID] | None = Query(None),
-    status: list[TaskStatus] | None = Query(None),
+    userId: int | None = Query(None),
+    categories: int | None = Query(None),
+    assignsTo: uuid.UUID | None = Query(None),
+    status: TaskStatus | None = Query(None),
+    limit: int | None = Query(None, ge=20),
 ):
-    tasks = select(Task)
+    tasks = select(Task).options(selectinload(Task.assignees))
     # Then, we filter each attribute one by one.
+    if userId:
+        tasks = tasks.where(Task.id == userId)
     if categories:
-        tasks = tasks.where(Task.category_id.in_(categories))
-    if users:
-        tasks = tasks.where(Task.assignees.any(Account.id.in_(users)))
+        tasks = tasks.where(Task.category_id == categories)
+    if assignsTo:
+        tasks = tasks.where(Task.assignees.any(Account.id == assignsTo))
     if status:
-        tasks = tasks.where(Task.status.in_(status))
+        tasks = tasks.where(Task.status == status)
+    # A lab user never sees tasks that are not assigned to them.
+    if me.role == AccountRole.LAB_USER:
+        tasks = tasks.where(Task.assignees.any(Account.id == me.id))
 
-    tasks = await session.scalars(tasks)
-    return {"Tasks": tasks.all()}
-
-@taskRouter.get("/{task_id}", tags=["Task"])
-async def retrieve_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)], task_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
-    # Request a query to get task from id
-    task = await session.scalar(
-        select(Task).where(Task.id == task_id)
+    # Most urgent due date first, and unfinished work first when they tie.
+    status_order = case(
+        (Task.status == TaskStatus.IN_PROGRESS, 1),
+        (Task.status == TaskStatus.COMPLETED, 2),
     )
-    # If it does not exist, 404!
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
+    tasks = tasks.order_by(Task.due_date, status_order)
 
-    return {"Task": task}
+    # Cap how many tasks come back, if asked for.
+    if limit:
+        tasks = tasks.limit(limit)
+
+    tasks = (await session.scalars(tasks)).all()
+    # Asking for a specific task that does not exist is a 404.
+    if userId and not tasks:
+        raise HTTPException(status_code=404, detail=f"Task with id {userId} not found")
+
+    return {"Tasks": tasks}
 
 @taskRouter.post("/", tags=["Task"])
 async def create_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
