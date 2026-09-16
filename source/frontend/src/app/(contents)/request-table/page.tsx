@@ -30,6 +30,7 @@ interface Task {
   description: string;
   category: string;
   assignedTo: string;
+  createdBy: string;
   createdDate: string;
   lastUpdate: string;
   status: "Pending" | "Done";
@@ -76,7 +77,7 @@ export default function RequestTable() {
   }
   const userRole = getUserRole();
 
-  const currentUserName = "Chris Kim"; // TODO: wire to real auth
+  const currentUserName = "Pasin Mclaren"; // TODO: wire to real auth
 
   const [tickets, setTickets] = useState<Ticket[]>([
     {
@@ -88,7 +89,7 @@ export default function RequestTable() {
       lastUpdate: "Mon 15 Sep 26, 10:02",
       category: "Bug fix",
       description: "The lab will explode soon boommmmmmm",
-      createdBy: "Pasin Mclaren",
+      createdBy: "Chris Kim",
       assignedTo: "",
     },
     {
@@ -112,6 +113,7 @@ export default function RequestTable() {
       description: "blah blah blah....",
       category: "idk",
       assignedTo: "John Doe",
+      createdBy: "Pasin Mclaren",
       status: "Pending",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
@@ -122,6 +124,7 @@ export default function RequestTable() {
       description: "blah blah blah....",
       category: "idk",
       assignedTo: "Chris Kim",
+      createdBy: "Pasin Mclaren",
       status: "Pending",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
@@ -181,6 +184,7 @@ export default function RequestTable() {
       assignedTo: newTaskAssignedIds
         .map((id) => members.find((m) => m.id === id)?.name)
         .join(", "),
+      createdBy: currentUserName,
       createdDate: formatDateTime(),
       lastUpdate: formatDateTime(),
       status: "Pending",
@@ -270,6 +274,7 @@ export default function RequestTable() {
         description: selectedTicket.description,
         category: selectedTicket.category,
         assignedTo: assignedNames,
+        createdBy: currentUserName,
         createdDate: formatDateTime(),
         lastUpdate: formatDateTime(),
         status: "Pending",
@@ -522,6 +527,7 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Assigned</th>
                   <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Created By</th> 
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
@@ -557,6 +563,9 @@ export default function RequestTable() {
                       {task.assignedTo}
                     </td>
                     <td className="px-4 py-3">{task.status}</td>
+                    <td className="px-4 py-3 max-w-[120px] truncate" title={task.createdBy}>
+                      {task.createdBy}
+                    </td>
                     <td className="px-4 py-3">{task.createdDate}</td>
                     <td className="px-4 py-3">{task.lastUpdate}</td>
                   </tr>
@@ -954,6 +963,13 @@ export default function RequestTable() {
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTask.status}
                     </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Created By</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words">
+                    {selectedTask.createdBy}
                   </div>
                 </div>
 
