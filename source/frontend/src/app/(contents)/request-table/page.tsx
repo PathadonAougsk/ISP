@@ -71,7 +71,7 @@ export default function RequestTable() {
 
   const [tickets, setTickets] = useState<Ticket[]>([
     {
-      id: "TCK-001",
+      id: "TCK-1",
       title: "Cannot upload experiment results",
       status: "In-process",
       urgency: "High",
@@ -83,7 +83,7 @@ export default function RequestTable() {
       assignedTo: "",
     },
     {
-      id: "TCK-002",
+      id: "TCK-2",
       title: "Cannot upload experiment results",
       status: "In-process",
       urgency: "High",
@@ -185,7 +185,7 @@ export default function RequestTable() {
     if (!newTicketTitle.trim()) return;
 
     const newTicket: Ticket = {
-      id: `TCK-${String(tickets.length + 1).padStart(3, "0")}`,
+      id: `TCK-${String(tickets.length + 1)}`,
       title: newTicketTitle,
       status: "In-process",
       urgency: newTicketUrgency,
@@ -252,7 +252,8 @@ function resetTicketForm() {
 
   const filteredTickets = tickets
     .filter((ticket) =>
-      ticket.title.toLowerCase().includes(searchTerm.toLowerCase())
+      ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.id.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter((ticket) =>
       statusFilter === "All" ? true : ticket.status === statusFilter
@@ -264,7 +265,8 @@ function resetTicketForm() {
 
   const filteredTasks = tasks
     .filter((task) =>
-      task.title.toLowerCase().includes(taskSearchTerm.toLowerCase())
+      task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
+      task.id.toLowerCase().includes(taskSearchTerm.toLowerCase())
     )
     .filter((task) =>
       taskCategoryFilter === "All" ? true : task.category === taskCategoryFilter
