@@ -47,6 +47,7 @@ interface Member {
 export default function RequestTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [urgencyFilter, setUrgencyFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -55,6 +56,7 @@ export default function RequestTable() {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
   const [editTaskDueDate, setEditTaskDueDate] = useState("");
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskCategory, setEditTaskCategory] = useState("");
@@ -368,6 +370,9 @@ export default function RequestTable() {
       statusFilter === "All" ? true : ticket.status === statusFilter
     )
     .filter((ticket) =>
+      urgencyFilter === "All" ? true : ticket.urgency === urgencyFilter
+    )
+    .filter((ticket) =>
       userRole === "admin" ? true : ticket.createdBy === currentUserName
     );
 
@@ -382,6 +387,9 @@ export default function RequestTable() {
     )
     .filter((task) =>
       taskCategoryFilter === "All" ? true : task.category === taskCategoryFilter
+    )
+    .filter((task) =>
+      taskStatusFilter === "All" ? true : task.status === taskStatusFilter
     )
     .filter((task) =>
     userRole === "admin" ? true : isAssignedToCurrentUser(task)
@@ -415,6 +423,17 @@ export default function RequestTable() {
               />
 
               <select
+                value={urgencyFilter}
+                onChange={(e) => setUrgencyFilter(e.target.value)}
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                <option value="All">All</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+              
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
@@ -423,11 +442,6 @@ export default function RequestTable() {
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
-                {/* {ticketCategories.map((category) => (
-                  <option key={category} value={category} title={category}>
-                    {truncateLabel(category)}
-                  </option>
-                ))} */}
               </select>
             </div>
           </div>
@@ -522,6 +536,16 @@ export default function RequestTable() {
                     {truncateLabel(category)}
                   </option>
                 ))}
+              </select>
+
+              <select
+                value={taskStatusFilter}
+                onChange={(e) => setTaskStatusFilter(e.target.value)}
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                <option value="All">All</option>
+                <option value="In_progress">In progress</option>
+                <option value="Completed">Completed</option>
               </select>
             </div>
           </div>
