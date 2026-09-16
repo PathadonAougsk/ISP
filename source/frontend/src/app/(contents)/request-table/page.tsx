@@ -1,10 +1,20 @@
 "use client";
 import { useState } from "react";
 
+function formatDateTime(date: Date = new Date()) {
+  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const year = String(date.getFullYear()).slice(-2);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${weekday} ${day} ${month} ${year}, ${hours}:${minutes}`;
+}
+
 interface Ticket {
   id: string;
   title: string;
-  status: "In-process" | "Open" | "Closed";
+  status: "Pending" | "Approved" | "Rejected";
   urgency: "Low" | "Medium" | "High";
   createdDate: string;
   lastUpdate: string;
@@ -20,8 +30,12 @@ interface Task {
   description: string;
   category: string;
   assignedTo: string;
+  createdBy: string;
+  dueDate: string;
   createdDate: string;
   lastUpdate: string;
+  status: "In_progress" | "Completed";
+  sourceTicketId?: string;
 }
 
 interface Member {
@@ -33,42 +47,94 @@ interface Member {
 export default function RequestTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [urgencyFilter, setUrgencyFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskCategory, setNewTaskCategory] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
+  const [editTaskDueDate, setEditTaskDueDate] = useState("");
+  const [editTaskTitle, setEditTaskTitle] = useState("");
+  const [editTaskCategory, setEditTaskCategory] = useState("");
+  const [editTaskDescription, setEditTaskDescription] = useState("");
+  const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>([]);
+  const [editTicketTitle, setEditTicketTitle] = useState("");
+  const [editTicketCategory, setEditTicketCategory] = useState("");
+  const [editTicketDescription, setEditTicketDescription] = useState("");
+  const [editTicketUrgency, setEditTicketUrgency] = useState<Ticket["urgency"]>("Low");
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [newTicketTitle, setNewTicketTitle] = useState("");
+  const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
+  const [newTicketCategory, setNewTicketCategory] = useState("");
+  const [newTicketDescription, setNewTicketDescription] = useState("")
 
   // Task table search + filter
   const [taskSearchTerm, setTaskSearchTerm] = useState("");
   const [taskCategoryFilter, setTaskCategoryFilter] = useState("All");
 
+  // TODO: wire this up to real auth/session later
+  function getUserRole(): "admin" | "member" {
+    return "admin"; // TODO: wire to real auth
+  }
+  const userRole = getUserRole();
+
+  const currentUserName = "Chris Kim"; // TODO: wire to real auth
+
   const [tickets, setTickets] = useState<Ticket[]>([
     {
-      id: "TCK-001",
+      id: "TCK-1",
       title: "Cannot upload experiment results",
-      status: "In-process",
+      status: "Pending",
       urgency: "High",
-      createdDate: "Tue 01 Sep 26, 12:00",
-      lastUpdate: "Tue 01 Sep 26, 12:00",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
+      category: "Bug fix",
+      description: "The lab will explode soon boommmmmmm",
+      createdBy: "Chris Kim",
+      assignedTo: "",
+    },
+    {
+      id: "TCK-2",
+      title: "Cannot upload experiment results",
+      status: "Pending",
+      urgency: "High",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
       category: "Bug fix",
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren",
       assignedTo: "",
     },
+  ]);
+
+  const [tasks, setTasks] = useState<Task[]>([
     {
-      id: "TCK-002",
-      title: "Cannot upload experiment results",
-      status: "In-process",
-      urgency: "High",
-      createdDate: "Tue 01 Sep 26, 12:00",
-      lastUpdate: "Tue 01 Sep 26, 12:00",
-      category: "Bug fix",
-      description: "The lab will explode soon boommmmmmm",
+      id: "TASK-1",
+      title: "bing bong",
+      description: "blah blah blah....",
+      category: "idk",
+      assignedTo: "John Doe",
       createdBy: "Pasin Mclaren",
-      assignedTo: "",
+      dueDate: "2026-09-25",
+      status: "In_progress",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
+    },
+    {
+      id: "TASK-2",
+      title: "bing bong",
+      description: "blah blah blah....",
+      category: "idk",
+      assignedTo: "Chris Kim",
+      createdBy: "Pasin Mclaren",
+      dueDate: "2026-09-30",
+      status: "In_progress",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
     },
   ]);
 
@@ -99,19 +165,37 @@ export default function RequestTable() {
     );
   }
 
+  function toggleEditTaskAssign(memberId: string) {
+    setEditTaskAssignedIds((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
+    );
+  }
+
+  function isAssignedToCurrentUser(task: Task) {
+    return task.assignedTo
+      .split(",")
+      .map((name) => name.trim())
+      .includes(currentUserName);
+  }
+
   function handleCreateTask() {
     if (!newTaskTitle.trim()) return;
 
     const newTask: Task = {
-      id: `TASK-${tasks.length + 1}`,
+      id: getNextTaskId(tasks),
       title: newTaskTitle,
       description: newTaskDescription,
       category: newTaskCategory,
       assignedTo: newTaskAssignedIds
         .map((id) => members.find((m) => m.id === id)?.name)
         .join(", "),
-      createdDate: new Date().toLocaleString(),
-      lastUpdate: new Date().toLocaleString(),
+      createdBy: currentUserName,
+      dueDate: newTaskDueDate,
+      createdDate: formatDateTime(),
+      lastUpdate: formatDateTime(),
+      status: "In_progress",
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -123,11 +207,49 @@ export default function RequestTable() {
     setNewTaskCategory("");
     setNewTaskDescription("");
     setNewTaskAssignedIds([]);
+    setNewTaskDueDate("");
     setIsCreatingTask(false);
+  }
+
+  function handleCreateTicket() {
+    if (!newTicketTitle.trim()) return;
+
+    const newTicket: Ticket = {
+      id: `TCK-${String(tickets.length + 1)}`,
+      title: newTicketTitle,
+      status: "Pending",
+      urgency: newTicketUrgency,
+      createdDate: formatDateTime(),
+      lastUpdate: formatDateTime(),
+      category: newTicketCategory,
+      description: newTicketDescription,
+      createdBy: currentUserName,
+      assignedTo: "",
+    };
+
+    setTickets((prev) => [...prev, newTicket]);
+    resetTicketForm();
+  }
+
+  function resetTicketForm() {
+    setNewTicketTitle("");
+    setNewTicketUrgency("Low");
+    setNewTicketCategory("");
+    setNewTicketDescription("");
+    setIsCreatingTicket(false);
+  }
+
+  function getNextTaskId(taskList: Task[]) {
+    const maxNum = taskList.reduce((max, t) => {
+      const num = parseInt(t.id.replace("TASK-", ""), 10);
+      return Number.isNaN(num) ? max : Math.max(max, num);
+    }, 0);
+    return `TASK-${maxNum + 1}`;
   }
 
   function handleDecision(newStatus: Ticket["status"]) {
     if (!selectedTicket) return;
+    if (selectedTicket.status === newStatus) return;
 
     const assignedNames = assignedMemberIds
       .map((id) => members.find((m) => m.id === id)?.name)
@@ -136,21 +258,122 @@ export default function RequestTable() {
     setTickets((prevTickets) =>
       prevTickets.map((t) =>
         t.id === selectedTicket.id
-          ? { ...t, status: newStatus, assignedTo: assignedNames }
+          ? { 
+              ...t,
+              status: newStatus,
+              assignedTo: assignedNames,
+              lastUpdate: formatDateTime(),
+            }
           : t
       )
     );
+
+    setTasks((prevTasks) => {
+      // Always drop any task previously converted from this ticket
+      const withoutConverted = prevTasks.filter(
+        (t) => t.sourceTicketId !== selectedTicket.id
+      );
+
+      // Only (re)create the task if the ticket is being approved
+      if (newStatus !== "Approved") return withoutConverted;
+
+      const newTask: Task = {
+        id: getNextTaskId(prevTasks),
+        title: selectedTicket.title,
+        description: selectedTicket.description,
+        category: selectedTicket.category,
+        assignedTo: assignedNames,
+        createdBy: currentUserName,
+        dueDate: "",
+        createdDate: formatDateTime(),
+        lastUpdate: formatDateTime(),
+        status: "In_progress",
+        sourceTicketId: selectedTicket.id,
+      };
+
+      return [...withoutConverted, newTask];
+    });
 
     setSelectedTicket(null);
     setAssignedMemberIds([]);
   }
 
+  function handleUpdateTicket() {
+    if (!selectedTicket) return;
+
+    setTickets((prev) =>
+      prev.map((t) =>
+        t.id === selectedTicket.id
+          ? {
+              ...t,
+              title: editTicketTitle,
+              category: editTicketCategory,
+              description: editTicketDescription,
+              urgency: editTicketUrgency,
+              lastUpdate: formatDateTime(),
+            }
+          : t
+      )
+    );
+
+    setSelectedTicket(null);
+  }
+
+  function handleSubmitTask() {
+    if (!selectedTask) return;
+
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === selectedTask.id
+          ? { ...t, status: "Completed", lastUpdate: formatDateTime() }
+          : t
+      )
+    );
+
+    setSelectedTask(null);
+  }
+
+  function handleUpdateTask() {
+    if (!selectedTask) return;
+
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === selectedTask.id
+          ? {
+              ...t,
+              title: editTaskTitle,
+              category: editTaskCategory,
+              description: editTaskDescription,
+              assignedTo: editTaskAssignedIds
+                .map((id) => members.find((m) => m.id === id)?.name)
+                .join(", "),
+              dueDate: editTaskDueDate,
+              lastUpdate: formatDateTime(),
+            }
+          : t
+      )
+    );
+
+    setSelectedTask(null);
+  }
+
+  function truncateLabel(text: string, maxLength = 20) {
+    return text.length > maxLength ? text.slice(0, maxLength).trim() + "…" : text;
+  }
+
   const filteredTickets = tickets
     .filter((ticket) =>
-      ticket.title.toLowerCase().includes(searchTerm.toLowerCase())
+      ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.id.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter((ticket) =>
       statusFilter === "All" ? true : ticket.status === statusFilter
+    )
+    .filter((ticket) =>
+      urgencyFilter === "All" ? true : ticket.urgency === urgencyFilter
+    )
+    .filter((ticket) =>
+      userRole === "admin" ? true : ticket.createdBy === currentUserName
     );
 
   const taskCategories = Array.from(
@@ -159,10 +382,17 @@ export default function RequestTable() {
 
   const filteredTasks = tasks
     .filter((task) =>
-      task.title.toLowerCase().includes(taskSearchTerm.toLowerCase())
+      task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
+      task.id.toLowerCase().includes(taskSearchTerm.toLowerCase())
     )
     .filter((task) =>
       taskCategoryFilter === "All" ? true : task.category === taskCategoryFilter
+    )
+    .filter((task) =>
+      taskStatusFilter === "All" ? true : task.status === taskStatusFilter
+    )
+    .filter((task) =>
+    userRole === "admin" ? true : isAssignedToCurrentUser(task)
     );
 
   return (
@@ -171,7 +401,17 @@ export default function RequestTable() {
         {/* My Tickets section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold flex items-center">My Tickets</h2>
+            <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
+              My Tickets
+              {(userRole === "admin" || userRole === "member") && (
+                <button
+                  onClick={() => setIsCreatingTicket(true)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
+                >
+                  +
+                </button>
+              )}
+            </h2>
 
             <div className="h-9 flex items-center gap-2">
               <input
@@ -183,14 +423,25 @@ export default function RequestTable() {
               />
 
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+                value={urgencyFilter}
+                onChange={(e) => setUrgencyFilter(e.target.value)}
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
-                <option value="Open">Open</option>
-                <option value="In-process">In-process</option>
-                <option value="Closed">Closed</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                <option value="All">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
               </select>
             </div>
           </div>
@@ -203,6 +454,7 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Title</th>
                   <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Urgency</th>
+                  <th className="px-4 py-2">Created By</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
@@ -214,13 +466,22 @@ export default function RequestTable() {
                     onClick={() => {
                       setSelectedTicket(ticket);
                       setAssignedMemberIds([]);
+                      setEditTicketTitle(ticket.title);
+                      setEditTicketCategory(ticket.category);
+                      setEditTicketDescription(ticket.description);
+                      setEditTicketUrgency(ticket.urgency);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-4 py-3">{ticket.id}</td>
-                    <td className="px-4 py-3">{ticket.title}</td>
+                    <td className="px-4 py-3  max-w-[160px] truncate" title={ticket.title}>
+                      {ticket.title}
+                    </td>
                     <td className="px-4 py-3">{ticket.status}</td>
                     <td className="px-4 py-3">{ticket.urgency}</td>
+                    <td className="px-4 py-3 max-w-[120px] truncate" title={ticket.createdBy}>
+                      {ticket.createdBy}
+                    </td>
                     <td className="px-4 py-3">{ticket.createdDate}</td>
                     <td className="px-4 py-3">{ticket.lastUpdate}</td>
                   </tr>
@@ -245,12 +506,14 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Task
+              {userRole === "admin" && (
               <button
                 onClick={() => setIsCreatingTask(true)}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-gray-600"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
               >
                 +
               </button>
+              )}
             </h2>
 
             <div className="h-9 flex items-center gap-2">
@@ -265,14 +528,24 @@ export default function RequestTable() {
               <select
                 value={taskCategoryFilter}
                 onChange={(e) => setTaskCategoryFilter(e.target.value)}
-                className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
                 {taskCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category} value={category} title={category}>
+                    {truncateLabel(category)}
                   </option>
                 ))}
+              </select>
+
+              <select
+                value={taskStatusFilter}
+                onChange={(e) => setTaskStatusFilter(e.target.value)}
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                <option value="All">All</option>
+                <option value="In_progress">In progress</option>
+                <option value="Completed">Completed</option>
               </select>
             </div>
           </div>
@@ -286,18 +559,49 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Description</th>
                   <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Assigned</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Created By</th> 
+                  <th className="px-4 py-2">Due Date</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTasks.map((task) => (
-                  <tr key={task.id} className="border-b border-gray-200 last:border-b-0 text-sm">
+                  <tr
+                    key={task.id}
+                    onClick={() => {
+                      setSelectedTask(task);
+                      setEditTaskTitle(task.title);
+                      setEditTaskCategory(task.category);
+                      setEditTaskDescription(task.description);
+                      setEditTaskDueDate(task.dueDate);
+                      setEditTaskAssignedIds(
+                        members
+                          .filter((m) => task.assignedTo.split(",").map((n) => n.trim()).includes(m.name))
+                          .map((m) => m.id)
+                      );
+                    }}
+                    className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
+                  >
                     <td className="px-4 py-3">{task.id}</td>
-                    <td className="px-4 py-3">{task.title}</td>
-                    <td className="px-4 py-3">{task.description}</td>
-                    <td className="px-4 py-3">{task.category}</td>
-                    <td className="px-4 py-3">{task.assignedTo}</td>
+                    <td className="px-4 py-3 max-w-[160px] truncate" title={task.title}>
+                      {task.title}
+                    </td>
+                    <td className="px-4 py-3 	max-w-[200px] truncate" title={task.description}>
+                      {task.description}
+                    </td>
+                    <td className="px-4 py-3 max-w-[100px] truncate" title={task.category}>
+                      {task.category}
+                    </td>
+                    <td className="px-4 py-3 max-w-[140px] truncate" title={task.assignedTo}>
+                      {task.assignedTo}
+                    </td>
+                    <td className="px-4 py-3">{task.status}</td>
+                    <td className="px-4 py-3 max-w-[120px] truncate" title={task.createdBy}>
+                      {task.createdBy}
+                    </td>
+                    <td className="px-4 py-3">{task.dueDate || "—"}</td>
                     <td className="px-4 py-3">{task.createdDate}</td>
                     <td className="px-4 py-3">{task.lastUpdate}</td>
                   </tr>
@@ -321,98 +625,227 @@ export default function RequestTable() {
       {/* Judge tickets modal */}
       {selectedTicket && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
             <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Judge tickets
             </div>
 
             <div className="flex gap-6 p-6 flex-1">
-              {/* Left column: form fields */}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm">
-                    {selectedTicket.title}
-                  </div>
+                  {userRole === "admin" ? (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTicket.title}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={editTicketTitle}
+                      onChange={(e) => setEditTicketTitle(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  )}
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
-                      {selectedTicket.category}
-                    </div>
+                    {userRole === "admin" ? (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTicket.category}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={editTicketCategory}
+                        onChange={(e) => setEditTicketCategory(e.target.value)}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Urgency</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
-                      {selectedTicket.urgency}
-                    </div>
+                    {userRole === "admin" ? (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTicket.urgency}
+                      </div>
+                    ) : (
+                      <select
+                        value={editTicketUrgency}
+                        onChange={(e) => setEditTicketUrgency(e.target.value as Ticket["urgency"])}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24">
-                    {selectedTicket.description}
+                  {userRole === "admin" ? (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
+                      {selectedTicket.description}
+                    </div>
+                  ) : (
+                    <textarea
+                      value={editTicketDescription}
+                      onChange={(e) => setEditTicketDescription(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Created By</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words">
+                    {selectedTicket.createdBy}
                   </div>
                 </div>
               </div>
 
-              {/* Right column: assign members */}
-              <div className="w-64 border-l border-gray-200 pl-4">
-                <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                  <span>Assign</span>
-                  <span>Members — {members.length}</span>
-                </div>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {members.map((member) => (
-                    <label
-                      key={member.id}
-                      className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={assignedMemberIds.includes(member.id)}
-                        onChange={() => toggleAssign(member.id)}
-                        className="w-4 h-4"
-                      />
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium leading-tight">
-                            {member.name}
-                          </div>
-                          <div className="text-xs text-gray-400 leading-tight">
-                            {member.email}
+              {userRole === "admin" && (
+                <div className="w-64 border-l border-gray-200 pl-4">
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
+                    <span>Assign</span>
+                    <span>Members — {members.length}</span>
+                  </div>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {members.map((member) => (
+                      <label key={member.id} className="grid grid-cols-[auto_1fr] gap-x-3 items-center">
+                        <input
+                          type="checkbox"
+                          checked={assignedMemberIds.includes(member.id)}
+                          onChange={() => toggleAssign(member.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium leading-tight">{member.name}</div>
+                            <div className="text-xs text-gray-400 leading-tight">{member.email}</div>
                           </div>
                         </div>
-                      </div>
-                    </label>
-                  ))}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer: action buttons, bottom-right */}
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
-                onClick={() => handleDecision("Closed")}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
+                onClick={() => {
+                  setSelectedTicket(null);
+                  setAssignedMemberIds([]);
+                }}
+                className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm"
               >
-                Reject
+                Cancel
+              </button>
+
+              {userRole === "admin" ? (
+                <>
+                  <button
+                    onClick={() => handleDecision("Rejected")}
+                    disabled={selectedTicket.status === "Rejected"}
+                    className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-red)"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleDecision("Approved")}
+                    disabled={selectedTicket.status === "Approved"}
+                    className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
+                  >
+                    Approve
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleUpdateTicket}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                >
+                  Save Changes
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create new ticket modal */}
+      {isCreatingTicket && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
+            <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
+              Create new ticket
+            </div>
+
+            <div className="flex gap-6 p-6 flex-1">
+              <div className="flex-1 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={newTicketTitle}
+                    onChange={(e) => setNewTicketTitle(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Urgency</label>
+                  <select
+                    value={newTicketUrgency}
+                    onChange={(e) =>
+                      setNewTicketUrgency(e.target.value as Ticket["urgency"])
+                    }
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={newTicketCategory}
+                    onChange={(e) => setNewTicketCategory(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={newTicketDescription}
+                    onChange={(e) => setNewTicketDescription(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={resetTicketForm}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+              >
+                Cancel
               </button>
               <button
-                onClick={() => handleDecision("In-process")}
-                className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-gray-400 text-sm"
+                onClick={handleCreateTicket}
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
               >
-                Revised
-              </button>
-              <button
-                onClick={() => handleDecision("Open")}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
-              >
-                Approve
+                Submit
               </button>
             </div>
           </div>
@@ -422,7 +855,7 @@ export default function RequestTable() {
       {/* Create new tasks modal */}
       {isCreatingTask && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
             <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Create new tasks
             </div>
@@ -446,6 +879,16 @@ export default function RequestTable() {
                     type="text"
                     value={newTaskCategory}
                     onChange={(e) => setNewTaskCategory(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 </div>
@@ -499,16 +942,169 @@ export default function RequestTable() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
                 onClick={resetTaskForm}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTask}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-gray-300 text-sm"
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
               >
                 Submit
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task detail / submit modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
+            <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
+              Task detail
+            </div>
+
+            <div className="flex gap-6 p-6 flex-1">
+              <div className="flex-1 space-y-4 min-w-0">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Title</label>
+                  {userRole === "admin" ? (
+                    <input
+                      type="text"
+                      value={editTaskTitle}
+                      onChange={(e) => setEditTaskTitle(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  ) : (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTask.title}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-sm font-medium mb-1">Category</label>
+                    {userRole === "admin" ? (
+                      <input
+                        type="text"
+                        value={editTaskCategory}
+                        onChange={(e) => setEditTaskCategory(e.target.value)}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    ) : (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTask.category}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-sm font-medium mb-1">Status</label>
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTask.status}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-sm font-medium mb-1">Due Date</label>
+                    {userRole === "admin" ? (
+                      <input
+                        type="date"
+                        value={editTaskDueDate}
+                        onChange={(e) => setEditTaskDueDate(e.target.value)}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    ) : (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTask.dueDate || "—"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Created By</label>
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words">
+                    {selectedTask.createdBy}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  {userRole === "admin" ? (
+                    <textarea
+                      value={editTaskDescription}
+                      onChange={(e) => setEditTaskDescription(e.target.value)}
+                      className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  ) : (
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
+                      {selectedTask.description}
+                    </div>
+                  )}
+                </div>
+
+                {userRole !== "admin" && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Assigned</label>
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                      {selectedTask.assignedTo || "—"}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {userRole === "admin" && (
+                <div className="w-64 border-l border-gray-200 pl-4">
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
+                    <span>Assign</span>
+                    <span>Members — {members.length}</span>
+                  </div>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {members.map((member) => (
+                      <label key={member.id} className="grid grid-cols-[auto_1fr] gap-x-3 items-center">
+                        <input
+                          type="checkbox"
+                          checked={editTaskAssignedIds.includes(member.id)}
+                          onChange={() => toggleEditTaskAssign(member.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium leading-tight">{member.name}</div>
+                            <div className="text-xs text-gray-400 leading-tight">{member.email}</div>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+              >
+                Cancel
+              </button>
+                {userRole === "admin" ? (
+                <button
+                  onClick={handleUpdateTask}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                >
+                  Save Changes
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmitTask}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                >
+                  Submit
+                </button>
+              )}
             </div>
           </div>
         </div>
