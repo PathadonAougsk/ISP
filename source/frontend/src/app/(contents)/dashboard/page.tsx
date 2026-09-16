@@ -94,7 +94,7 @@ function Announcement() {
         </div>
         <div className="-mx-5 mt-auto">
           <Link href="/announcement" className="group block rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center hover:bg-(--primary-color-3-hover)">
-            <span className="text-base font-semibold text-black underline group-hover:font-bold group-hover:text-gray-800">
+            <span className="text-base font-semibold text-black underline group-hover:text-gray-800">
               Readmore
             </span>
           </Link>
