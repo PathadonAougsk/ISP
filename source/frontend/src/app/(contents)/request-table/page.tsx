@@ -1,6 +1,16 @@
 "use client";
 import { useState } from "react";
 
+function formatDateTime(date: Date = new Date()) {
+  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const year = String(date.getFullYear()).slice(-2);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${weekday} ${day} ${month} ${year}, ${hours}:${minutes}`;
+}
+
 interface Ticket {
   id: string;
   title: string;
@@ -44,6 +54,8 @@ export default function RequestTable() {
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicketTitle, setNewTicketTitle] = useState("");
   const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
+  const [newTicketCategory, setNewTicketCategory] = useState("");
+  const [newTicketDescription, setNewTicketDescription] = useState("")
 
   // Task table search + filter
   const [taskSearchTerm, setTaskSearchTerm] = useState("");
@@ -51,7 +63,7 @@ export default function RequestTable() {
 
   // TODO: wire this up to real auth/session later
   function getUserRole(): "admin" | "member" {
-    return "member"; // TODO: wire to real auth
+    return "admin"; // TODO: wire to real auth
   }
   const userRole = getUserRole();
 
@@ -63,8 +75,8 @@ export default function RequestTable() {
       title: "Cannot upload experiment results",
       status: "In-process",
       urgency: "High",
-      createdDate: "15/09/2026, 10:02:13",
-      lastUpdate: "15/09/2026, 10:02:13",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
       category: "Bug fix",
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren",
@@ -75,8 +87,8 @@ export default function RequestTable() {
       title: "Cannot upload experiment results",
       status: "In-process",
       urgency: "High",
-      createdDate: "15/09/2026, 10:02:13",
-      lastUpdate: "15/09/2026, 10:02:13",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
       category: "Bug fix",
       description: "The lab will explode soon boommmmmmm",
       createdBy: "Pasin Mclaren",
@@ -92,8 +104,8 @@ export default function RequestTable() {
       category: "idk",
       assignedTo: "John Doe",
       status: "Pending",
-      createdDate: "15/09/2026, 10:02:13",
-      lastUpdate: "15/09/2026, 10:02:13",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
     },
     {
       id: "TASK-2",
@@ -102,8 +114,8 @@ export default function RequestTable() {
       category: "idk",
       assignedTo: "Chris Kim",
       status: "Pending",
-      createdDate: "15/09/2026, 10:02:13",
-      lastUpdate: "15/09/2026, 10:02:13",
+      createdDate: "Mon 15 Sep 26, 10:02",
+      lastUpdate: "Mon 15 Sep 26, 10:02",
     },
   ]);
 
@@ -152,8 +164,8 @@ export default function RequestTable() {
       assignedTo: newTaskAssignedIds
         .map((id) => members.find((m) => m.id === id)?.name)
         .join(", "),
-      createdDate: new Date().toLocaleString(),
-      lastUpdate: new Date().toLocaleString(),
+      createdDate: formatDateTime(),
+      lastUpdate: formatDateTime(),
       status: "Pending",
     };
 
@@ -177,10 +189,10 @@ export default function RequestTable() {
       title: newTicketTitle,
       status: "In-process",
       urgency: newTicketUrgency,
-      createdDate: new Date().toLocaleString(),
-      lastUpdate: new Date().toLocaleString(),
-      category: "",
-      description: "",
+      createdDate: formatDateTime(),
+      lastUpdate: formatDateTime(),
+      category: newTicketCategory,
+      description: newTicketDescription,
       createdBy: "",
       assignedTo: "",
     };
@@ -192,6 +204,8 @@ export default function RequestTable() {
 function resetTicketForm() {
   setNewTicketTitle("");
   setNewTicketUrgency("Low");
+  setNewTicketCategory("");
+  setNewTicketDescription("");
   setIsCreatingTicket(false);
 }
 
@@ -205,7 +219,11 @@ function resetTicketForm() {
     setTickets((prevTickets) =>
       prevTickets.map((t) =>
         t.id === selectedTicket.id
-          ? { ...t, status: newStatus, assignedTo: assignedNames }
+          ? { ...t,
+              status: newStatus,
+              assignedTo: assignedNames,
+              lastUpdate: formatDateTime(),
+            }
           : t
       )
     );
@@ -220,12 +238,16 @@ function resetTicketForm() {
     setTasks((prevTasks) =>
       prevTasks.map((t) =>
         t.id === selectedTask.id
-          ? { ...t, status: "Done", lastUpdate: new Date().toLocaleString() }
+          ? { ...t, status: "Done", lastUpdate: formatDateTime() }
           : t
       )
     );
 
     setSelectedTask(null);
+  }
+
+  function truncateLabel(text: string, maxLength = 20) {
+    return text.length > maxLength ? text.slice(0, maxLength).trim() + "…" : text;
   }
 
   const filteredTickets = tickets
@@ -281,12 +303,17 @@ function resetTicketForm() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
                 <option value="Open">Open</option>
                 <option value="In-process">In-process</option>
                 <option value="Closed">Closed</option>
+                {/* {ticketCategories.map((category) => (
+                  <option key={category} value={category} title={category}>
+                    {truncateLabel(category)}
+                  </option>
+                ))} */}
               </select>
             </div>
           </div>
@@ -314,7 +341,9 @@ function resetTicketForm() {
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-4 py-3">{ticket.id}</td>
-                    <td className="px-4 py-3">{ticket.title}</td>
+                    <td className="px-4 py-3  max-w-[160px] truncate" title={ticket.title}>
+                      {ticket.title}
+                    </td>
                     <td className="px-4 py-3">{ticket.status}</td>
                     <td className="px-4 py-3">{ticket.urgency}</td>
                     <td className="px-4 py-3">{ticket.createdDate}</td>
@@ -363,12 +392,12 @@ function resetTicketForm() {
               <select
                 value={taskCategoryFilter}
                 onChange={(e) => setTaskCategoryFilter(e.target.value)}
-                className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
                 {taskCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category} value={category} title={category}>
+                    {truncateLabel(category)}
                   </option>
                 ))}
               </select>
@@ -397,10 +426,18 @@ function resetTicketForm() {
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-4 py-3">{task.id}</td>
-                    <td className="px-4 py-3">{task.title}</td>
-                    <td className="px-4 py-3">{task.description}</td>
-                    <td className="px-4 py-3">{task.category}</td>
-                    <td className="px-4 py-3">{task.assignedTo}</td>
+                    <td className="px-4 py-3 max-w-[160px] truncate" title={task.title}>
+                      {task.title}
+                    </td>
+                    <td className="px-4 py-3 	max-w-[200px] truncate" title={task.description}>
+                      {task.description}
+                    </td>
+                    <td className="px-4 py-3 max-w-[100px] truncate" title={task.category}>
+                      {task.category}
+                    </td>
+                    <td className="px-4 py-3 max-w-[140px] truncate" title={task.assignedTo}>
+                      {task.assignedTo}
+                    </td>
                     <td className="px-4 py-3">{task.status}</td>
                     <td className="px-4 py-3">{task.createdDate}</td>
                     <td className="px-4 py-3">{task.lastUpdate}</td>
@@ -425,31 +462,31 @@ function resetTicketForm() {
       {/* Judge tickets modal */}
       {selectedTicket && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
             <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Judge tickets
             </div>
 
-            <div className="flex gap-6 p-6 flex-1">
+            <div className="flex gap-6 p-6 flex-1 min-w-0">
               {/* Left column: form fields */}
               <div className="flex-1 space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                     {selectedTicket.title}
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTicket.category}
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Urgency</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTicket.urgency}
                     </div>
                   </div>
@@ -457,7 +494,7 @@ function resetTicketForm() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
                     {selectedTicket.description}
                   </div>
                 </div>
@@ -535,7 +572,7 @@ function resetTicketForm() {
       {/* Create new ticket modal */}
       {isCreatingTicket && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
             <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Create new ticket
             </div>
@@ -566,6 +603,25 @@ function resetTicketForm() {
                     <option value="High">High</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={newTicketCategory}
+                    onChange={(e) => setNewTicketCategory(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={newTicketDescription}
+                    onChange={(e) => setNewTicketDescription(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
               </div>
             </div>
 
@@ -590,7 +646,7 @@ function resetTicketForm() {
       {/* Create new tasks modal */}
       {isCreatingTask && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
             <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Create new tasks
             </div>
@@ -685,30 +741,30 @@ function resetTicketForm() {
       {/* Task detail / submit modal */}
       {selectedTask && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
             <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
               Task detail
             </div>
 
             <div className="flex gap-6 p-6 flex-1">
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                     {selectedTask.title}
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTask.category}
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Status</label>
-                    <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                    <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTask.status}
                     </div>
                   </div>
@@ -716,14 +772,14 @@ function resetTicketForm() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
                     {selectedTask.description}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Assigned</label>
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                     {selectedTask.assignedTo || "—"}
                   </div>
                 </div>
