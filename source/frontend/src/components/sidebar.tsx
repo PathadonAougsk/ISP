@@ -25,11 +25,16 @@ export default function Sidebar() {
         <div className="flex h-15 w-full select-none items-center justify-center hover:bg-(--primary-color-2-hover)">
           <Image src="./sidebar.svg" width={0} height={0} sizes="auto" className="h-auto w-5" alt="Sidebar" draggable={false} />
         </div>
-        {mainNavigation.map((name) => <NavigationItem key={name} name={name} active={currentPath === name} />)}
+
+        {mainNavigation.map((name) => (
+          <NavigationItem key={name} name={name} active={currentPath === name} />
+        ))}
       </div>
 
       <div className="flex h-fit w-full flex-col items-center justify-evenly select-none">
-        {bottomNavigation.map((name) => <NavigationItem key={name} name={name} />)}
+        {bottomNavigation.map((name) => (
+          <NavigationItem key={name} name={name} active={currentPath === name} />
+        ))}
       </div>
     </div>
   );
