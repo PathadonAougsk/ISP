@@ -31,7 +31,7 @@ taskRouter = APIRouter(prefix="/task", dependencies=[Depends(user_service.get_cu
 async def retrieve_tasks(
     me: Annotated[Account, Depends(user_service.get_current_account)],
     session: Annotated[AsyncSession, Depends(getSession)],
-    userId: int | None = Query(None),
+    id: int | None = Query(None),
     categories: int | None = Query(None),
     assignsTo: uuid.UUID | None = Query(None),
     status: TaskStatus | None = Query(None),
@@ -39,8 +39,8 @@ async def retrieve_tasks(
 ):
     tasks = select(Task).options(selectinload(Task.assignees))
     # Then, we filter each attribute one by one.
-    if userId:
-        tasks = tasks.where(Task.id == userId)
+    if id:
+        tasks = tasks.where(Task.id == id)
     if categories:
         tasks = tasks.where(Task.category_id == categories)
     if assignsTo:
