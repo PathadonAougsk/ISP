@@ -77,7 +77,6 @@ Then fill in the real values. `source/.env.sample` lists every key that is used:
 | `SUPABASE_URL` | backend | Project URL |
 | `SUPABASE_KEY` | backend | Service-role/secret key — server-side only |
 | `SUPABASE_DB_URL` | backend | `postgresql+asyncpg://…` connection string |
-| `SEED_ACCOUNT_ID` | seed data | |
 | `NEXT_PUBLIC_SUPABASE_URL` | frontend | Same URL as above |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | Publishable/anon key |
 | `NEXT_PUBLIC_API_URL` | frontend | `http://localhost:8000` locally |
