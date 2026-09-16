@@ -9,6 +9,10 @@ services:
     volumes:
       - ./source/frontend:/app
       - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 5s
+      retries: 10
   backend-dev:
     build:
       context: "./source/backend"
@@ -19,3 +23,7 @@ services:
       - "8000:8000"
     volumes:
       - ./source/backend:/Backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      retries: 10
