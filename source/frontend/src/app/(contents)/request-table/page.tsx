@@ -33,6 +33,7 @@ interface Task {
   createdDate: string;
   lastUpdate: string;
   status: "Pending" | "Done";
+  sourceTicketId?: string;
 }
 
 interface Member {
@@ -71,7 +72,7 @@ export default function RequestTable() {
 
   // TODO: wire this up to real auth/session later
   function getUserRole(): "admin" | "member" {
-    return "member"; // TODO: wire to real auth
+    return "admin"; // TODO: wire to real auth
   }
   const userRole = getUserRole();
 
@@ -173,7 +174,7 @@ export default function RequestTable() {
     if (!newTaskTitle.trim()) return;
 
     const newTask: Task = {
-      id: `TASK-${tasks.length + 1}`,
+      id: getNextTaskId(tasks),
       title: newTaskTitle,
       description: newTaskDescription,
       category: newTaskCategory,
@@ -217,16 +218,25 @@ export default function RequestTable() {
     resetTicketForm();
   }
 
-function resetTicketForm() {
-  setNewTicketTitle("");
-  setNewTicketUrgency("Low");
-  setNewTicketCategory("");
-  setNewTicketDescription("");
-  setIsCreatingTicket(false);
-}
+  function resetTicketForm() {
+    setNewTicketTitle("");
+    setNewTicketUrgency("Low");
+    setNewTicketCategory("");
+    setNewTicketDescription("");
+    setIsCreatingTicket(false);
+  }
+
+  function getNextTaskId(taskList: Task[]) {
+    const maxNum = taskList.reduce((max, t) => {
+      const num = parseInt(t.id.replace("TASK-", ""), 10);
+      return Number.isNaN(num) ? max : Math.max(max, num);
+    }, 0);
+    return `TASK-${maxNum + 1}`;
+  }
 
   function handleDecision(newStatus: Ticket["status"]) {
     if (!selectedTicket) return;
+    if (selectedTicket.status === newStatus) return;
 
     const assignedNames = assignedMemberIds
       .map((id) => members.find((m) => m.id === id)?.name)
@@ -235,7 +245,8 @@ function resetTicketForm() {
     setTickets((prevTickets) =>
       prevTickets.map((t) =>
         t.id === selectedTicket.id
-          ? { ...t,
+          ? { 
+              ...t,
               status: newStatus,
               assignedTo: assignedNames,
               lastUpdate: formatDateTime(),
@@ -243,6 +254,30 @@ function resetTicketForm() {
           : t
       )
     );
+
+    setTasks((prevTasks) => {
+      // Always drop any task previously converted from this ticket
+      const withoutConverted = prevTasks.filter(
+        (t) => t.sourceTicketId !== selectedTicket.id
+      );
+
+      // Only (re)create the task if the ticket is being approved
+      if (newStatus !== "Open") return withoutConverted;
+
+      const newTask: Task = {
+        id: getNextTaskId(prevTasks),
+        title: selectedTicket.title,
+        description: selectedTicket.description,
+        category: selectedTicket.category,
+        assignedTo: assignedNames,
+        createdDate: formatDateTime(),
+        lastUpdate: formatDateTime(),
+        status: "Pending",
+        sourceTicketId: selectedTicket.id,
+      };
+
+      return [...withoutConverted, newTask];
+    });
 
     setSelectedTicket(null);
     setAssignedMemberIds([]);
@@ -684,7 +719,8 @@ function resetTicketForm() {
                   </button>
                   <button
                     onClick={() => handleDecision("Open")}
-                    className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                    disabled={selectedTicket.status === "Open"}
+                    className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
                   >
                     Approve
                   </button>
