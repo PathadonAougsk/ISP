@@ -8,7 +8,13 @@ services:
       - "3000:3000"
     volumes:
       - ./source/frontend:/app
-      - /app/node_modules
+      - frontend-node-modules:/app/node_modules
+      - frontend-next-cache:/app/.next
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 10
+      start_period: 30s
   backend-dev:
     build:
       context: "./source/backend"
@@ -19,3 +25,12 @@ services:
       - "8000:8000"
     volumes:
       - ./source/backend:/Backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  frontend-node-modules:
+  frontend-next-cache:

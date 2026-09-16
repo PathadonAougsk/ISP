@@ -21,12 +21,12 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY --chown=node:node . .
 
-RUN mkdir -p /app/.next && chown node:node /app /app/.next
+# The dev service bind-mounts the host checkout over /app, which masks any
+# ownership set here. Staying root lets the container write /app regardless of
+# the host uid (1000 locally, 1001 on GitHub-hosted runners).
 
 ENV WATCHPACK_POLLING=true \
     HOSTNAME="0.0.0.0" \
     PORT=3000
-
-USER node
 
 EXPOSE 3000
