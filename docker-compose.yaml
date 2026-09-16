@@ -1,21 +1,36 @@
 services:
   frontend-dev:
     build:
-      context: "./frontend"
+      context: "./source/frontend"
       dockerfile: "dockerfile"
     command: "npm run dev"
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./source/frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next-cache:/app/.next
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 10
+      start_period: 30s
   backend-dev:
     build:
-      context: "./backend"
+      context: "./source/backend"
       dockerfile: "dockerfile"
-    env_file: "./.env"
+    env_file: "./source/.env"
     command: "fastapi dev --host 0.0.0.0 --port 8000 app/main.py"
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/Backend
+      - ./source/backend:/Backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  frontend-node-modules:
+  frontend-next-cache:
