@@ -142,7 +142,7 @@ function TaskOverview() {
         overviewCategories.map((category) => {
           const total = category.chips.reduce((sum, chip) => sum + chip.count, 0);
           return (
-            <div key={category.name} className="flex h-16 rounded-2xl bg-white px-2 py-2">
+            <div key={category.name} className="flex h-15 rounded-2xl bg-white px-2 py-2">
               <div className="flex w-6 shrink-0 items-center justify-start"><Image src="/header_donut_green.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} /></div>
               <div className="flex min-w-0 flex-1 flex-col justify-between">
                 <div className="flex items-center gap-4">
