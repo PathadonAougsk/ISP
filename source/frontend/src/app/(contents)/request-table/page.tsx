@@ -14,7 +14,7 @@ function formatDateTime(date: Date = new Date()) {
 interface Ticket {
   id: string;
   title: string;
-  status: "In-process" | "Open" | "Closed";
+  status: "Pending" | "Approved" | "Rejected";
   urgency: "Low" | "Medium" | "High";
   createdDate: string;
   lastUpdate: string;
@@ -34,7 +34,7 @@ interface Task {
   dueDate: string;
   createdDate: string;
   lastUpdate: string;
-  status: "Pending" | "Done";
+  status: "In_progress" | "Completed";
   sourceTicketId?: string;
 }
 
@@ -80,13 +80,13 @@ export default function RequestTable() {
   }
   const userRole = getUserRole();
 
-  const currentUserName = "Pasin Mclaren"; // TODO: wire to real auth
+  const currentUserName = "Chris Kim"; // TODO: wire to real auth
 
   const [tickets, setTickets] = useState<Ticket[]>([
     {
       id: "TCK-1",
       title: "Cannot upload experiment results",
-      status: "In-process",
+      status: "Pending",
       urgency: "High",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
@@ -98,7 +98,7 @@ export default function RequestTable() {
     {
       id: "TCK-2",
       title: "Cannot upload experiment results",
-      status: "In-process",
+      status: "Pending",
       urgency: "High",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
@@ -118,7 +118,7 @@ export default function RequestTable() {
       assignedTo: "John Doe",
       createdBy: "Pasin Mclaren",
       dueDate: "2026-09-25",
-      status: "Pending",
+      status: "In_progress",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
     },
@@ -130,7 +130,7 @@ export default function RequestTable() {
       assignedTo: "Chris Kim",
       createdBy: "Pasin Mclaren",
       dueDate: "2026-09-30",
-      status: "Pending",
+      status: "In_progress",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
     },
@@ -193,7 +193,7 @@ export default function RequestTable() {
       dueDate: newTaskDueDate,
       createdDate: formatDateTime(),
       lastUpdate: formatDateTime(),
-      status: "Pending",
+      status: "In_progress",
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -215,7 +215,7 @@ export default function RequestTable() {
     const newTicket: Ticket = {
       id: `TCK-${String(tickets.length + 1)}`,
       title: newTicketTitle,
-      status: "In-process",
+      status: "Pending",
       urgency: newTicketUrgency,
       createdDate: formatDateTime(),
       lastUpdate: formatDateTime(),
@@ -273,7 +273,7 @@ export default function RequestTable() {
       );
 
       // Only (re)create the task if the ticket is being approved
-      if (newStatus !== "Open") return withoutConverted;
+      if (newStatus !== "Approved") return withoutConverted;
 
       const newTask: Task = {
         id: getNextTaskId(prevTasks),
@@ -285,7 +285,7 @@ export default function RequestTable() {
         dueDate: "",
         createdDate: formatDateTime(),
         lastUpdate: formatDateTime(),
-        status: "Pending",
+        status: "In_progress",
         sourceTicketId: selectedTicket.id,
       };
 
@@ -323,7 +323,7 @@ export default function RequestTable() {
     setTasks((prevTasks) =>
       prevTasks.map((t) =>
         t.id === selectedTask.id
-          ? { ...t, status: "Done", lastUpdate: formatDateTime() }
+          ? { ...t, status: "Completed", lastUpdate: formatDateTime() }
           : t
       )
     );
@@ -420,9 +420,9 @@ export default function RequestTable() {
                 className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
-                <option value="Open">Open</option>
-                <option value="In-process">In-process</option>
-                <option value="Closed">Closed</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
                 {/* {ticketCategories.map((category) => (
                   <option key={category} value={category} title={category}>
                     {truncateLabel(category)}
@@ -727,20 +727,15 @@ export default function RequestTable() {
               {userRole === "admin" ? (
                 <>
                   <button
-                    onClick={() => handleDecision("Closed")}
-                    className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+                    onClick={() => handleDecision("Rejected")}
+                    disabled={selectedTicket.status === "Rejected"}
+                    className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-red)"
                   >
                     Reject
                   </button>
                   <button
-                    onClick={() => handleDecision("In-process")}
-                    className="px-5 py-2 rounded bg-(--primary-color-1) hover:bg-(--primary-color-1-hover) text-sm"
-                  >
-                    Revised
-                  </button>
-                  <button
-                    onClick={() => handleDecision("Open")}
-                    disabled={selectedTicket.status === "Open"}
+                    onClick={() => handleDecision("Approved")}
+                    disabled={selectedTicket.status === "Approved"}
                     className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
                   >
                     Approve
