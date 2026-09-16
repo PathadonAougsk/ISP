@@ -31,6 +31,7 @@ interface Task {
   category: string;
   assignedTo: string;
   createdBy: string;
+  dueDate: string;
   createdDate: string;
   lastUpdate: string;
   status: "Pending" | "Done";
@@ -53,6 +54,8 @@ export default function RequestTable() {
   const [newTaskCategory, setNewTaskCategory] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [editTaskDueDate, setEditTaskDueDate] = useState("");
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskCategory, setEditTaskCategory] = useState("");
   const [editTaskDescription, setEditTaskDescription] = useState("");
@@ -114,6 +117,7 @@ export default function RequestTable() {
       category: "idk",
       assignedTo: "John Doe",
       createdBy: "Pasin Mclaren",
+      dueDate: "2026-09-25",
       status: "Pending",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
@@ -125,6 +129,7 @@ export default function RequestTable() {
       category: "idk",
       assignedTo: "Chris Kim",
       createdBy: "Pasin Mclaren",
+      dueDate: "2026-09-30",
       status: "Pending",
       createdDate: "Mon 15 Sep 26, 10:02",
       lastUpdate: "Mon 15 Sep 26, 10:02",
@@ -185,6 +190,7 @@ export default function RequestTable() {
         .map((id) => members.find((m) => m.id === id)?.name)
         .join(", "),
       createdBy: currentUserName,
+      dueDate: newTaskDueDate,
       createdDate: formatDateTime(),
       lastUpdate: formatDateTime(),
       status: "Pending",
@@ -199,6 +205,7 @@ export default function RequestTable() {
     setNewTaskCategory("");
     setNewTaskDescription("");
     setNewTaskAssignedIds([]);
+    setNewTaskDueDate("");
     setIsCreatingTask(false);
   }
 
@@ -275,6 +282,7 @@ export default function RequestTable() {
         category: selectedTicket.category,
         assignedTo: assignedNames,
         createdBy: currentUserName,
+        dueDate: "",
         createdDate: formatDateTime(),
         lastUpdate: formatDateTime(),
         status: "Pending",
@@ -337,6 +345,7 @@ export default function RequestTable() {
               assignedTo: editTaskAssignedIds
                 .map((id) => members.find((m) => m.id === id)?.name)
                 .join(", "),
+              dueDate: editTaskDueDate,
               lastUpdate: formatDateTime(),
             }
           : t
@@ -528,6 +537,7 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Assigned</th>
                   <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Created By</th> 
+                  <th className="px-4 py-2">Due Date</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
@@ -541,6 +551,7 @@ export default function RequestTable() {
                       setEditTaskTitle(task.title);
                       setEditTaskCategory(task.category);
                       setEditTaskDescription(task.description);
+                      setEditTaskDueDate(task.dueDate);
                       setEditTaskAssignedIds(
                         members
                           .filter((m) => task.assignedTo.split(",").map((n) => n.trim()).includes(m.name))
@@ -566,6 +577,7 @@ export default function RequestTable() {
                     <td className="px-4 py-3 max-w-[120px] truncate" title={task.createdBy}>
                       {task.createdBy}
                     </td>
+                    <td className="px-4 py-3">{task.dueDate || "—"}</td>
                     <td className="px-4 py-3">{task.createdDate}</td>
                     <td className="px-4 py-3">{task.lastUpdate}</td>
                   </tr>
@@ -853,6 +865,16 @@ export default function RequestTable() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
                   <textarea
                     value={newTaskDescription}
@@ -963,6 +985,21 @@ export default function RequestTable() {
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTask.status}
                     </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-sm font-medium mb-1">Due Date</label>
+                    {userRole === "admin" ? (
+                      <input
+                        type="date"
+                        value={editTaskDueDate}
+                        onChange={(e) => setEditTaskDueDate(e.target.value)}
+                        className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    ) : (
+                      <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                        {selectedTask.dueDate || "—"}
+                      </div>
+                    )}
                   </div>
                 </div>
 
