@@ -1,8 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { createClient } from "@/lib/supabase/client";
 
 export async function logout(): Promise<void> {
-  await fetch(`${API_URL}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+  const supabase = createClient();
+  await supabase.auth.signOut();
 }

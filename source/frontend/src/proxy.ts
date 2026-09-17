@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const JWT_COOKIE_KEY = "jwt";
+import { updateSession } from "@/lib/supabase/proxy";
 
-export default function proxy(request: NextRequest) {
-  const token = request.cookies.get(JWT_COOKIE_KEY)?.value;
+export default async function proxy(request: NextRequest) {
+  const { response, user } = await updateSession(request);
 
-  if (!token) {
+  if (!user) {
     const loginUrl = new URL("/auth", request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

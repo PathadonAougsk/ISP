@@ -1,21 +1,40 @@
 from typing import Annotated
 
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from supabase_auth.errors import AuthError
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.dependencies import supabase
 from app.model import Account
 
+bearer_scheme = HTTPBearer(auto_error=False, description="Supabase access token")
 
-def get_current_auth_user(jwt: Annotated[str | None, Cookie()] = None) -> AuthUser:
-    if jwt is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    response = supabase.auth.get_user(jwt)
-    if response is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+UNAUTHENTICATED = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Not authenticated",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
+
+def get_current_auth_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> AuthUser:
+    if credentials is None:
+        raise UNAUTHENTICATED
+    try:
+        response = supabase.auth.get_user(credentials.credentials)
+    except AuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+    if response is None or response.user is None:
+        raise UNAUTHENTICATED
     return response.user
 
 
