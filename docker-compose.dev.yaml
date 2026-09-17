@@ -29,6 +29,6 @@ services:
     env_file:
       - ./source/.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s
       retries: 10
