@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { getUser } from "@/components/user";
+import { getAccount } from "@/components/account";
 import type { Task } from "@/components/task";
 import type { Ticket } from "@/components/ticket";
 import { categoryMap } from "./page";
@@ -22,20 +22,20 @@ function formatDueDate(iso: string | null) {
 }
 
 function TaskList({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
-    const [usernames, setUsernames] = useState<Record<string, string>>({});
+    const [usernames, setAccountnames] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        async function loadUsernames() {
-            const uniqueUserIds = [...new Set(tasks.map((task) => task.created_by))];
+        async function loadAccountnames() {
+            const uniqueAccountIds = [...new Set(tasks.map((task) => task.created_by))];
             const results = await Promise.all(
-                uniqueUserIds.map(async (userId) => {
-                    const user = await getUser(userId);
+                uniqueAccountIds.map(async (userId) => {
+                    const user = await getAccount(userId);
                     return { userId, username: user?.username ?? userId };
                 })
             );
-            setUsernames(Object.fromEntries(results.map(({ userId, username }) => [userId, username])));
+            setAccountnames(Object.fromEntries(results.map(({ userId, username }) => [userId, username])));
         }
-        if (tasks.length > 0) loadUsernames();
+        if (tasks.length > 0) loadAccountnames();
     }, [tasks]);
 
     return (

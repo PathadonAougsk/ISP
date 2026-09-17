@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab user";
 
-export type User = {
+export type Account = {
     id: string;
     username: string;
     email: string;
@@ -13,11 +13,11 @@ export type User = {
     active: boolean;
 };
 
-export type UsersResponse = {
-    Accounts: User[];
+export type AccountsResponse = {
+    Accounts: Account[];
 };
 
-export async function getUsers(): Promise<UsersResponse> {
+export async function getAccounts(): Promise<AccountsResponse> {
     const res = await apiFetch("/account/");
 
     if (!res.ok) {
@@ -27,12 +27,12 @@ export async function getUsers(): Promise<UsersResponse> {
     return res.json();
 }
 
-export async function getUser(userId: string): Promise<User | undefined> {
-    const { Accounts } = await getUsers();
+export async function getAccount(userId: string): Promise<Account | undefined> {
+    const { Accounts } = await getAccounts();
 
     return Accounts.find((user) => user.id === userId);
 }
 
-export default function Users() {
+export default function Acoounts() {
     return <div></div>;
 }
