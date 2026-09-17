@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useState, useEffect } from "react";
 
 function formatDateTime(date: Date = new Date()) {
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
@@ -11,11 +12,109 @@ function formatDateTime(date: Date = new Date()) {
   return `${weekday} ${day} ${month} ${year}, ${hours}:${minutes}`;
 }
 
+type BackendTicketStatus = "pending" | "accepted" | "rejected" | (string & {});
+
+type BackendTicket = {
+  id: number;
+  status: BackendTicketStatus;
+  name: string;
+  description: string | null;
+  category_id: number;
+  created_by: string;
+  assigned_id: string | null;
+  completed_by: string | null;
+  created: string;
+  updated: string;
+  due_date: string | null;
+  completed_at: string | null;
+};
+
+type BackendCategory = { id: number; name: string };
+type BackendAccount = { id: string; username: string; email: string };
+
+function mapTicketStatus(status: BackendTicketStatus): Ticket["status"] {
+  switch (status) {
+    case "accepted": return "Approved";
+    case "rejected": return "Rejected";
+    default: return "Pending";
+  }
+}
+
+function toDateOnly(iso: string | null): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
+function mapBackendTicket(
+  bt: BackendTicket,
+  categoryById: Map<number, string>,
+  accountById: Map<string, string>
+): Ticket {
+  return {
+    id: String(bt.id),
+    title: bt.name,
+    status: mapTicketStatus(bt.status),
+    dueDate: toDateOnly(bt.due_date),
+    createdDate: formatDateTime(new Date(bt.created)),
+    lastUpdate: formatDateTime(new Date(bt.updated)),
+    category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
+    description: bt.description ?? "",
+    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
+    assignedTo: bt.assigned_id ? (accountById.get(bt.assigned_id) ?? bt.assigned_id) : "",
+  };
+}
+
+type BackendTaskStatus = "in_progress" | "completed" | (string & {});
+
+type BackendTaskAssignee = { id: string; username: string; email: string };
+
+type BackendTask = {
+  id: number;
+  name: string;
+  description: string | null;
+  status: BackendTaskStatus;
+  category_id: number;
+  created_by: string;
+  completed_by: string | null;
+  created: string;
+  updated: string;
+  completed_at: string | null;
+  due_date: string;
+  assignees: BackendTaskAssignee[];
+};
+
+function mapTaskStatus(status: BackendTaskStatus): Task["status"] {
+  return status === "completed" ? "Completed" : "In_progress";
+}
+
+function mapBackendTask(
+  bt: BackendTask,
+  categoryById: Map<number, string>,
+  accountById: Map<string, string>
+): Task {
+  return {
+    id: String(bt.id),
+    title: bt.name,
+    description: bt.description ?? "",
+    category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
+    assignedTo: bt.assignees.map((a) => a.username).join(", "),
+    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
+    dueDate: toDateOnly(bt.due_date),
+    createdDate: formatDateTime(new Date(bt.created)),
+    lastUpdate: formatDateTime(new Date(bt.updated)),
+    status: mapTaskStatus(bt.status),
+  };
+}
+
+function mapBackendAccount(ba: BackendAccount): Member {
+  return { id: ba.id, name: ba.username, email: ba.email };
+}
+
 interface Ticket {
   id: string;
   title: string;
   status: "Pending" | "Approved" | "Rejected";
-  urgency: "Low" | "Medium" | "High";
+  dueDate: string;
   createdDate: string;
   lastUpdate: string;
   category: string;
@@ -47,7 +146,7 @@ interface Member {
 export default function RequestTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [urgencyFilter, setUrgencyFilter] = useState("All");
+  const [ticketCategoryFilter, setTicketCategoryFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -65,11 +164,10 @@ export default function RequestTable() {
   const [editTicketTitle, setEditTicketTitle] = useState("");
   const [editTicketCategory, setEditTicketCategory] = useState("");
   const [editTicketDescription, setEditTicketDescription] = useState("");
-  const [editTicketUrgency, setEditTicketUrgency] = useState<Ticket["urgency"]>("Low");
+  const [editTicketDueDate, setEditTicketDueDate] = useState("");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicketTitle, setNewTicketTitle] = useState("");
-  const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
-  const [newTicketCategory, setNewTicketCategory] = useState("");
+  const [newTicketDueDate, setNewTicketDueDate] = useState("");
   const [newTicketDescription, setNewTicketDescription] = useState("")
 
   // Task table search + filter
@@ -84,68 +182,159 @@ export default function RequestTable() {
 
   const currentUserName = "Chris Kim"; // TODO: wire to real auth
 
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: "TCK-1",
-      title: "Cannot upload experiment results",
-      status: "Pending",
-      urgency: "High",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-      category: "Bug fix",
-      description: "The lab will explode soon boommmmmmm",
-      createdBy: "Chris Kim",
-      assignedTo: "",
-    },
-    {
-      id: "TCK-2",
-      title: "Cannot upload experiment results",
-      status: "Pending",
-      urgency: "High",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-      category: "Bug fix",
-      description: "The lab will explode soon boommmmmmm",
-      createdBy: "Pasin Mclaren",
-      assignedTo: "",
-    },
-  ]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "TASK-1",
-      title: "bing bong",
-      description: "blah blah blah....",
-      category: "idk",
-      assignedTo: "John Doe",
-      createdBy: "Pasin Mclaren",
-      dueDate: "2026-09-25",
-      status: "In_progress",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-    },
-    {
-      id: "TASK-2",
-      title: "bing bong",
-      description: "blah blah blah....",
-      category: "idk",
-      assignedTo: "Chris Kim",
-      createdBy: "Pasin Mclaren",
-      dueDate: "2026-09-30",
-      status: "In_progress",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-    },
-  ]);
+  useEffect(() => {
+    let cancelled = false;
 
-  const members: Member[] = [
-    { id: "m1", name: "John Doe", email: "john.d@ku.th" },
-    { id: "m2", name: "Jane Smith", email: "jane.s@ku.th" },
-    { id: "m3", name: "Alex Lee", email: "alex.l@ku.th" },
-    { id: "m4", name: "Sam Park", email: "sam.p@ku.th" },
-    { id: "m5", name: "Chris Kim", email: "chris.k@ku.th" },
-    { id: "m6", name: "Pat Ito", email: "pat.i@ku.th" },
-  ];
+    async function loadTickets() {
+      try {
+        const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
+          apiFetch("ticket/?onlyOwned=true"),
+          apiFetch("category").catch(() => null),
+          apiFetch("account").catch(() => null),
+        ]);
+
+        if (!ticketsRes.ok) throw new Error(`HTTP ${ticketsRes.status}`);
+        const ticketBody: { Tickets: BackendTicket[] } = await ticketsRes.json();
+
+        const categoryById = new Map<number, string>();
+        if (categoriesRes?.ok) {
+          const catBody: BackendCategory[] | { Categories: BackendCategory[] } = await categoriesRes.json();
+          const list = Array.isArray(catBody) ? catBody : catBody.Categories;
+          list.forEach((c) => categoryById.set(c.id, c.name));
+        }
+
+        const accountById = new Map<string, string>();
+        if (accountsRes?.ok) {
+          const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
+          const list = Array.isArray(accBody) ? accBody : accBody.Accounts;
+          list.forEach((a) => accountById.set(a.id, a.username));
+        }
+
+        if (!cancelled) {
+          setTickets(ticketBody.Tickets.map((t) => mapBackendTicket(t, categoryById, accountById)));
+          setTicketsError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setTicketsError(err instanceof Error ? err.message : "Failed to load tickets");
+      } finally {
+        if (!cancelled) setTicketsLoading(false);
+      }
+    }
+
+    loadTickets();
+    return () => { cancelled = true; };
+  }, []);
+  
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTasks() {
+      try {
+        const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
+          apiFetch("task/?onlyOwned=true"),
+          apiFetch("category").catch(() => null),
+          apiFetch("account").catch(() => null),
+        ]);
+
+        if (!tasksRes.ok) throw new Error(`HTTP ${tasksRes.status}`);
+        const taskBody: { Tasks: BackendTask[] } = await tasksRes.json();
+
+        const categoryById = new Map<number, string>();
+        if (categoriesRes?.ok) {
+          const catBody: BackendCategory[] | { Categories: BackendCategory[] } = await categoriesRes.json();
+          const list = Array.isArray(catBody) ? catBody : catBody.Categories;
+          list.forEach((c) => categoryById.set(c.id, c.name));
+        }
+
+        const accountById = new Map<string, string>();
+        if (accountsRes?.ok) {
+          const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
+          const list = Array.isArray(accBody) ? accBody : accBody.Accounts;
+          list.forEach((a) => accountById.set(a.id, a.username));
+        }
+
+        if (!cancelled) {
+          setTasks(taskBody.Tasks.map((t) => mapBackendTask(t, categoryById, accountById)));
+          setTasksError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setTasksError(err instanceof Error ? err.message : "Failed to load tasks");
+      } finally {
+        if (!cancelled) setTasksLoading(false);
+      }
+    }
+
+    loadTasks();
+    return () => { cancelled = true; };
+  }, []);
+
+  const [members, setMembers] = useState<Member[]>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const [membersError, setMembersError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMembers() {
+      try {
+        const accountsRes = await apiFetch("account");
+        if (!accountsRes.ok) throw new Error(`HTTP ${accountsRes.status}`);
+
+        const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
+        const list = Array.isArray(accBody) ? accBody : accBody.Accounts;
+
+        if (!cancelled) {
+          setMembers(list.map(mapBackendAccount));
+          setMembersError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setMembersError(err instanceof Error ? err.message : "Failed to load members");
+      } finally {
+        if (!cancelled) setMembersLoading(false);
+      }
+    }
+
+    loadMembers();
+    return () => { cancelled = true; };
+  }, []);
+
+  const [categories, setCategories] = useState<BackendCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCategories() {
+      try {
+        const res = await apiFetch("category");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const body: BackendCategory[] | { Categories: BackendCategory[] } = await res.json();
+        const list = Array.isArray(body) ? body : body.Categories;
+
+        if (!cancelled) {
+          setCategories(list);
+          setCategoriesError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setCategoriesError(err instanceof Error ? err.message : "Failed to load categories");
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    }
+
+    loadCategories();
+    return () => { cancelled = true; };
+  }, []);
 
   const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([]);
 
@@ -211,40 +400,70 @@ export default function RequestTable() {
     setIsCreatingTask(false);
   }
 
-  function handleCreateTicket() {
-    if (!newTicketTitle.trim()) return;
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+  const [ticketSubmitError, setTicketSubmitError] = useState<string | null>(null);
 
-    const newTicket: Ticket = {
-      id: `TCK-${String(tickets.length + 1)}`,
-      title: newTicketTitle,
-      status: "Pending",
-      urgency: newTicketUrgency,
-      createdDate: formatDateTime(),
-      lastUpdate: formatDateTime(),
-      category: newTicketCategory,
-      description: newTicketDescription,
-      createdBy: currentUserName,
-      assignedTo: "",
-    };
+  const [newTicketCategoryId, setNewTicketCategoryId] = useState<number | "">("");
 
-    setTickets((prev) => [...prev, newTicket]);
-    resetTicketForm();
+  async function handleCreateTicket() {
+    if (!newTicketTitle.trim() || newTicketCategoryId === "") return;
+
+    setIsSubmittingTicket(true);
+    setTicketSubmitError(null);
+
+    try {
+      const res = await apiFetch("ticket/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTicketTitle.trim(),
+          description: newTicketDescription || null,
+          category_id: newTicketCategoryId,
+          due_date: newTicketDueDate || null,
+        }),
+      });
+
+      if (res.status === 403) {
+        const body = await res.json().catch(() => null);
+        if (body?.detail?.code === "quota_exhausted") {
+          throw new Error("You've used up your ticket quota.");
+        }
+        throw new Error("You don't have permission to create a ticket.");
+      }
+      if (res.status === 404) {
+        throw new Error("Selected category no longer exists.");
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const created: BackendTicket = await res.json();
+
+      const categoryById = new Map<number, string>(categories.map((c) => [c.id, c.name]));
+      const accountById = new Map<string, string>(members.map((m) => [m.id, m.name]));
+
+      setTickets((prev) => [...prev, mapBackendTicket(created, categoryById, accountById)]);
+      resetTicketForm();
+    } catch (err) {
+      setTicketSubmitError(err instanceof Error ? err.message : "Failed to create ticket");
+    } finally {
+      setIsSubmittingTicket(false);
+    }
   }
+
 
   function resetTicketForm() {
     setNewTicketTitle("");
-    setNewTicketUrgency("Low");
-    setNewTicketCategory("");
+    setNewTicketCategoryId("");
+    setNewTicketDueDate("");
     setNewTicketDescription("");
     setIsCreatingTicket(false);
   }
 
   function getNextTaskId(taskList: Task[]) {
     const maxNum = taskList.reduce((max, t) => {
-      const num = parseInt(t.id.replace("TASK-", ""), 10);
+      const num = parseInt(t.id, 10);
       return Number.isNaN(num) ? max : Math.max(max, num);
     }, 0);
-    return `TASK-${maxNum + 1}`;
+    return `${maxNum + 1}`;
   }
 
   function handleDecision(newStatus: Ticket["status"]) {
@@ -258,7 +477,7 @@ export default function RequestTable() {
     setTickets((prevTickets) =>
       prevTickets.map((t) =>
         t.id === selectedTicket.id
-          ? { 
+          ? {
               ...t,
               status: newStatus,
               assignedTo: assignedNames,
@@ -284,7 +503,7 @@ export default function RequestTable() {
         category: selectedTicket.category,
         assignedTo: assignedNames,
         createdBy: currentUserName,
-        dueDate: "",
+        dueDate: selectedTicket.dueDate,
         createdDate: formatDateTime(),
         lastUpdate: formatDateTime(),
         status: "In_progress",
@@ -309,7 +528,7 @@ export default function RequestTable() {
               title: editTicketTitle,
               category: editTicketCategory,
               description: editTicketDescription,
-              urgency: editTicketUrgency,
+              dueDate: editTicketDueDate,
               lastUpdate: formatDateTime(),
             }
           : t
@@ -370,11 +589,12 @@ export default function RequestTable() {
       statusFilter === "All" ? true : ticket.status === statusFilter
     )
     .filter((ticket) =>
-      urgencyFilter === "All" ? true : ticket.urgency === urgencyFilter
-    )
-    .filter((ticket) =>
-      userRole === "admin" ? true : ticket.createdBy === currentUserName
+      ticketCategoryFilter === "All" ? true : ticket.category === ticketCategoryFilter
     );
+
+  const ticketCategories = Array.from(
+    new Set(tickets.map((t) => t.category).filter(Boolean))
+  );
 
   const taskCategories = Array.from(
     new Set(tasks.map((t) => t.category).filter(Boolean))
@@ -423,16 +643,18 @@ export default function RequestTable() {
               />
 
               <select
-                value={urgencyFilter}
-                onChange={(e) => setUrgencyFilter(e.target.value)}
+                value={ticketCategoryFilter}
+                onChange={(e) => setTicketCategoryFilter(e.target.value)}
                 className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                {ticketCategories.map((category) => (
+                  <option key={category} value={category} title={category}>
+                    {truncateLabel(category)}
+                  </option>
+                ))}
               </select>
-              
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -453,8 +675,9 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Ticket-ID</th>
                   <th className="px-4 py-2">Title</th>
                   <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Urgency</th>
+                  <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Created By</th>
+                  <th className="px-4 py-2">Due Date</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
@@ -469,7 +692,7 @@ export default function RequestTable() {
                       setEditTicketTitle(ticket.title);
                       setEditTicketCategory(ticket.category);
                       setEditTicketDescription(ticket.description);
-                      setEditTicketUrgency(ticket.urgency);
+                      setEditTicketDueDate(ticket.dueDate);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
@@ -478,18 +701,25 @@ export default function RequestTable() {
                       {ticket.title}
                     </td>
                     <td className="px-4 py-3">{ticket.status}</td>
-                    <td className="px-4 py-3">{ticket.urgency}</td>
+                    <td className="px-4 py-3">{ticket.category}</td>
                     <td className="px-4 py-3 max-w-[120px] truncate" title={ticket.createdBy}>
                       {ticket.createdBy}
                     </td>
+                    <td className="px-4 py-3">{ticket.dueDate || "—"}</td>
                     <td className="px-4 py-3">{ticket.createdDate}</td>
                     <td className="px-4 py-3">{ticket.lastUpdate}</td>
                   </tr>
                 ))}
-                {filteredTickets.length === 0 && (
+                {ticketsLoading && (
+                  <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-400">Loading tickets…</td></tr>
+                )}
+                {ticketsError && !ticketsLoading && (
+                  <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-red-500">Couldn't load tickets: {ticketsError}</td></tr>
+                )}
+                {!ticketsLoading && !ticketsError && filteredTickets.length === 0 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={8}
                       className="px-4 py-6 text-center text-sm text-gray-400"
                     >
                       No tickets match your search.
@@ -560,7 +790,7 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Assigned</th>
                   <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Created By</th> 
+                  <th className="px-4 py-2">Created By</th>
                   <th className="px-4 py-2">Due Date</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
@@ -606,12 +836,15 @@ export default function RequestTable() {
                     <td className="px-4 py-3">{task.lastUpdate}</td>
                   </tr>
                 ))}
-                {filteredTasks.length === 0 && (
+                {tasksLoading && (
+                  <tr><td colSpan={10} className="px-4 py-6 text-center text-sm text-gray-400">Loading tasks…</td></tr>
+                )}
+                {tasksError && !tasksLoading && (
+                  <tr><td colSpan={10} className="px-4 py-6 text-center text-sm text-red-500">Couldn't load tasks: {tasksError}</td></tr>
+                )}
+                {!tasksLoading && !tasksError && filteredTasks.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-6 text-center text-sm text-gray-400"
-                    >
+                    <td colSpan={10} className="px-4 py-6 text-center text-sm text-gray-400">
                       No tasks yet.
                     </td>
                   </tr>
@@ -665,21 +898,18 @@ export default function RequestTable() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <label className="block text-sm font-medium mb-1">Urgency</label>
+                    <label className="block text-sm font-medium mb-1">Due Date</label>
                     {userRole === "admin" ? (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                        {selectedTicket.urgency}
+                        {selectedTicket.dueDate || "—"}
                       </div>
                     ) : (
-                      <select
-                        value={editTicketUrgency}
-                        onChange={(e) => setEditTicketUrgency(e.target.value as Ticket["urgency"])}
+                      <input
+                        type="date"
+                        value={editTicketDueDate}
+                        onChange={(e) => setEditTicketDueDate(e.target.value)}
                         className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      >
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                      </select>
+                      />
                     )}
                   </div>
                 </div>
@@ -799,26 +1029,25 @@ export default function RequestTable() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Urgency</label>
+                  <label className="block text-sm font-medium mb-1">Category</label>
                   <select
-                    value={newTicketUrgency}
-                    onChange={(e) =>
-                      setNewTicketUrgency(e.target.value as Ticket["urgency"])
-                    }
+                    value={newTicketCategoryId}
+                    onChange={(e) => setNewTicketCategoryId(e.target.value ? Number(e.target.value) : "")}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
+                    <option value="">Select a category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
                   <input
-                    type="text"
-                    value={newTicketCategory}
-                    onChange={(e) => setNewTicketCategory(e.target.value)}
+                    type="date"
+                    value={newTicketDueDate}
+                    onChange={(e) => setNewTicketDueDate(e.target.value)}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 </div>
@@ -834,18 +1063,23 @@ export default function RequestTable() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
+              {ticketSubmitError && (
+                <span className="text-sm text-red-500 mr-auto">{ticketSubmitError}</span>
+              )}
               <button
                 onClick={resetTicketForm}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+                disabled={isSubmittingTicket}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTicket}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                disabled={isSubmittingTicket}
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
               >
-                Submit
+                {isSubmittingTicket ? "Submitting…" : "Submit"}
               </button>
             </div>
           </div>
@@ -910,7 +1144,13 @@ export default function RequestTable() {
                   <span>Members — {members.length}</span>
                 </div>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {members.map((member) => (
+                  {membersLoading && (
+                    <div className="text-xs text-gray-400">Loading members…</div>
+                  )}
+                  {membersError && !membersLoading && (
+                    <div className="text-xs text-red-500">Couldn't load members</div>
+                  )}
+                  {!membersLoading && !membersError && members.map((member) => (
                     <label
                       key={member.id}
                       className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
