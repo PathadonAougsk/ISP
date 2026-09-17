@@ -2,12 +2,19 @@ from typing import Annotated
 import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, case
+from pydantic import BaseModel
+from sqlalchemy import select, case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
-from app.model import Ticket, Account, AccountRole, TicketStatus
+from app.model import Ticket, Account, AccountRole, TicketStatus, AuditLog
 from app.service import user_service
+
+class TicketCreate(BaseModel):
+    name: str
+    description: str | None = None
+    category_id: int
+    due_date: dt.datetime | None = None
 
 ticketRouter = APIRouter(prefix="/ticket", dependencies=[Depends(user_service.get_current_auth_user)])
 
@@ -63,8 +70,75 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
     return {"Tickets": result.all()}
 
 @ticketRouter.post("/", tags=["Tickets"])
-async def create_ticket(session: Annotated[AsyncSession, Depends(getSession)]):
-    pass
+async def create_ticket(data: TicketCreate,
+                        session: Annotated[AsyncSession, Depends(getSession)],
+                        me: Annotated[Account, Depends(user_service.get_current_auth_user)]
+):
+    if me.quota is not None and me.quota <= 0:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "detail": "Ticket quota exhausted",
+                "code": "quota_exhausted",
+                "quota": 0
+            }
+        )
+
+    if me.quota is not None and me.quota > 0:
+        new_quota = await session.scalar(
+            update(Account)
+            .where(
+                Account.id == me.id,
+                Account.quota > 0
+            )
+            .values(
+                quota = Account.quota - 1
+            )
+            .returning(Account.quota))
+        old_quota = new_quota + 1
+
+    if me.quota is None:
+        new_quota = None
+        old_quota = None
+
+    ticket = Ticket(
+        name = data.name,
+        description = data.description,
+        status = TicketStatus.PENDING,
+        category_id = data.category_id,
+        created_by = me.id,
+        completed_by = None,
+        completed_at = None,
+        due_date = data.due_date
+    )
+
+    session.add(ticket)
+    await session.flush(ticket)
+
+    ticket_audit = AuditLog(
+        from_table = "ticket",
+        row_id = str(ticket.id),
+        column_name = "status",
+        old_value = None,
+        new_value = "pending",
+        by_whom = me.id
+    )
+
+    session.add(ticket_audit)
+
+    quota_audit = AuditLog(
+        from_table = "account",
+        row_id = str(me.id),
+        column_name = "quota",
+        old_value = str(old_quota) if old_quota is not None else None,
+        new_value = str(new_quota) if old_quota is not None else None,
+        by_whom = me.id
+    )
+
+    session.add(quota_audit)
+    await session.commit()
+
+    return ticket
 
 @ticketRouter.put("/{ticket_id}", tags=["Tickets"])
 async def update_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
