@@ -167,7 +167,6 @@ export default function RequestTable() {
   const [editTicketDueDate, setEditTicketDueDate] = useState("");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicketTitle, setNewTicketTitle] = useState("");
-  const [newTicketCategory, setNewTicketCategory] = useState("");
   const [newTicketDueDate, setNewTicketDueDate] = useState("");
   const [newTicketDescription, setNewTicketDescription] = useState("")
 
@@ -193,9 +192,9 @@ export default function RequestTable() {
     async function loadTickets() {
       try {
         const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("/ticket/?onlyOwned=true"),
-          apiFetch("/category/").catch(() => null),
-          apiFetch("/account/").catch(() => null),
+          apiFetch("ticket/?onlyOwned=true"),
+          apiFetch("category").catch(() => null),
+          apiFetch("account").catch(() => null),
         ]);
 
         if (!ticketsRes.ok) throw new Error(`HTTP ${ticketsRes.status}`);
@@ -229,7 +228,7 @@ export default function RequestTable() {
     loadTickets();
     return () => { cancelled = true; };
   }, []);
-
+  
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState<string | null>(null);
@@ -240,9 +239,9 @@ export default function RequestTable() {
     async function loadTasks() {
       try {
         const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("/task/?onlyOwned=true"),
-          apiFetch("/category/").catch(() => null),
-          apiFetch("/account/").catch(() => null),
+          apiFetch("task/?onlyOwned=true"),
+          apiFetch("category").catch(() => null),
+          apiFetch("account").catch(() => null),
         ]);
 
         if (!tasksRes.ok) throw new Error(`HTTP ${tasksRes.status}`);
@@ -286,7 +285,7 @@ export default function RequestTable() {
 
     async function loadMembers() {
       try {
-        const accountsRes = await apiFetch("/account/");
+        const accountsRes = await apiFetch("account");
         if (!accountsRes.ok) throw new Error(`HTTP ${accountsRes.status}`);
 
         const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
@@ -304,6 +303,36 @@ export default function RequestTable() {
     }
 
     loadMembers();
+    return () => { cancelled = true; };
+  }, []);
+
+  const [categories, setCategories] = useState<BackendCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCategories() {
+      try {
+        const res = await apiFetch("category");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const body: BackendCategory[] | { Categories: BackendCategory[] } = await res.json();
+        const list = Array.isArray(body) ? body : body.Categories;
+
+        if (!cancelled) {
+          setCategories(list);
+          setCategoriesError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setCategoriesError(err instanceof Error ? err.message : "Failed to load categories");
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    }
+
+    loadCategories();
     return () => { cancelled = true; };
   }, []);
 
@@ -371,29 +400,59 @@ export default function RequestTable() {
     setIsCreatingTask(false);
   }
 
-  function handleCreateTicket() {
-    if (!newTicketTitle.trim()) return;
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+  const [ticketSubmitError, setTicketSubmitError] = useState<string | null>(null);
 
-    const newTicket: Ticket = {
-      id: `TCK-${String(tickets.length + 1)}`,
-      title: newTicketTitle,
-      status: "Pending",
-      dueDate: newTicketDueDate,
-      createdDate: formatDateTime(),
-      lastUpdate: formatDateTime(),
-      category: newTicketCategory,
-      description: newTicketDescription,
-      createdBy: currentUserName,
-      assignedTo: "",
-    };
+  const [newTicketCategoryId, setNewTicketCategoryId] = useState<number | "">("");
 
-    setTickets((prev) => [...prev, newTicket]);
-    resetTicketForm();
+  async function handleCreateTicket() {
+    if (!newTicketTitle.trim() || newTicketCategoryId === "") return;
+
+    setIsSubmittingTicket(true);
+    setTicketSubmitError(null);
+
+    try {
+      const res = await apiFetch("ticket/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTicketTitle.trim(),
+          description: newTicketDescription || null,
+          category_id: newTicketCategoryId,
+          due_date: newTicketDueDate || null,
+        }),
+      });
+
+      if (res.status === 403) {
+        const body = await res.json().catch(() => null);
+        if (body?.detail?.code === "quota_exhausted") {
+          throw new Error("You've used up your ticket quota.");
+        }
+        throw new Error("You don't have permission to create a ticket.");
+      }
+      if (res.status === 404) {
+        throw new Error("Selected category no longer exists.");
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const created: BackendTicket = await res.json();
+
+      const categoryById = new Map<number, string>(categories.map((c) => [c.id, c.name]));
+      const accountById = new Map<string, string>(members.map((m) => [m.id, m.name]));
+
+      setTickets((prev) => [...prev, mapBackendTicket(created, categoryById, accountById)]);
+      resetTicketForm();
+    } catch (err) {
+      setTicketSubmitError(err instanceof Error ? err.message : "Failed to create ticket");
+    } finally {
+      setIsSubmittingTicket(false);
+    }
   }
+
 
   function resetTicketForm() {
     setNewTicketTitle("");
-    setNewTicketCategory("");
+    setNewTicketCategoryId("");
     setNewTicketDueDate("");
     setNewTicketDescription("");
     setIsCreatingTicket(false);
@@ -401,10 +460,10 @@ export default function RequestTable() {
 
   function getNextTaskId(taskList: Task[]) {
     const maxNum = taskList.reduce((max, t) => {
-      const num = parseInt(t.id.replace("TASK-", ""), 10);
+      const num = parseInt(t.id, 10);
       return Number.isNaN(num) ? max : Math.max(max, num);
     }, 0);
-    return `TASK-${maxNum + 1}`;
+    return `${maxNum + 1}`;
   }
 
   function handleDecision(newStatus: Ticket["status"]) {
@@ -971,12 +1030,16 @@ export default function RequestTable() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Category</label>
-                  <input
-                    type="text"
-                    value={newTicketCategory}
-                    onChange={(e) => setNewTicketCategory(e.target.value)}
+                  <select
+                    value={newTicketCategoryId}
+                    onChange={(e) => setNewTicketCategoryId(e.target.value ? Number(e.target.value) : "")}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -1000,18 +1063,23 @@ export default function RequestTable() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
+              {ticketSubmitError && (
+                <span className="text-sm text-red-500 mr-auto">{ticketSubmitError}</span>
+              )}
               <button
                 onClick={resetTicketForm}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+                disabled={isSubmittingTicket}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTicket}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                disabled={isSubmittingTicket}
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
               >
-                Submit
+                {isSubmittingTicket ? "Submitting…" : "Submit"}
               </button>
             </div>
           </div>
