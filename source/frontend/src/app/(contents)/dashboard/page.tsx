@@ -1,9 +1,11 @@
+"use client"
+
+import TicketsList from "@/components/ticket";
 import Image from "next/image";
 import Link from "next/link";
 import { Fragment } from "react";
 
 const categoryMap: Record<number, string> = { 1: "Report", 2: "Project" };
-const ticketStatusMap: Record<number, string> = { 1: "Pending", 2: "In Progress", 3: "Approved", 4: "Rejected", 5: "Complete" };
 const ticketStatusIcon: Record<string, string> = {
   Pending: "/pending.svg", "In Progress": "/in_progress.svg", Approved: "/approved.svg", Rejected: "/rejected.svg", Complete: "/header_donut_gray.svg",
 };
@@ -14,7 +16,6 @@ type DummyTask = {
 };
 
 // const dummyTasks: DummyTask[] = [];
-
 const dummyTasks: DummyTask[] = [
   { id: 1, name: "Report_Task01", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-20T09:00:00+00:00", completed_at: null, description: "", category_id: 1, completed_by: null, updated: "2026-08-20T09:00:00+00:00", due_date: "2026-08-31T12:00:00+00:00", highlight: true },
   { id: 2, name: "Project_Task01", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-22T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-22T09:00:00+00:00", due_date: "2026-09-02T10:00:00+00:00", highlight: true },
@@ -25,21 +26,6 @@ const dummyTasks: DummyTask[] = [
   { id: 7, name: "Project_Task02", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-28T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-28T09:00:00+00:00", due_date: "2026-09-13T23:59:00+00:00" },
   { id: 8, name: "Project_Task03", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-28T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-28T09:00:00+00:00", due_date: "2026-09-13T23:59:00+00:00" },
   { id: 9, name: "Project_Task04", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-28T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-28T09:00:00+00:00", due_date: "2026-09-13T23:59:00+00:00" },
-];
-
-type DummyTicket = {
-  id: number; name: string; description: string; category_id: number; completed_by: string | null; created: string;
-  completed_at: string | null; status_id: number; created_by: string; assigned_id: string | null; updated: string; due_date: string;
-};
-
-// const dummyTickets: DummyTicket[] = [];
-
-const dummyTickets: DummyTicket[] = [
-  { id: 1, name: "Cannot upload experiment results", description: "", category_id: 1, completed_by: null, created: "2026-08-29T09:00:00+00:00", completed_at: null, status_id: 4, created_by: "Pasin Mclaren", assigned_id: null, updated: "2026-08-29T09:00:00+00:00", due_date: "2026-09-01T13:00:00+00:00" },
-  { id: 2, name: "Cannot upload experiment results", description: "", category_id: 1, completed_by: null, created: "2026-08-29T09:00:00+00:00", completed_at: null, status_id: 3, created_by: "Pasin Mclaren", assigned_id: null, updated: "2026-08-29T09:00:00+00:00", due_date: "2026-09-01T12:00:00+00:00" },
-  { id: 3, name: "Cannot upload experiment results", description: "", category_id: 1, completed_by: null, created: "2026-08-29T09:00:00+00:00", completed_at: null, status_id: 2, created_by: "Pasin Mclaren", assigned_id: null, updated: "2026-08-29T09:00:00+00:00", due_date: "2026-09-01T12:00:00+00:00" },
-  { id: 4, name: "Cannot upload files in task 001", description: "", category_id: 1, completed_by: null, created: "2026-08-29T09:00:00+00:00", completed_at: null, status_id: 1, created_by: "Pasin Mclaren", assigned_id: null, updated: "2026-08-29T09:00:00+00:00", due_date: "2026-09-01T14:00:00+00:00" },
-  { id: 5, name: "Cannot upload files in task 002", description: "", category_id: 1, completed_by: null, created: "2026-08-29T09:00:00+00:00", completed_at: null, status_id: 5, created_by: "Pasin Mclaren", assigned_id: null, updated: "2026-08-29T09:00:00+00:00", due_date: "2026-09-01T11:00:00+00:00" },
 ];
 
 const dueToday = 1;
@@ -197,51 +183,12 @@ function TaskList() {
   );
 }
 
-function TicketList() {
-  return (
-    <div className="flex min-h-25 flex-1 flex-col gap-2">
-      <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
-        <div className="grid flex-1 grid-cols-[2fr_1fr_1.4fr_1.2fr] items-center gap-2">
-          <h1 className="truncate text-base font-bold text-white">Ticket Name</h1>
-          <h1 className="truncate text-base font-bold text-white">Category</h1>
-          <h1 className="truncate text-base font-bold text-white">Status</h1>
-          <h1 className="truncate text-base font-bold text-white">Duedate</h1>
-        </div>
-      </div>
-
-      {dummyTickets.length === 0 ? (
-        <p className="py-4 text-center text-base font-medium text-gray-500">"Looks like everything's pretty peaceful around here. Hell yeah!"</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {dummyTickets.map((ticket) => {
-            const status = ticketStatusMap[ticket.status_id];
-            const isComplete = status === "Complete";
-
-            return (
-              <div key={ticket.id} className={`flex h-8 items-center gap-4 rounded-[20px] px-2 ${isComplete ? "bg-gray-100" : "bg-white"}`}>
-                <Image src={ticketStatusIcon[status]} width={0} height={0} sizes="auto" className="h-4 w-auto shrink-0" alt={status} draggable={false} />
-                <div className="grid flex-1 grid-cols-[2fr_1fr_1.4fr_1.2fr] items-center gap-2">
-                  <p className={`truncate text-sm ${isComplete ? "text-gray-400" : "text-black"}`}>{ticket.name}</p>
-                  <p className={`truncate text-sm ${isComplete ? "text-gray-400" : "text-black"}`}>{categoryMap[ticket.category_id]}</p>
-                  <p className={`truncate text-sm ${isComplete ? "text-gray-400" : "text-black"}`}>{status}</p>
-                  <p className={`text-sm ${isComplete ? "text-gray-400" : "text-black"}`}>{formatDueDate(ticket.due_date)}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function TaskTicketList() {
   return (
     <div className="flex min-w-0 flex-1 shrink-0">
       <div className="flex h-full w-full flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
         <TaskList />
-        <TicketList />
+        {TicketsList()}
       </div>
     </div>
   );
@@ -255,7 +202,6 @@ export default function Dashboard() {
         <ActiveTask />
         <TaskOverview />
       </div>
-
       <TaskTicketList />
     </main>
   );
