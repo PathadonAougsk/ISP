@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import type { Task } from "@/components/task";
-import { categoryMap } from "./page";
-
-type DueBucketKey = "thisWeek" | "nextWeek" | "later";
+import { categoryMap, getDueBucket, type DueBucketKey } from "./page";
 
 const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
     { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },
@@ -12,25 +10,7 @@ const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
     { key: "later", label: "Later", color: "bg-(--primary-blue)" },
 ];
 
-// sunday start week containing `date`, in UTC.
-function getWeekBounds(date: Date) {
-    const day = date.getUTCDay();
-    const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
-    const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 6, 23, 59, 59, 999));
-    return { start, end };
-}
-
-function getDueBucket(dueDateIso: string, now: Date): DueBucketKey {
-    const due = new Date(dueDateIso);
-    const { end: thisWeekEnd } = getWeekBounds(now);
-    const nextWeekEnd = new Date(Date.UTC(thisWeekEnd.getUTCFullYear(), thisWeekEnd.getUTCMonth(), thisWeekEnd.getUTCDate() + 7, 23, 59, 59, 999));
-
-    if (due <= thisWeekEnd) return "thisWeek";
-    if (due <= nextWeekEnd) return "nextWeek";
-    return "later";
-}
-
-export default function TaskOverview({ tasks }: { tasks: Task[] }) {
+export default function TaskOverview({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
     const now = new Date();
 
     const grouped = tasks.reduce<Record<number, Record<DueBucketKey, number>>>((acc, task) => {
@@ -49,7 +29,9 @@ export default function TaskOverview({ tasks }: { tasks: Task[] }) {
                 <h1 className="text-base font-bold text-white">Task Overview</h1>
             </div>
 
-            {tasks.length === 0 ? (
+            {loadingTasks ? (
+                <p className="py-4 text-center text-base font-medium text-gray-500">Loading tasks...</p>
+            ) : tasks.length === 0 ? (
                 <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">
                     All tasks are done! Time to enjoy a well-earned break.
                 </p>
