@@ -8,6 +8,19 @@ import ActiveTask from "./dash_active_task";
 import TaskOverview from "./dash_task_overview";
 import TaskTicketList from "./dash_task_ticket_list";
 
+export const categoryMap: Record<number, string> = {
+  1: "Report 1",
+  2: "Report 2",
+  3: "Report 3",
+  4: "Report 4",
+  5: "Report 5",
+  6: "Report 6",
+  7: "Report 7",
+  8: "Report 8",
+  9: "Report 9",
+  10: "Report 10",
+};
+
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
