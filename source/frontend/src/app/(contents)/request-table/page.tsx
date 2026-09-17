@@ -66,6 +66,8 @@ function mapBackendTicket(
 
 type BackendTaskStatus = "in_progress" | "completed" | (string & {});
 
+type BackendTaskAssignee = { id: string; username: string; email: string };
+
 type BackendTask = {
   id: number;
   name: string;
@@ -78,7 +80,7 @@ type BackendTask = {
   updated: string;
   completed_at: string | null;
   due_date: string;
-  assignees: { id: string; username: string; email: string }[];
+  assignees: BackendTaskAssignee[];
 };
 
 function mapTaskStatus(status: BackendTaskStatus): Task["status"] {
@@ -102,6 +104,10 @@ function mapBackendTask(
     lastUpdate: formatDateTime(new Date(bt.updated)),
     status: mapTaskStatus(bt.status),
   };
+}
+
+function mapBackendAccount(ba: BackendAccount): Member {
+  return { id: ba.id, name: ba.username, email: ba.email };
 }
 
 interface Ticket {
@@ -234,7 +240,7 @@ export default function RequestTable() {
     async function loadTasks() {
       try {
         const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("task/"),
+          apiFetch("task/?onlyOwned=true"),
           apiFetch("category").catch(() => null),
           apiFetch("account").catch(() => null),
         ]);
@@ -271,14 +277,35 @@ export default function RequestTable() {
     return () => { cancelled = true; };
   }, []);
 
-  const members: Member[] = [
-    { id: "m1", name: "John Doe", email: "john.d@ku.th" },
-    { id: "m2", name: "Jane Smith", email: "jane.s@ku.th" },
-    { id: "m3", name: "Alex Lee", email: "alex.l@ku.th" },
-    { id: "m4", name: "Sam Park", email: "sam.p@ku.th" },
-    { id: "m5", name: "Chris Kim", email: "chris.k@ku.th" },
-    { id: "m6", name: "Pat Ito", email: "pat.i@ku.th" },
-  ];
+  const [members, setMembers] = useState<Member[]>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const [membersError, setMembersError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMembers() {
+      try {
+        const accountsRes = await apiFetch("account");
+        if (!accountsRes.ok) throw new Error(`HTTP ${accountsRes.status}`);
+
+        const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
+        const list = Array.isArray(accBody) ? accBody : accBody.Accounts;
+
+        if (!cancelled) {
+          setMembers(list.map(mapBackendAccount));
+          setMembersError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setMembersError(err instanceof Error ? err.message : "Failed to load members");
+      } finally {
+        if (!cancelled) setMembersLoading(false);
+      }
+    }
+
+    loadMembers();
+    return () => { cancelled = true; };
+  }, []);
 
   const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([]);
 
@@ -1049,7 +1076,13 @@ export default function RequestTable() {
                   <span>Members — {members.length}</span>
                 </div>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {members.map((member) => (
+                  {membersLoading && (
+                    <div className="text-xs text-gray-400">Loading members…</div>
+                  )}
+                  {membersError && !membersLoading && (
+                    <div className="text-xs text-red-500">Couldn't load members</div>
+                  )}
+                  {!membersLoading && !membersError && members.map((member) => (
                     <label
                       key={member.id}
                       className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
