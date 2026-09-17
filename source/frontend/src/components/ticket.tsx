@@ -3,9 +3,9 @@
 import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
-type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
+export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
-type Ticket = {
+export type Ticket = {
   id: number;
   status: TicketStatus;
   name: string;
@@ -20,16 +20,20 @@ type Ticket = {
   completed_at: string | null;
 };
 
-type TicketsResponse = { Tickets: Ticket[] };
+export type TicketsResponse = { Tickets: Ticket[] };
+
+export async function fetchTickets(onlyOwned = false): Promise<TicketsResponse> {
+  const res = await apiFetch(`/ticket${onlyOwned ? "?onlyOwned=true" : ""}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
 export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    apiFetch("/ticket")
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const body: TicketsResponse = await res.json();
+    fetchTickets()
+      .then((body) => {
         setTickets(body.Tickets);
         console.log(body.Tickets)
       })
