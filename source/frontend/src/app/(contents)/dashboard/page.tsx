@@ -179,7 +179,7 @@ function TaskList() {
     <div className="flex min-h-25 flex-col gap-2">
       <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
         <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
-        <div className="grid flex-1 grid-cols-[2fr_1fr_1.4fr_1.2fr] items-center gap-2">
+        <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
           <h1 className="truncate text-base font-bold text-white">Task Name</h1>
           <h1 className="truncate text-base font-bold text-white">Category</h1>
           <h1 className="truncate text-base font-bold text-white">Created by</h1>
@@ -194,7 +194,7 @@ function TaskList() {
           {dummyTasks.map((task) => (
             <div key={task.id} className="flex h-8 items-center gap-6 rounded-[20px] bg-white px-3">
               <span className={`h-2 w-2 shrink-0 rounded-full ${task.highlight ? "bg-(--primary-red)" : "bg-(--primary-blue)"}`} />
-              <div className="grid flex-1 grid-cols-[2fr_1fr_1.4fr_1.2fr] items-center gap-2">
+              <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
                 <p className="truncate text-sm text-black">{task.name}</p>
                 <p className="truncate text-sm text-black">{categoryMap[task.category_id]}</p>
                 <p className="truncate text-sm text-black">{task.created_by}</p>
@@ -213,7 +213,7 @@ function TicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTic
     <div className="flex min-h-25 flex-1 flex-col gap-2">
       <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
         <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
-        <div className="grid flex-1 grid-cols-[2fr_1fr_1.4fr_1.2fr] items-center gap-2">
+        <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
           <h1 className="truncate text-base font-bold text-white">Ticket Name</h1>
           <h1 className="truncate text-base font-bold text-white">Category</h1>
           <h1 className="truncate text-base font-bold text-white">Status</h1>
@@ -233,7 +233,7 @@ function TicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTic
             return (
               <div key={ticket.id} className={`flex h-8 items-center gap-4 rounded-[20px] px-2 ${isAccepted ? "bg-gray-100" : "bg-white"}`}>
                 <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto shrink-0" alt={ticket.status} draggable={false} />
-                <div className="grid flex-1 grid-cols-[2fr_1fr_1.4fr_1.2fr] items-center gap-2">
+                <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
                   <p className={`truncate text-sm ${isAccepted ? "text-gray-400" : "text-black"}`}>{ticket.name}</p>
                   <p className={`truncate text-sm ${isAccepted ? "text-gray-400" : "text-black"}`}>{categoryMap[ticket.category_id]}</p>
                   <p className={`truncate text-sm ${isAccepted ? "text-gray-400" : "text-black"}`}>{ticketStatusText[ticket.status]}</p>
