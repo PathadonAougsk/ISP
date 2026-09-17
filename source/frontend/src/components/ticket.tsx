@@ -32,6 +32,7 @@ function formatDueDate(iso: string) {
 }
 
 type TicketsResponse = { Tickets: Ticket[] };
+
 export default function TicketsList() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
