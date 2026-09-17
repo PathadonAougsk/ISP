@@ -11,7 +11,7 @@ from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.model import Account, AccountRole, Task, TaskStatus
-from app.service import user_service
+from app.service import account_service
 
 # Base Task model.
 class TaskRequest(BaseModel):
@@ -22,14 +22,14 @@ class TaskRequest(BaseModel):
     due_date: datetime
     assignee_ids: list[uuid.UUID] | None = None
 
-taskRouter = APIRouter(prefix="/task", dependencies=[Depends(user_service.get_current_auth_user)])
+taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get_current_auth_user)])
 
 # Filter params here are optional. If given none, then get all.
 # Filters: id, categories, users (assignees), status, limit
 # Admins and the lab owner see every task, a plain lab user only sees their own.
 @taskRouter.get("/", tags=["Task"])
 async def retrieve_tasks(
-    me: Annotated[Account, Depends(user_service.get_current_account)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
     session: Annotated[AsyncSession, Depends(getSession)],
     id: int | None = Query(None),
     categories: int | None = Query(None),
@@ -70,7 +70,7 @@ async def retrieve_tasks(
     return {"Tasks": tasks}
 
 @taskRouter.post("/", tags=["Task"])
-async def create_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
+async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
     # Create new task based on the body.
     task = Task(
         name=body.name,
@@ -92,7 +92,7 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(user_service.get_cu
     return {"Task": task}
 
 @taskRouter.put("/{task_id}", tags=["Task"])
-async def update_task(auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)], task_id: int, session: Annotated[AsyncSession, Depends(getSession)], body: TaskRequest):
+async def update_task(auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)], task_id: int, session: Annotated[AsyncSession, Depends(getSession)], body: TaskRequest):
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )
@@ -115,7 +115,7 @@ async def update_task(auth_user: Annotated[AuthUser, Depends(user_service.get_cu
     return {"Task": task}
 
 @taskRouter.delete("/{task_id}", tags=["Task"])
-async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(user_service.get_current_auth_user)]):
+async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)]):
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )
