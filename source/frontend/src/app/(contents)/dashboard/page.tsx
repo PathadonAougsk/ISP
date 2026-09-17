@@ -94,7 +94,7 @@ function Announcement() {
         </div>
         <div className="-mx-5 mt-auto">
           <Link href="/announcement" className="group block rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center hover:bg-(--primary-color-3-hover)">
-            <span className="text-base font-semibold text-black underline group-hover:font-bold group-hover:text-gray-800">
+            <span className="text-base font-semibold text-black underline group-hover:text-gray-800">
               Readmore
             </span>
           </Link>
@@ -142,7 +142,7 @@ function TaskOverview() {
         overviewCategories.map((category) => {
           const total = category.chips.reduce((sum, chip) => sum + chip.count, 0);
           return (
-            <div key={category.name} className="flex h-16 rounded-2xl bg-white px-2 py-2">
+            <div key={category.name} className="flex h-15 rounded-2xl bg-white px-2 py-2">
               <div className="flex w-6 shrink-0 items-center justify-start"><Image src="/header_donut_green.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} /></div>
               <div className="flex min-w-0 flex-1 flex-col justify-between">
                 <div className="flex items-center gap-4">
@@ -238,7 +238,7 @@ function TicketList() {
 
 function TaskTicketList() {
   return (
-    <div className="flex min-w-150 max-w-275 flex-1 shrink-0">
+    <div className="flex min-w-0 flex-1 shrink-0">
       <div className="flex h-full w-full flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
         <TaskList />
         <TicketList />
@@ -249,12 +249,13 @@ function TaskTicketList() {
 
 export default function Dashboard() {
   return (
-    <main className="flex min-h-full min-w-max w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
-      <div className="flex w-[40%] min-w-100 max-w-175 shrink-0 flex-col gap-5">
+    <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
+      <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
         <ActiveTask />
         <TaskOverview />
       </div>
+
       <TaskTicketList />
     </main>
   );

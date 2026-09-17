@@ -64,13 +64,29 @@ cd ISP
 
 ### Create `.env`
 
-This step is required. The compose file declares `env_file: ".env"` for the backend, and `.env` is gitignored, so a fresh clone won't have it. Compose will refuse to start without the file.
+This step is required. There is **one** env file for the whole repo, `source/.env`, and both services read it. It is gitignored, so a fresh clone won't have it and compose will refuse to start without it.
 
 ```bash
-touch .env
+cp source/.env.sample source/.env
 ```
 
-Then fill it with whatever the backend expects (database URL, secret key, etc.). Check `backend/app/` for `os.getenv` / settings usage to see which keys are needed.
+Then fill in the real values. `source/.env.sample` lists every key that is used:
+
+| Key | Used by | Notes |
+| --- | --- | --- |
+| `SUPABASE_URL` | backend | Project URL |
+| `SUPABASE_KEY` | backend | Service-role/secret key — server-side only |
+| `SUPABASE_DB_URL` | backend | `postgresql+asyncpg://…` connection string |
+| `NEXT_PUBLIC_SUPABASE_URL` | frontend | Same URL as above |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | Publishable/anon key |
+| `NEXT_PUBLIC_API_URL` | frontend | `http://localhost:8000` locally |
+
+Anything prefixed `NEXT_PUBLIC_` is inlined into the browser bundle, so never put a secret key behind that prefix.
+
+How each side picks the file up:
+
+- **Backend** — `load_dotenv()` walks up from `source/backend/app/` and finds `source/.env`.
+- **Docker / CI** — compose passes `env_file: "./source/.env"` to both services; real environment variables always win over the file.
 
 ## Running
 
@@ -136,7 +152,7 @@ docker compose down -v
 
 ## Troubleshooting
 
-**`env file ./backend/.env not found`** — you skipped the setup step above. Create the file.
+**`env file ./source/.env not found`** — you skipped the setup step above. Create the file.
 
 **Port 3000 or 8000 already in use** — something else is bound to that port. Stop it, or change the host side of the mapping in `docker-compose.yaml` (the left number in `"3000:3000"`).
 
@@ -152,4 +168,4 @@ docker compose down -v
 
 - Compose v2 is `docker compose` (space). The hyphenated `docker-compose` v1 is end-of-life.
 - This compose file is development-only: `npm run dev` and `fastapi dev` are not suitable for production. A production setup would need a separate compose file with built assets and a proper ASGI server config.
-- Consider committing a `backend/.env.example` listing the required keys with dummy values so new clones know what to fill in.
+- `source/.env.sample` is committed (an exception to the `.env*` gitignore rule) and lists every required key with dummy values. Keep it in sync when you add a key.
