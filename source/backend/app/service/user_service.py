@@ -19,7 +19,6 @@ UNAUTHENTICATED = HTTPException(
     headers={"WWW-Authenticate": "Bearer"},
 )
 
-
 def get_current_auth_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> AuthUser:

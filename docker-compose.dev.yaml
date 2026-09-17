@@ -1,0 +1,35 @@
+services:
+  nextjs:
+    build:
+      context: ./source/frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./source/frontend:/app/frontend/
+      - /app/frontend/node_modules
+      - /app/frontend/.next
+    environment:
+      - WATCHPACK_POLLING=true
+    env_file:
+      - ./source/.env
+    depends_on:
+      - fastapi
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 5s
+      retries: 10
+  fastapi:
+    build:
+      context: ./source/backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./source/backend:/app/backend/
+    env_file:
+      - ./source/.env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      retries: 10
