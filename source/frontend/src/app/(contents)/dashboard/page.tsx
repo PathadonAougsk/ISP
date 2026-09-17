@@ -228,7 +228,7 @@ function TaskList({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolea
                 </p>
 
                 <p className="truncate text-sm text-black">
-                  {usernames[task.created_by] ?? "Loading..."}
+                  {usernames[task.created_by] ?? "-"}
                 </p>
 
                 <p className="text-sm text-black">
