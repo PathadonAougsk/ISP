@@ -7,7 +7,7 @@ from sqlalchemy import select, case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
-from app.model import Ticket, Account, AccountRole, TicketStatus, AuditLog
+from app.model import Ticket, Account, Category, AccountRole, TicketStatus, AuditLog
 from app.service import user_service
 
 class TicketCreate(BaseModel):
@@ -20,7 +20,7 @@ ticketRouter = APIRouter(prefix="/ticket", dependencies=[Depends(user_service.ge
 
 @ticketRouter.get("/", tags=["Tickets"])
 async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)],
-                           me: Annotated[Account, Depends(user_service.get_current_auth_user)],
+                           me: Annotated[Account, Depends(user_service.get_current_account)],
                            ticket_id: int | None = None,
                            status: TicketStatus | None = None,
                            category_id: int | None = None,
@@ -72,19 +72,21 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
 @ticketRouter.post("/", tags=["Tickets"])
 async def create_ticket(data: TicketCreate,
                         session: Annotated[AsyncSession, Depends(getSession)],
-                        me: Annotated[Account, Depends(user_service.get_current_auth_user)]
+                        me: Annotated[Account, Depends(user_service.get_current_account)]
 ):
-    if me.quota is not None and me.quota <= 0:
-        raise HTTPException(
+    if await session.get(Category, data.category_id) is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    if me.quota is not None and me.quota < 0:
+     raise HTTPException(
             status_code=403,
             detail={
-                "detail": "Ticket quota exhausted",
-                "code": "quota_exhausted",
-                "quota": 0
-            }
-        )
-
-    if me.quota is not None and me.quota > 0:
+                    "message": "Ticket quota exhausted",
+                    "code": "quota_exhausted",
+                    "quota": 0
+                }
+            )
+    else:
         new_quota = await session.scalar(
             update(Account)
             .where(
@@ -95,11 +97,6 @@ async def create_ticket(data: TicketCreate,
                 quota = Account.quota - 1
             )
             .returning(Account.quota))
-        old_quota = new_quota + 1
-
-    if me.quota is None:
-        new_quota = None
-        old_quota = None
 
     ticket = Ticket(
         name = data.name,
@@ -113,29 +110,31 @@ async def create_ticket(data: TicketCreate,
     )
 
     session.add(ticket)
-    await session.flush(ticket)
+    await session.flush()
 
     ticket_audit = AuditLog(
         from_table = "ticket",
         row_id = str(ticket.id),
         column_name = "status",
         old_value = None,
-        new_value = "pending",
+        new_value = TicketStatus.PENDING.value,
         by_whom = me.id
     )
 
     session.add(ticket_audit)
 
-    quota_audit = AuditLog(
-        from_table = "account",
-        row_id = str(me.id),
-        column_name = "quota",
-        old_value = str(old_quota) if old_quota is not None else None,
-        new_value = str(new_quota) if old_quota is not None else None,
-        by_whom = me.id
-    )
+    if me.quota is not None and new_quota:
+        quota_audit = AuditLog(
+            from_table = "account",
+            row_id = str(me.id),
+            column_name = "quota",
+            old_value = str(new_quota + 1),
+            new_value = str(new_quota),
+            by_whom = me.id
+        )
 
-    session.add(quota_audit)
+        session.add(quota_audit)
+
     await session.commit()
 
     return ticket
