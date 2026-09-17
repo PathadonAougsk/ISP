@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
 from app.model import AuditLog
-from app.service import user_service
+from app.service import account_service
 
-auditLogRouter = APIRouter(prefix="/audit-log", dependencies=[Depends(user_service.get_current_auth_user)])
+auditLogRouter = APIRouter(prefix="/audit-log", dependencies=[Depends(account_service.get_current_auth_user)])
 
 @auditLogRouter.get("/", tags=["AuditLog"])
 async def retrieve_audit_logs(session: Annotated[AsyncSession, Depends(getSession)]):

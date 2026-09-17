@@ -2,12 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.dependencies import supabase
+from app.routers.account import accountRouter
 from app.routers.announcement import announcementRouter
 from app.routers.audit_log import auditLogRouter
 from app.routers.category import categoryRouter
 from app.routers.task import taskRouter
 from app.routers.ticket import ticketRouter
-from app.routers.user import userRouter
 
 app = FastAPI()
 
@@ -31,7 +31,7 @@ def check_db():
         return {"Not Ok"}
 
 app.include_router(ticketRouter)
-app.include_router(userRouter)
+app.include_router(accountRouter)
 app.include_router(categoryRouter)
 app.include_router(announcementRouter)
 app.include_router(taskRouter)

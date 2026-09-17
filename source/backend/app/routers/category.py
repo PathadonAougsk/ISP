@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
 from app.model import Category
-from app.service import category_service, user_service
+from app.service import category_service, account_service
 
-categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(user_service.get_current_auth_user)])
+categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(account_service.get_current_auth_user)])
 
 class CategoryRequestBody(BaseModel):
     name : str
