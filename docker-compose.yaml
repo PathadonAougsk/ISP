@@ -4,7 +4,9 @@ services:
       context: "./source/frontend"
       dockerfile: "dockerfile"
     env_file: "./source/.env"
-    command: "npm run dev"
+
+    command: sh -c "[ -x node_modules/.bin/next ] || npm ci --no-audit --no-fund; exec npm run dev"
+
     ports:
       - "3000:3000"
     volumes:
