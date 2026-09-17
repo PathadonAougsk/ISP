@@ -8,6 +8,7 @@ services:
     volumes:
       - ./source/frontend:/app/frontend/
       - /app/frontend/node_modules
+      - /app/frontend/.next
     environment:
       - WATCHPACK_POLLING=true
     env_file:
@@ -29,6 +30,6 @@ services:
     env_file:
       - ./source/.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
       retries: 10
