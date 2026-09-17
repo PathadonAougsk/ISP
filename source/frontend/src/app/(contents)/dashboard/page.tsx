@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
-import { fetchTickets, type Ticket } from "@/components/ticket";
+import { getTickets, type Ticket } from "@/components/ticket";
 
 const categoryMap: Record<number, string> = {
   1: "Report",
@@ -264,7 +264,7 @@ export default function Dashboard() {
   const [loadingTickets, setLoadingTickets] = useState(true);
 
   useEffect(() => {
-    fetchTickets(true)
+    getTickets({ onlyOwned: true })
       .then(({ Tickets }) => setTickets(Tickets))
       .catch(() => setTickets([]))
       .finally(() => setLoadingTickets(false));

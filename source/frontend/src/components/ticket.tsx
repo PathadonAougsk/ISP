@@ -22,8 +22,29 @@ export type Ticket = {
 
 export type TicketsResponse = { Tickets: Ticket[] };
 
-export async function fetchTickets(onlyOwned = false): Promise<TicketsResponse> {
-  const res = await apiFetch(`/ticket${onlyOwned ? "?onlyOwned=true" : ""}`);
+export type GetTicketsParams = {
+  ticket_id?: number;
+  status?: TicketStatus;
+  category_id?: number;
+  /** ISO 8601 string, e.g. new Date().toISOString() — FastAPI parses it into a datetime. */
+  due_before?: string;
+  onlyOwned?: boolean;
+  limit?: number;
+};
+
+export async function getTickets(params: GetTicketsParams = {}): Promise<TicketsResponse> {
+  const { ticket_id, status, category_id, due_before, onlyOwned, limit } = params;
+  const query = new URLSearchParams();
+
+  if (ticket_id !== undefined) query.set("ticket_id", String(ticket_id));
+  if (status !== undefined) query.set("status", status);
+  if (category_id !== undefined) query.set("category_id", String(category_id));
+  if (due_before !== undefined) query.set("due_before", due_before);
+  if (onlyOwned !== undefined) query.set("onlyOwned", String(onlyOwned));
+  if (limit !== undefined) query.set("limit", String(limit));
+
+  const qs = query.toString();
+  const res = await apiFetch(`/ticket${qs ? `?${qs}` : ""}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -32,7 +53,7 @@ export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    fetchTickets()
+    getTickets()
       .then((body) => {
         setTickets(body.Tickets);
         console.log(body.Tickets)
