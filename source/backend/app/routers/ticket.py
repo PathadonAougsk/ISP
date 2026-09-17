@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
 from app.model import Ticket, Account, Category, AccountRole, TicketStatus, AuditLog
-from app.service import user_service
+from app.service import account_service
 
 class TicketCreate(BaseModel):
     name: str
@@ -16,11 +16,11 @@ class TicketCreate(BaseModel):
     category_id: int
     due_date: dt.datetime | None = None
 
-ticketRouter = APIRouter(prefix="/ticket", dependencies=[Depends(user_service.get_current_auth_user)])
+ticketRouter = APIRouter(prefix="/ticket", dependencies=[Depends(account_service.get_current_auth_user)])
 
 @ticketRouter.get("/", tags=["Tickets"])
 async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)],
-                           me: Annotated[Account, Depends(user_service.get_current_account)],
+                           me: Annotated[Account, Depends(account_service.get_current_account)],
                            ticket_id: int | None = None,
                            status: TicketStatus | None = None,
                            category_id: int | None = None,
@@ -72,7 +72,7 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
 @ticketRouter.post("/", tags=["Tickets"])
 async def create_ticket(data: TicketCreate,
                         session: Annotated[AsyncSession, Depends(getSession)],
-                        me: Annotated[Account, Depends(user_service.get_current_account)]
+                        me: Annotated[Account, Depends(account_service.get_current_account)]
 ):
     if await session.get(Category, data.category_id) is None:
         raise HTTPException(status_code=404, detail="Category not found")
