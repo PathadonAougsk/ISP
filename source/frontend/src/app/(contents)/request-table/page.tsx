@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useState, useEffect } from "react";
 
 function formatDateTime(date: Date = new Date()) {
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
@@ -11,11 +12,63 @@ function formatDateTime(date: Date = new Date()) {
   return `${weekday} ${day} ${month} ${year}, ${hours}:${minutes}`;
 }
 
+type BackendTicketStatus = "pending" | "accepted" | "rejected" | (string & {});
+
+type BackendTicket = {
+  id: number;
+  status: BackendTicketStatus;
+  name: string;
+  description: string | null;
+  category_id: number;
+  created_by: string;
+  assigned_id: string | null;
+  completed_by: string | null;
+  created: string;
+  updated: string;
+  due_date: string | null;
+  completed_at: string | null;
+};
+
+type BackendCategory = { id: number; name: string };
+type BackendAccount = { id: string; username: string; email: string };
+
+function mapTicketStatus(status: BackendTicketStatus): Ticket["status"] {
+  switch (status) {
+    case "accepted": return "Approved";
+    case "rejected": return "Rejected";
+    default: return "Pending";
+  }
+}
+
+function toDateOnly(iso: string | null): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
+function mapBackendTicket(
+  bt: BackendTicket,
+  categoryById: Map<number, string>,
+  accountById: Map<string, string>
+): Ticket {
+  return {
+    id: String(bt.id),
+    title: bt.name,
+    status: mapTicketStatus(bt.status),
+    dueDate: toDateOnly(bt.due_date),
+    createdDate: formatDateTime(new Date(bt.created)),
+    lastUpdate: formatDateTime(new Date(bt.updated)),
+    category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
+    description: bt.description ?? "",
+    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
+    assignedTo: bt.assigned_id ? (accountById.get(bt.assigned_id) ?? bt.assigned_id) : "",
+  };
+}
+
 interface Ticket {
   id: string;
   title: string;
   status: "Pending" | "Approved" | "Rejected";
-  urgency: "Low" | "Medium" | "High";
+  dueDate: string;
   createdDate: string;
   lastUpdate: string;
   category: string;
@@ -47,7 +100,7 @@ interface Member {
 export default function RequestTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [urgencyFilter, setUrgencyFilter] = useState("All");
+  const [ticketCategoryFilter, setTicketCategoryFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -65,11 +118,11 @@ export default function RequestTable() {
   const [editTicketTitle, setEditTicketTitle] = useState("");
   const [editTicketCategory, setEditTicketCategory] = useState("");
   const [editTicketDescription, setEditTicketDescription] = useState("");
-  const [editTicketUrgency, setEditTicketUrgency] = useState<Ticket["urgency"]>("Low");
+  const [editTicketDueDate, setEditTicketDueDate] = useState("");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicketTitle, setNewTicketTitle] = useState("");
-  const [newTicketUrgency, setNewTicketUrgency] = useState<Ticket["urgency"]>("Low");
   const [newTicketCategory, setNewTicketCategory] = useState("");
+  const [newTicketDueDate, setNewTicketDueDate] = useState("");
   const [newTicketDescription, setNewTicketDescription] = useState("")
 
   // Task table search + filter
@@ -84,32 +137,52 @@ export default function RequestTable() {
 
   const currentUserName = "Chris Kim"; // TODO: wire to real auth
 
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: "TCK-1",
-      title: "Cannot upload experiment results",
-      status: "Pending",
-      urgency: "High",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-      category: "Bug fix",
-      description: "The lab will explode soon boommmmmmm",
-      createdBy: "Chris Kim",
-      assignedTo: "",
-    },
-    {
-      id: "TCK-2",
-      title: "Cannot upload experiment results",
-      status: "Pending",
-      urgency: "High",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-      category: "Bug fix",
-      description: "The lab will explode soon boommmmmmm",
-      createdBy: "Pasin Mclaren",
-      assignedTo: "",
-    },
-  ]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTickets() {
+      try {
+        const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
+          apiFetch("ticket"),
+          apiFetch("category").catch(() => null),
+          apiFetch("account").catch(() => null),
+        ]);
+
+        if (!ticketsRes.ok) throw new Error(`HTTP ${ticketsRes.status}`);
+        const ticketBody: { Tickets: BackendTicket[] } = await ticketsRes.json();
+
+        const categoryById = new Map<number, string>();
+        if (categoriesRes?.ok) {
+          const catBody: BackendCategory[] | { Categories: BackendCategory[] } = await categoriesRes.json();
+          const list = Array.isArray(catBody) ? catBody : catBody.Categories;
+          list.forEach((c) => categoryById.set(c.id, c.name));
+        }
+
+        const accountById = new Map<string, string>();
+        if (accountsRes?.ok) {
+          const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
+          const list = Array.isArray(accBody) ? accBody : accBody.Accounts;
+          list.forEach((a) => accountById.set(a.id, a.username));
+        }
+
+        if (!cancelled) {
+          setTickets(ticketBody.Tickets.map((t) => mapBackendTicket(t, categoryById, accountById)));
+          setTicketsError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setTicketsError(err instanceof Error ? err.message : "Failed to load tickets");
+      } finally {
+        if (!cancelled) setTicketsLoading(false);
+      }
+    }
+
+    loadTickets();
+    return () => { cancelled = true; };
+  }, []);
 
   const [tasks, setTasks] = useState<Task[]>([
     {
@@ -218,7 +291,7 @@ export default function RequestTable() {
       id: `TCK-${String(tickets.length + 1)}`,
       title: newTicketTitle,
       status: "Pending",
-      urgency: newTicketUrgency,
+      dueDate: newTicketDueDate,
       createdDate: formatDateTime(),
       lastUpdate: formatDateTime(),
       category: newTicketCategory,
@@ -233,8 +306,8 @@ export default function RequestTable() {
 
   function resetTicketForm() {
     setNewTicketTitle("");
-    setNewTicketUrgency("Low");
     setNewTicketCategory("");
+    setNewTicketDueDate("");
     setNewTicketDescription("");
     setIsCreatingTicket(false);
   }
@@ -258,7 +331,7 @@ export default function RequestTable() {
     setTickets((prevTickets) =>
       prevTickets.map((t) =>
         t.id === selectedTicket.id
-          ? { 
+          ? {
               ...t,
               status: newStatus,
               assignedTo: assignedNames,
@@ -284,7 +357,7 @@ export default function RequestTable() {
         category: selectedTicket.category,
         assignedTo: assignedNames,
         createdBy: currentUserName,
-        dueDate: "",
+        dueDate: selectedTicket.dueDate,
         createdDate: formatDateTime(),
         lastUpdate: formatDateTime(),
         status: "In_progress",
@@ -309,7 +382,7 @@ export default function RequestTable() {
               title: editTicketTitle,
               category: editTicketCategory,
               description: editTicketDescription,
-              urgency: editTicketUrgency,
+              dueDate: editTicketDueDate,
               lastUpdate: formatDateTime(),
             }
           : t
@@ -370,11 +443,12 @@ export default function RequestTable() {
       statusFilter === "All" ? true : ticket.status === statusFilter
     )
     .filter((ticket) =>
-      urgencyFilter === "All" ? true : ticket.urgency === urgencyFilter
-    )
-    .filter((ticket) =>
-      userRole === "admin" ? true : ticket.createdBy === currentUserName
+      ticketCategoryFilter === "All" ? true : ticket.category === ticketCategoryFilter
     );
+
+  const ticketCategories = Array.from(
+    new Set(tickets.map((t) => t.category).filter(Boolean))
+  );
 
   const taskCategories = Array.from(
     new Set(tasks.map((t) => t.category).filter(Boolean))
@@ -423,16 +497,18 @@ export default function RequestTable() {
               />
 
               <select
-                value={urgencyFilter}
-                onChange={(e) => setUrgencyFilter(e.target.value)}
+                value={ticketCategoryFilter}
+                onChange={(e) => setTicketCategoryFilter(e.target.value)}
                 className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="All">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                {ticketCategories.map((category) => (
+                  <option key={category} value={category} title={category}>
+                    {truncateLabel(category)}
+                  </option>
+                ))}
               </select>
-              
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -453,8 +529,9 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Ticket-ID</th>
                   <th className="px-4 py-2">Title</th>
                   <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Urgency</th>
+                  <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Created By</th>
+                  <th className="px-4 py-2">Due Date</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
                 </tr>
@@ -469,7 +546,7 @@ export default function RequestTable() {
                       setEditTicketTitle(ticket.title);
                       setEditTicketCategory(ticket.category);
                       setEditTicketDescription(ticket.description);
-                      setEditTicketUrgency(ticket.urgency);
+                      setEditTicketDueDate(ticket.dueDate);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
@@ -478,18 +555,25 @@ export default function RequestTable() {
                       {ticket.title}
                     </td>
                     <td className="px-4 py-3">{ticket.status}</td>
-                    <td className="px-4 py-3">{ticket.urgency}</td>
+                    <td className="px-4 py-3">{ticket.category}</td>
                     <td className="px-4 py-3 max-w-[120px] truncate" title={ticket.createdBy}>
                       {ticket.createdBy}
                     </td>
+                    <td className="px-4 py-3">{ticket.dueDate || "—"}</td>
                     <td className="px-4 py-3">{ticket.createdDate}</td>
                     <td className="px-4 py-3">{ticket.lastUpdate}</td>
                   </tr>
                 ))}
+                {ticketsLoading && (
+                  <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-400">Loading tickets…</td></tr>
+                )}
+                {ticketsError && !ticketsLoading && (
+                  <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-red-500">Couldn't load tickets: {ticketsError}</td></tr>
+                )}
                 {filteredTickets.length === 0 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={8}
                       className="px-4 py-6 text-center text-sm text-gray-400"
                     >
                       No tickets match your search.
@@ -560,7 +644,7 @@ export default function RequestTable() {
                   <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Assigned</th>
                   <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Created By</th> 
+                  <th className="px-4 py-2">Created By</th>
                   <th className="px-4 py-2">Due Date</th>
                   <th className="px-4 py-2">Created Date</th>
                   <th className="px-4 py-2">Last Update</th>
@@ -665,21 +749,18 @@ export default function RequestTable() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <label className="block text-sm font-medium mb-1">Urgency</label>
+                    <label className="block text-sm font-medium mb-1">Due Date</label>
                     {userRole === "admin" ? (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
-                        {selectedTicket.urgency}
+                        {selectedTicket.dueDate || "—"}
                       </div>
                     ) : (
-                      <select
-                        value={editTicketUrgency}
-                        onChange={(e) => setEditTicketUrgency(e.target.value as Ticket["urgency"])}
+                      <input
+                        type="date"
+                        value={editTicketDueDate}
+                        onChange={(e) => setEditTicketDueDate(e.target.value)}
                         className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      >
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                      </select>
+                      />
                     )}
                   </div>
                 </div>
@@ -799,26 +880,21 @@ export default function RequestTable() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Urgency</label>
-                  <select
-                    value={newTicketUrgency}
-                    onChange={(e) =>
-                      setNewTicketUrgency(e.target.value as Ticket["urgency"])
-                    }
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-
-                <div>
                   <label className="block text-sm font-medium mb-1">Category</label>
                   <input
                     type="text"
                     value={newTicketCategory}
                     onChange={(e) => setNewTicketCategory(e.target.value)}
+                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={newTicketDueDate}
+                    onChange={(e) => setNewTicketDueDate(e.target.value)}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 </div>
