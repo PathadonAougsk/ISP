@@ -3,6 +3,7 @@ services:
     build:
       context: "./source/frontend"
       dockerfile: "dockerfile"
+    env_file: "./source/.env"
     command: "npm run dev"
     ports:
       - "3000:3000"
