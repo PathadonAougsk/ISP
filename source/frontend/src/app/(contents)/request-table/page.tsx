@@ -193,9 +193,9 @@ export default function RequestTable() {
     async function loadTickets() {
       try {
         const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("ticket/?onlyOwned=true"),
-          apiFetch("category").catch(() => null),
-          apiFetch("account").catch(() => null),
+          apiFetch("/ticket/?onlyOwned=true"),
+          apiFetch("/category/").catch(() => null),
+          apiFetch("/account/").catch(() => null),
         ]);
 
         if (!ticketsRes.ok) throw new Error(`HTTP ${ticketsRes.status}`);
@@ -240,9 +240,9 @@ export default function RequestTable() {
     async function loadTasks() {
       try {
         const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("task/?onlyOwned=true"),
-          apiFetch("category").catch(() => null),
-          apiFetch("account").catch(() => null),
+          apiFetch("/task/?onlyOwned=true"),
+          apiFetch("/category/").catch(() => null),
+          apiFetch("/account/").catch(() => null),
         ]);
 
         if (!tasksRes.ok) throw new Error(`HTTP ${tasksRes.status}`);
@@ -286,7 +286,7 @@ export default function RequestTable() {
 
     async function loadMembers() {
       try {
-        const accountsRes = await apiFetch("account");
+        const accountsRes = await apiFetch("/account/");
         if (!accountsRes.ok) throw new Error(`HTTP ${accountsRes.status}`);
 
         const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();

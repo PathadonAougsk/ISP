@@ -26,7 +26,7 @@ export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    apiFetch("/ticket")
+    apiFetch("/ticket/")
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const body: TicketsResponse = await res.json();
