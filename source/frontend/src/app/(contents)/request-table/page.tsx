@@ -64,6 +64,46 @@ function mapBackendTicket(
   };
 }
 
+type BackendTaskStatus = "in_progress" | "completed" | (string & {});
+
+type BackendTask = {
+  id: number;
+  name: string;
+  description: string | null;
+  status: BackendTaskStatus;
+  category_id: number;
+  created_by: string;
+  completed_by: string | null;
+  created: string;
+  updated: string;
+  completed_at: string | null;
+  due_date: string;
+  assignees: { id: string; username: string; email: string }[];
+};
+
+function mapTaskStatus(status: BackendTaskStatus): Task["status"] {
+  return status === "completed" ? "Completed" : "In_progress";
+}
+
+function mapBackendTask(
+  bt: BackendTask,
+  categoryById: Map<number, string>,
+  accountById: Map<string, string>
+): Task {
+  return {
+    id: String(bt.id),
+    title: bt.name,
+    description: bt.description ?? "",
+    category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
+    assignedTo: bt.assignees.map((a) => a.username).join(", "),
+    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
+    dueDate: toDateOnly(bt.due_date),
+    createdDate: formatDateTime(new Date(bt.created)),
+    lastUpdate: formatDateTime(new Date(bt.updated)),
+    status: mapTaskStatus(bt.status),
+  };
+}
+
 interface Ticket {
   id: string;
   title: string;
@@ -147,7 +187,7 @@ export default function RequestTable() {
     async function loadTickets() {
       try {
         const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("ticket"),
+          apiFetch("ticket/?onlyOwned=true"),
           apiFetch("category").catch(() => null),
           apiFetch("account").catch(() => null),
         ]);
@@ -184,32 +224,52 @@ export default function RequestTable() {
     return () => { cancelled = true; };
   }, []);
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "TASK-1",
-      title: "bing bong",
-      description: "blah blah blah....",
-      category: "idk",
-      assignedTo: "John Doe",
-      createdBy: "Pasin Mclaren",
-      dueDate: "2026-09-25",
-      status: "In_progress",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-    },
-    {
-      id: "TASK-2",
-      title: "bing bong",
-      description: "blah blah blah....",
-      category: "idk",
-      assignedTo: "Chris Kim",
-      createdBy: "Pasin Mclaren",
-      dueDate: "2026-09-30",
-      status: "In_progress",
-      createdDate: "Mon 15 Sep 26, 10:02",
-      lastUpdate: "Mon 15 Sep 26, 10:02",
-    },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTasks() {
+      try {
+        const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
+          apiFetch("task/"),
+          apiFetch("category").catch(() => null),
+          apiFetch("account").catch(() => null),
+        ]);
+
+        if (!tasksRes.ok) throw new Error(`HTTP ${tasksRes.status}`);
+        const taskBody: { Tasks: BackendTask[] } = await tasksRes.json();
+
+        const categoryById = new Map<number, string>();
+        if (categoriesRes?.ok) {
+          const catBody: BackendCategory[] | { Categories: BackendCategory[] } = await categoriesRes.json();
+          const list = Array.isArray(catBody) ? catBody : catBody.Categories;
+          list.forEach((c) => categoryById.set(c.id, c.name));
+        }
+
+        const accountById = new Map<string, string>();
+        if (accountsRes?.ok) {
+          const accBody: BackendAccount[] | { Accounts: BackendAccount[] } = await accountsRes.json();
+          const list = Array.isArray(accBody) ? accBody : accBody.Accounts;
+          list.forEach((a) => accountById.set(a.id, a.username));
+        }
+
+        if (!cancelled) {
+          setTasks(taskBody.Tasks.map((t) => mapBackendTask(t, categoryById, accountById)));
+          setTasksError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setTasksError(err instanceof Error ? err.message : "Failed to load tasks");
+      } finally {
+        if (!cancelled) setTasksLoading(false);
+      }
+    }
+
+    loadTasks();
+    return () => { cancelled = true; };
+  }, []);
 
   const members: Member[] = [
     { id: "m1", name: "John Doe", email: "john.d@ku.th" },
@@ -570,7 +630,7 @@ export default function RequestTable() {
                 {ticketsError && !ticketsLoading && (
                   <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-red-500">Couldn't load tickets: {ticketsError}</td></tr>
                 )}
-                {filteredTickets.length === 0 && (
+                {!ticketsLoading && !ticketsError && filteredTickets.length === 0 && (
                   <tr>
                     <td
                       colSpan={8}
@@ -690,12 +750,15 @@ export default function RequestTable() {
                     <td className="px-4 py-3">{task.lastUpdate}</td>
                   </tr>
                 ))}
-                {filteredTasks.length === 0 && (
+                {tasksLoading && (
+                  <tr><td colSpan={10} className="px-4 py-6 text-center text-sm text-gray-400">Loading tasks…</td></tr>
+                )}
+                {tasksError && !tasksLoading && (
+                  <tr><td colSpan={10} className="px-4 py-6 text-center text-sm text-red-500">Couldn't load tasks: {tasksError}</td></tr>
+                )}
+                {!tasksLoading && !tasksError && filteredTasks.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-6 text-center text-sm text-gray-400"
-                    >
+                    <td colSpan={10} className="px-4 py-6 text-center text-sm text-gray-400">
                       No tasks yet.
                     </td>
                   </tr>
