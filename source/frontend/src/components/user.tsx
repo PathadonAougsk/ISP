@@ -14,11 +14,11 @@ export type User = {
 };
 
 export type UsersResponse = {
-    Users: User[];
+    Accounts: User[];
 };
 
 export async function getUsers(): Promise<UsersResponse> {
-    const res = await apiFetch("/user");
+    const res = await apiFetch("/account/");
 
     if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -28,9 +28,9 @@ export async function getUsers(): Promise<UsersResponse> {
 }
 
 export async function getUser(userId: string): Promise<User | undefined> {
-    const { Users } = await getUsers();
+    const { Accounts } = await getUsers();
 
-    return Users.find((user) => user.id === userId);
+    return Accounts.find((user) => user.id === userId);
 }
 
 export default function Users() {
