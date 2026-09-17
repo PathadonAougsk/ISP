@@ -3,39 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
+import { getTasks, type Task } from "@/components/task";
 import { getTickets, type Ticket } from "@/components/ticket";
+import { getUser } from "@/components/user";
 
 const categoryMap: Record<number, string> = {
-  1: "Report",
-  2: "Report",
-  3: "Report",
-  4: "Report",
-  5: "Report",
-  6: "Report",
-  7: "Report",
-  8: "Report",
-  9: "Report",
-  10: "Report",
+  1: "Report 1",
+  2: "Report 2",
+  3: "Report 3",
+  4: "Report 4",
+  5: "Report 5",
+  6: "Report 6",
+  7: "Report 7",
+  8: "Report 8",
+  9: "Report 9",
+  10: "Report 10",
 };
-
-type DummyTask = {
-  id: number; name: string; status: string; created_by: string; created: string; completed_at: string | null; description: string;
-  category_id: number; completed_by: string | null; updated: string; due_date: string; highlight?: boolean;
-};
-
-// const dummyTasks: DummyTask[] = [];
-
-const dummyTasks: DummyTask[] = [
-  { id: 1, name: "Report_Task01", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-20T09:00:00+00:00", completed_at: null, description: "", category_id: 1, completed_by: null, updated: "2026-08-20T09:00:00+00:00", due_date: "2026-08-31T12:00:00+00:00", highlight: true },
-  { id: 2, name: "Project_Task01", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-22T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-22T09:00:00+00:00", due_date: "2026-09-02T10:00:00+00:00", highlight: true },
-  { id: 3, name: "Report_Task02", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-25T09:00:00+00:00", completed_at: null, description: "", category_id: 1, completed_by: null, updated: "2026-08-25T09:00:00+00:00", due_date: "2026-09-09T23:59:00+00:00" },
-  { id: 4, name: "Report_Task03", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-25T09:00:00+00:00", completed_at: null, description: "", category_id: 1, completed_by: null, updated: "2026-08-25T09:00:00+00:00", due_date: "2026-09-09T23:59:00+00:00" },
-  { id: 5, name: "Report_Task04", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-25T09:00:00+00:00", completed_at: null, description: "", category_id: 1, completed_by: null, updated: "2026-08-25T09:00:00+00:00", due_date: "2026-09-09T23:59:00+00:00" },
-  { id: 6, name: "Report_Task05", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-25T09:00:00+00:00", completed_at: null, description: "", category_id: 1, completed_by: null, updated: "2026-08-25T09:00:00+00:00", due_date: "2026-09-09T23:59:00+00:00" },
-  { id: 7, name: "Project_Task02", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-28T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-28T09:00:00+00:00", due_date: "2026-09-13T23:59:00+00:00" },
-  { id: 8, name: "Project_Task03", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-28T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-28T09:00:00+00:00", due_date: "2026-09-13T23:59:00+00:00" },
-  { id: 9, name: "Project_Task04", status: "in_progress", created_by: "Pasin Maclaurin", created: "2026-08-28T09:00:00+00:00", completed_at: null, description: "", category_id: 2, completed_by: null, updated: "2026-08-28T09:00:00+00:00", due_date: "2026-09-13T23:59:00+00:00" },
-];
 
 const ticketStatusText: Record<string, string> = {
   pending: "Pending",
@@ -56,25 +39,8 @@ const dueBuckets = [
   { label: "Later", count: 3, color: "bg-(--primary-blue)" },
 ];
 
-const overviewCategories = [
-  {
-    name: "Report", chips: [
-      { label: "This week", count: 1, color: "bg-(--primary-red)" },
-      { label: "Next week", count: 4, color: "bg-(--primary-yellow)" },
-    ]
-  },
-  {
-    name: "Project", chips: [
-      { label: "This week", count: 1, color: "bg-(--primary-red)" },
-      { label: "Later", count: 3, color: "bg-(--primary-blue)" },
-    ]
-  },
-];
-
 function formatDueDate(iso: string | null) {
-  if (iso === null) {
-    return "No duedate";
-  }
+  if (iso === null) return "No duedate";
 
   const d = new Date(iso);
   const weekday = d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
@@ -115,12 +81,12 @@ function Announcement() {
   );
 }
 
-function ActiveTask() {
+function ActiveTask({ tasks }: { tasks: Task[] }) {
   return (
     <div className="flex h-25 w-full gap-5">
       <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[30px] bg-(--panel-bg) p-0">
         <div className="flex flex-1 flex-col items-center justify-center gap-1"><h1 className="text-lg font-bold text-black">Due Today</h1><h1 className="text-5xl font-extrabold text-black">{dueToday}</h1></div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-1"><h1 className="text-lg font-bold text-black">Active Task</h1><h1 className="text-5xl font-extrabold text-black">{dummyTasks.length}</h1></div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-1"><h1 className="text-lg font-bold text-black">Active Task</h1><h1 className="text-5xl font-extrabold text-black">{tasks.length}</h1></div>
       </div>
       <div className="flex w-fit shrink-0 flex-col pr-5">
         <div className="flex items-start text-base font-bold text-black"><p>Due Tasks</p></div>
@@ -139,7 +105,12 @@ function ActiveTask() {
   );
 }
 
-function TaskOverview() {
+function TaskOverview({ tasks }: { tasks: Task[] }) {
+  const overviewCategories = [
+    { name: "Report", chips: [{ label: "This week", count: tasks.filter((t) => t.category_id === 1).length, color: "bg-(--primary-red)" }] },
+    { name: "Project", chips: [{ label: "This week", count: tasks.filter((t) => t.category_id === 2).length, color: "bg-(--primary-yellow)" }] },
+  ];
+
   return (
     <div className="flex min-h-25 flex-1 flex-col gap-3 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
       <div className="flex h-8 items-center gap-2 rounded-[20px] bg-(--primary-color-2) px-2">
@@ -147,7 +118,7 @@ function TaskOverview() {
         <h1 className="text-base font-bold text-white">Task Overview</h1>
       </div>
 
-      {dummyTasks.length === 0 ? (
+      {tasks.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">All tasks are done! Time to enjoy a well-earned break.</p>
       ) : (
         overviewCategories.map((category) => {
@@ -174,11 +145,49 @@ function TaskOverview() {
   );
 }
 
-function TaskList() {
+function TaskList({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function loadUsernames() {
+      const uniqueUserIds = [...new Set(tasks.map((task) => task.created_by))];
+
+      const results = await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          const user = await getUser(userId);
+
+          return {
+            userId,
+            username: user?.username ?? userId,
+          };
+        }),
+      );
+
+      setUsernames(
+        Object.fromEntries(
+          results.map(({ userId, username }) => [userId, username]),
+        ),
+      );
+    }
+
+    if (tasks.length > 0) {
+      loadUsernames();
+    }
+  }, [tasks]);
+
   return (
     <div className="flex min-h-25 flex-col gap-2">
       <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
+        <Image
+          src="/header_arrow_down.svg"
+          width={0}
+          height={0}
+          sizes="auto"
+          className="h-4 w-auto"
+          alt=""
+          draggable={false}
+        />
+
         <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
           <h1 className="truncate text-base font-bold text-white">Task Name</h1>
           <h1 className="truncate text-base font-bold text-white">Category</h1>
@@ -187,18 +196,44 @@ function TaskList() {
         </div>
       </div>
 
-      {dummyTasks.length === 0 ? (
-        <p className="py-4 text-center text-base font-medium text-gray-500">Good job! You have completed all tasks.</p>
+      {loadingTasks ? (
+        <p className="py-4 text-center text-base font-medium text-gray-500">
+          Loading tasks...
+        </p>
+      ) : tasks.length === 0 ? (
+        <p className="py-4 text-center text-base font-medium text-gray-500">
+          Good job! You have completed all tasks.
+        </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {dummyTasks.map((task) => (
-            <div key={task.id} className="flex h-8 items-center gap-6 rounded-[20px] bg-white px-3">
-              <span className={`h-2 w-2 shrink-0 rounded-full ${task.highlight ? "bg-(--primary-red)" : "bg-(--primary-blue)"}`} />
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              className="flex h-8 items-center gap-6 rounded-[20px] bg-white px-3"
+            >
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${task.updated !== task.created
+                    ? "bg-(--primary-red)"
+                    : "bg-(--primary-blue)"
+                  }`}
+              />
+
               <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
-                <p className="truncate text-sm text-black">{task.name}</p>
-                <p className="truncate text-sm text-black">{categoryMap[task.category_id]}</p>
-                <p className="truncate text-sm text-black">{task.created_by}</p>
-                <p className="text-sm text-black">{formatDueDate(task.due_date)}</p>
+                <p className="truncate text-sm text-black">
+                  {task.name}
+                </p>
+
+                <p className="truncate text-sm text-black">
+                  {categoryMap[task.category_id]}
+                </p>
+
+                <p className="truncate text-sm text-black">
+                  {usernames[task.created_by] ?? "Loading..."}
+                </p>
+
+                <p className="text-sm text-black">
+                  {formatDueDate(task.due_date)}
+                </p>
               </div>
             </div>
           ))}
@@ -248,11 +283,11 @@ function TicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTic
   );
 }
 
-function TaskTicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTickets: boolean }) {
+function TaskTicketList({ tasks, loadingTasks, tickets, loadingTickets }: { tasks: Task[]; loadingTasks: boolean; tickets: Ticket[]; loadingTickets: boolean }) {
   return (
     <div className="flex min-w-0 flex-1 shrink-0">
       <div className="flex h-full w-full flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
-        <TaskList />
+        <TaskList tasks={tasks} loadingTasks={loadingTasks} />
         <TicketList tickets={tickets} loadingTickets={loadingTickets} />
       </div>
     </div>
@@ -260,9 +295,21 @@ function TaskTicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadin
 }
 
 export default function Dashboard() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
 
+  // get task
+  useEffect(() => {
+    getTasks()
+      .then(({ Tasks }) => setTasks(Tasks))
+      .catch(() => setTasks([]))
+      .finally(() => setLoadingTasks(false));
+  }, []);
+
+  // get ticket
   useEffect(() => {
     getTickets({ onlyOwned: true })
       .then(({ Tickets }) => setTickets(Tickets))
@@ -274,11 +321,11 @@ export default function Dashboard() {
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
-        <ActiveTask />
-        <TaskOverview />
+        <ActiveTask tasks={tasks} />
+        <TaskOverview tasks={tasks} />
       </div>
 
-      <TaskTicketList tickets={tickets} loadingTickets={loadingTickets} />
+      <TaskTicketList tasks={tasks} loadingTasks={loadingTasks} tickets={tickets} loadingTickets={loadingTickets} />
     </main>
   );
 }
