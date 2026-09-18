@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { Task } from "@/components/task";
-import { categoryMap, getDueBucket, type DueBucketKey } from "./page";
+import { categoryMap, getDueBucket, type DueBucketKey } from "../../app/(contents)/dashboard/page";
 
 const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
     { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },

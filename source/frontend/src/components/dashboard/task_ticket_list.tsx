@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { getAccount } from "@/components/account";
 import type { Task } from "@/components/task";
 import type { Ticket } from "@/components/ticket";
-import { categoryMap } from "./page";
+import { categoryMap } from "../../app/(contents)/dashboard/page";
 
 const ticketStatusText: Record<string, string> = { pending: "Pending", accepted: "Accepted", rejected: "Rejected" };
 const ticketStatusIcon: Record<string, string> = { pending: "/pending.svg", accepted: "/accepted.svg", rejected: "/rejected.svg" };

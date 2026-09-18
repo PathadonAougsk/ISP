@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { getTasks, type Task } from "@/components/task";
 import { getTickets, type Ticket } from "@/components/ticket";
-import Announcement from "./dash_announcement";
-import ActiveTask from "./dash_active_task";
-import TaskOverview from "./dash_task_overview";
-import TaskTicketList from "./dash_task_ticket_list";
+import Announcement from "../../../components/dashboard/announcement";
+import ActiveTask from "../../../components/dashboard/active_task";
+import TaskOverview from "../../../components/dashboard/task_overview";
+import TaskTicketList from "../../../components/dashboard/task_ticket_list";
 
 export const categoryMap: Record<number, string> = {
   1: "Report 1",
