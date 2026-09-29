@@ -1,11 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { getAccount } from "@/components/account";
+import type { CategoryMap } from "@/components/category";
 import type { Task } from "@/components/task";
 import type { Ticket } from "@/components/ticket";
-import { categoryMap } from "../../app/(contents)/dashboard/page";
 
 const ticketStatusText: Record<string, string> = { pending: "Pending", accepted: "Accepted", rejected: "Rejected" };
 const ticketStatusIcon: Record<string, string> = { pending: "/pending.svg", accepted: "/accepted.svg", rejected: "/rejected.svg" };
@@ -21,23 +19,17 @@ function formatDueDate(iso: string | null) {
     return `${weekday} ${day} ${month} ${year}, ${time}`;
 }
 
-function TaskList({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
-    const [usernames, setAccountnames] = useState<Record<string, string>>({});
-
-    useEffect(() => {
-        async function loadAccountnames() {
-            const uniqueAccountIds = [...new Set(tasks.map((task) => task.created_by))];
-            const results = await Promise.all(
-                uniqueAccountIds.map(async (userId) => {
-                    const user = await getAccount(userId);
-                    return { userId, username: user?.username ?? userId };
-                })
-            );
-            setAccountnames(Object.fromEntries(results.map(({ userId, username }) => [userId, username])));
-        }
-        if (tasks.length > 0) loadAccountnames();
-    }, [tasks]);
-
+function TaskList({
+    tasks,
+    loadingTasks,
+    categoryMap,
+    usernames,
+}: {
+    tasks: Task[];
+    loadingTasks: boolean;
+    categoryMap: CategoryMap;
+    usernames: Record<string, string>;
+}) {
     return (
         <div className="flex min-h-25 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
@@ -61,7 +53,7 @@ function TaskList({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolea
                             <span className={`h-2 w-2 shrink-0 rounded-full ${task.updated !== task.created ? "bg-(--primary-red)" : "bg-(--primary-blue)"}`} />
                             <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
                                 <p className="truncate text-sm text-black">{task.name}</p>
-                                <p className="truncate text-sm text-black">{categoryMap[task.category_id]}</p>
+                                <p className="truncate text-sm text-black">{categoryMap[task.category_id] ?? "-"}</p>
                                 <p className="truncate text-sm text-black">{usernames[task.created_by] ?? "-"}</p>
                                 <p className="text-sm text-black">{formatDueDate(task.due_date)}</p>
                             </div>
@@ -73,7 +65,7 @@ function TaskList({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolea
     );
 }
 
-function TicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTickets: boolean }) {
+function TicketList({ tickets, loadingTickets, categoryMap }: { tickets: Ticket[]; loadingTickets: boolean; categoryMap: CategoryMap }) {
     return (
         <div className="flex min-h-25 flex-1 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
@@ -100,7 +92,7 @@ function TicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTic
                                 <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto shrink-0" alt={ticket.status} draggable={false} />
                                 <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
                                     <p className={textCls}>{ticket.name}</p>
-                                    <p className={textCls}>{categoryMap[ticket.category_id]}</p>
+                                    <p className={textCls}>{categoryMap[ticket.category_id] ?? "-"}</p>
                                     <p className={textCls}>{ticketStatusText[ticket.status]}</p>
                                     <p className={`text-sm ${isAccepted ? "text-gray-400" : "text-black"}`}>{formatDueDate(ticket.due_date)}</p>
                                 </div>
@@ -113,12 +105,26 @@ function TicketList({ tickets, loadingTickets }: { tickets: Ticket[]; loadingTic
     );
 }
 
-export default function TaskTicketList({ tasks, loadingTasks, tickets, loadingTickets }: { tasks: Task[]; loadingTasks: boolean; tickets: Ticket[]; loadingTickets: boolean }) {
+export default function TaskTicketList({
+    tasks,
+    loadingTasks,
+    tickets,
+    loadingTickets,
+    categoryMap,
+    usernames,
+}: {
+    tasks: Task[];
+    loadingTasks: boolean;
+    tickets: Ticket[];
+    loadingTickets: boolean;
+    categoryMap: CategoryMap;
+    usernames: Record<string, string>;
+}) {
     return (
         <div className="flex min-w-0 flex-1 shrink-0">
             <div className="flex h-full w-full flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
-                <TaskList tasks={tasks} loadingTasks={loadingTasks} />
-                <TicketList tickets={tickets} loadingTickets={loadingTickets} />
+                <TaskList tasks={tasks} loadingTasks={loadingTasks} categoryMap={categoryMap} usernames={usernames} />
+                <TicketList tickets={tickets} loadingTickets={loadingTickets} categoryMap={categoryMap} />
             </div>
         </div>
     );

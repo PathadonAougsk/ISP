@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import type { CategoryMap } from "@/components/category";
 import type { Task } from "@/components/task";
-import { categoryMap, getDueBucket, type DueBucketKey } from "../../app/(contents)/dashboard/page";
+import { getDueBucket, type DueBucketKey } from "../../app/(contents)/dashboard/page";
 
 const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
     { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },
@@ -10,7 +11,7 @@ const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
     { key: "later", label: "Later", color: "bg-(--primary-blue)" },
 ];
 
-export default function TaskOverview({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
+export default function TaskOverview({ tasks, loadingTasks, categoryMap }: { tasks: Task[]; loadingTasks: boolean; categoryMap: CategoryMap }) {
     const now = new Date();
 
     const grouped = tasks.reduce<Record<number, Record<DueBucketKey, number>>>((acc, task) => {
