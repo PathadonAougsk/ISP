@@ -1,7 +1,7 @@
 "use client";
 
 import type { Task } from "@/components/task";
-import { getDueBucket } from "./page";
+import { getDueBucket } from "../../app/(contents)/dashboard/page";
 
 const bucketMeta = [
     { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },
