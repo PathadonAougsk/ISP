@@ -1,4 +1,4 @@
-# ISP — Labrador.
+# ISP — Labrador
 
 Full-stack project with a Next.js frontend and a FastAPI backend, both run through Docker Compose in development mode with hot reload.
 
@@ -8,40 +8,40 @@ Full-stack project with a Next.js frontend and a FastAPI backend, both run throu
 
 ## Team members
 
-| Name | Student ID | GitHub |
-| --- | --- | --- |
-| Kantinan Lertluckpreecha | 6810545476 | [LELOUCH2L](https://github.com/LELOUCH2L)|
-| Jedsada Ungsunantwiwat | 6810545522 | [Jadeung123](https://github.com/Jadeung123)|
-| Pathadon Aougsk | 6810545808 | [PathadonAougsk](https://github.com/PathadonAougsk) |
-| Wassawin Swangjaeng | 6810545905 | [Wassawin Swangjaeng](https://github.com/CYRTRUS)
-| Siraphob Phonphakdee | 6810545930 | [vaporform](https://github.com/vaporform)|
+| Name                     | Student ID | GitHub                                              |
+| ------------------------ | ---------- | --------------------------------------------------- |
+| Kantinan Lertluckpreecha | 6810545476 | [LELOUCH2L](https://github.com/LELOUCH2L)           |
+| Jedsada Ungsunantwiwat   | 6810545522 | [Jadeung123](https://github.com/Jadeung123)         |
+| Pathadon Aougsk          | 6810545808 | [PathadonAougsk](https://github.com/PathadonAougsk) |
+| Wassawin Swangjaeng      | 6810545905 | [Wassawin Swangjaeng](https://github.com/CYRTRUS)   |
+| Siraphob Phonphakdee     | 6810545930 | [vaporform](https://github.com/vaporform)           |
 
 ## Project status
 
-Currently in Phase iteration 2 (Such as wireframe, various endpoints and etc.) 
+Currently in Phase iteration 2 (Such as wireframe, various endpoints and etc.)
 Overall a working demo.
 
 ## Documents & diagrams
 
 All specs, reports, and diagrams live in [`docs/`](docs):
 
-| File / folder | Contents |
-| --- | --- |
+| File / folder                                                  | Contents                           |
+| -------------------------------------------------------------- | ---------------------------------- |
 | `docs/ISP-SKE-26 3 Wassawin the Goat of All Time (W-GOAT).pdf` | Software Requirement Specification |
-| `docs/ISP-SKE26 Iteration Report 1 W-GOAT.pdf` | Iteration Report 1 |
-| `docs/use_case_diagram/` | Use case diagram |
-| `docs/sequence_diagram/` | Sequence diagrams (SQD-1 … SQD-7) |
-| `docs/activity_diagram/` | Activity diagrams (AD-1 … AD-6) |
-| `docs/gantt_chart/` | Project Gantt chart |
+| `docs/ISP-SKE26 Iteration Report 1 W-GOAT.pdf`                 | Iteration Report 1                 |
+| `docs/use_case_diagram/`                                       | Use case diagram                   |
+| `docs/sequence_diagram/`                                       | Sequence diagrams (SQD-1 … SQD-7)  |
+| `docs/activity_diagram/`                                       | Activity diagrams (AD-1 … AD-6)    |
+| `docs/gantt_chart/`                                            | Project Gantt chart                |
 
 ## Stack
 
-| Service | Description | URL |
-| --- | --- | --- |
-| `frontend-dev` | Frontend, `npm run dev` | http://localhost:3000 |
-| `backend-dev` | FastAPI API, `fastapi dev` | http://localhost:8000 |
+| Service        | Description                | URL                     |
+| -------------- | -------------------------- | ----------------------- |
+| `frontend-dev` | Frontend, `npm run dev`    | <http://localhost:3000> |
+| `backend-dev`  | FastAPI API, `fastapi dev` | <http://localhost:8000> |
 
-API docs are served by FastAPI at http://localhost:8000/docs
+API docs are served by FastAPI at <http://localhost:8000/docs>
 
 ## Prerequisites
 
@@ -72,14 +72,14 @@ cp source/.env.sample source/.env
 
 Then fill in the real values. `source/.env.sample` lists every key that is used:
 
-| Key | Used by | Notes |
-| --- | --- | --- |
-| `SUPABASE_URL` | backend | Project URL |
-| `SUPABASE_KEY` | backend | Service-role/secret key — server-side only |
-| `SUPABASE_DB_URL` | backend | `postgresql+asyncpg://…` connection string |
-| `NEXT_PUBLIC_SUPABASE_URL` | frontend | Same URL as above |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | Publishable/anon key |
-| `NEXT_PUBLIC_API_URL` | frontend | `http://localhost:8000` locally |
+| Key                             | Used by  | Notes                                      |
+| ------------------------------- | -------- | ------------------------------------------ |
+| `SUPABASE_URL`                  | backend  | Project URL                                |
+| `SUPABASE_KEY`                  | backend  | Service-role/secret key — server-side only |
+| `SUPABASE_DB_URL`               | backend  | `postgresql+asyncpg://…` connection string |
+| `NEXT_PUBLIC_SUPABASE_URL`      | frontend | Same URL as above                          |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | Publishable/anon key                       |
+| `NEXT_PUBLIC_API_URL`           | frontend | `http://localhost:8000` locally            |
 
 Anything prefixed `NEXT_PUBLIC_` is inlined into the browser bundle, so never put a secret key behind that prefix.
 
@@ -98,9 +98,9 @@ docker compose up -d
 
 Once it's up:
 
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
+- Frontend: <http://localhost:3000>
+- Backend: <http://localhost:8000>
+- Swagger UI: <http://localhost:8000/docs>
 
 ### When to rebuild
 
