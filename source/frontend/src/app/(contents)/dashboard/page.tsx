@@ -37,20 +37,20 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
-  // true until tasks + categories + account names are all ready
+  // true until tasks + categories + account names are all ready 
   const [loadingTasks, setLoadingTasks] = useState(true);
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
 
-  // item opened in the popup (null = popup closed)
+  // item opened in the popup (null = popup closed) 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
-  // id -> name lookup
+  // id -> name lookup 
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
-  // get tasks + categories
+  // get tasks + categories 
   useEffect(() => {
     let cancelled = false;
 
@@ -91,7 +91,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  // get ticket
+  // get ticket 
   useEffect(() => {
     getTickets({ onlyOwned: true })
       .then(({ Tickets }) => setTickets(Tickets))
@@ -140,4 +140,4 @@ export default function Dashboard() {
       )}
     </main>
   );
-}
+} 

@@ -1,20 +1,10 @@
 "use client";
 
 import { apiFetch } from "@/lib/api";
+import type { Account } from "@/lib/account";
 import { useEffect, useState } from "react";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
-
-export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab user";
-
-export type Account = {
-    id: string;
-    username: string;
-    email: string;
-    role: AccountRole;
-    quota: number | null;
-    active: boolean;
-};
 
 export type Task = {
     id: number;
@@ -70,7 +60,7 @@ export async function getTasks(
     }
 
     const qs = query.toString();
-    const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
+    const res = await apiFetch(`/task${qs ? `?${qs}` : ""}`);
 
     if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
