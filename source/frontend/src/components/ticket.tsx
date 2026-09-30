@@ -44,7 +44,7 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<Tickets
   if (limit !== undefined) query.set("limit", String(limit));
 
   const qs = query.toString();
-  const res = await apiFetch(`/ticket${qs ? `?${qs}` : ""}`);
+  const res = await apiFetch(`/ticket/${qs ? `?${qs}` : ""}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
