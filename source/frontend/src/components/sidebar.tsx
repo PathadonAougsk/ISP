@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSettings } from "./setting-provider";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
-const bottomNavigation = ["announcement", "setting"];
+const bottomNavigation = ["announcement"];
 
 function NavigationItem({ name, active = false }: { name: string; active?: boolean }) {
   return (
@@ -18,6 +19,7 @@ function NavigationItem({ name, active = false }: { name: string; active?: boole
 export default function Sidebar() {
   const pathname = usePathname();
   const currentPath = pathname.split("/")[1];
+  const { openSettings } = useSettings();
 
   return (
     <div className="sticky top-0 left-0 flex h-screen w-15 shrink-0 flex-col justify-between bg-(--primary-color-2)">
@@ -35,6 +37,9 @@ export default function Sidebar() {
         {bottomNavigation.map((name) => (
           <NavigationItem key={name} name={name} active={currentPath === name} />
         ))}
+        <div onClick={openSettings}  className={`flex h-15 w-full select-none items-center justify-center hover:bg-(--primary-color-1-hover)`}>
+             <Image src={`./${"setting"}.svg`} width={0} height={0} sizes="auto" className="h-auto w-5" alt={"setting"} draggable={false} />
+        </div>
       </div>
     </div>
   );

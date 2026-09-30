@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getAccount } from "@/components/account";
+import { getAccount } from "@/lib/account";
 import { getCategories, toCategoryMap, type Category } from "@/components/category";
 import { getTasks, type Task } from "@/components/task";
 import { getTickets, type Ticket } from "@/components/ticket";

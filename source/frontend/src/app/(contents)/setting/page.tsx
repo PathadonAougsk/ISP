@@ -1,10 +1,9 @@
 "use client"
-import Tickets from "@/components/ticket";
 
-export default function Setting() {
+import Setting from "@/components/setting";
+
+export default function Test() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      {Tickets()}
-    </div>
+    Setting()
   );
 }

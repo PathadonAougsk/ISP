@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getCurrentAccount, type Account } from "@/components/account";
+import { getMe, type Account } from "@/lib/account";
 
 export default function Topbar() {
   const pathname = usePathname().replace("/", "");
@@ -11,7 +11,7 @@ export default function Topbar() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentAccount()
+    getMe()
       .then(setAccount)
       .catch(() => setAccount(undefined))
       .finally(() => setIsLoading(false));
