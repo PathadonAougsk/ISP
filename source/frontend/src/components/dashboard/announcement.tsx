@@ -2,12 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Fragment } from "react";
+import { renderWithLinks } from "@/components/dashboard/_render_link";
 
 export default function Announcement() {
     const description = "Please be informed that all classes today are canceled due to an unexpected situation. Students should not attend and may use this time for rest or personal activities.\n\ngoogle.com and www.google.com\n\nhttps://youtu.be/dQw4w9WgXcQ";
-    const urlRegex = /((?:https?:\/\/|www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\/[^\s.,!?;:]*)?)/g;
-    const parts = description.split(urlRegex);
 
     return (
         <div className="h-90 w-full overflow-hidden rounded-[30px] bg-(--panel-bg)">
@@ -28,17 +26,7 @@ export default function Announcement() {
                 </div>
 
                 <div className="mt-2 text-base font-normal text-gray-700 line-clamp-7 whitespace-pre-line">
-                    {parts.map((part, index) => (
-                        <Fragment key={index}>
-                            {index % 2 === 1 ? (
-                                <a href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="italic underline hover:text-gray-500">
-                                    {part}
-                                </a>
-                            ) : (
-                                part
-                            )}
-                        </Fragment>
-                    ))}
+                    {renderWithLinks(description)}
                 </div>
 
                 <div className="-mx-5 mt-auto">
