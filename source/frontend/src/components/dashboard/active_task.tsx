@@ -1,7 +1,7 @@
 "use client";
 
 import type { Task } from "@/components/task";
-import { getDueBucket } from "./page";
+import { getDueBucket } from "../../app/(contents)/dashboard/page";
 
 const bucketMeta = [
     { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },
@@ -12,6 +12,8 @@ const bucketMeta = [
 export default function ActiveTask({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
     const now = new Date();
     const dueToday = tasks.filter((task) => {
+        if (task.due_date === null) return false;
+
         const due = new Date(task.due_date);
         return due.getUTCFullYear() === now.getUTCFullYear()
             && due.getUTCMonth() === now.getUTCMonth()
