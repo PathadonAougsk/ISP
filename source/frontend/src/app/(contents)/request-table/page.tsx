@@ -1,5 +1,6 @@
 "use client";
 import { apiFetch } from "@/lib/api";
+import { getMe, isAdminRole, type Account } from "@/lib/account";
 import { useState, useEffect } from "react";
 
 function formatDateTime(date: Date = new Date()) {
@@ -174,25 +175,39 @@ export default function RequestTable() {
   const [taskSearchTerm, setTaskSearchTerm] = useState("");
   const [taskCategoryFilter, setTaskCategoryFilter] = useState("All");
 
-  // TODO: wire this up to real auth/session later
-  function getUserRole(): "admin" | "member" {
-    return "admin"; // TODO: wire to real auth
-  }
-  const userRole = getUserRole();
+  const [me, setMe] = useState<Account | null>(null);
+  const [meLoading, setMeLoading] = useState(true);
 
-  const currentUserName = "Chris Kim"; // TODO: wire to real auth
+  useEffect(() => {
+    let cancelled = false;
+
+    getMe()
+      .then((account) => { if (!cancelled) setMe(account ?? null); })
+      .catch(() => { /* leave me as null, which falls back to Lab user */ })
+      .finally(() => { if (!cancelled) setMeLoading(false); });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // "Lab Owner" and "Lab Admin" both count as admin
+  const userRole: "Lab Admin" | "Lab user" =
+    me && isAdminRole(me.role) ? "Lab Admin" : "Lab user";
+
+  const currentUserName = me?.username ?? "";
+  const currentUserId = me?.id ?? "";
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (meLoading) return; 
     let cancelled = false;
 
     async function loadTickets() {
       try {
         const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("/ticket/?onlyOwned=true"),
+          apiFetch(userRole === "Lab Admin" ? "/ticket/" : "/ticket/?onlyOwned=true"),
           apiFetch("/category/").catch(() => null),
           apiFetch("/account/").catch(() => null),
         ]);
@@ -227,7 +242,7 @@ export default function RequestTable() {
 
     loadTickets();
     return () => { cancelled = true; };
-  }, []);
+  }, [userRole, meLoading]);
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
@@ -239,7 +254,7 @@ export default function RequestTable() {
     async function loadTasks() {
       try {
         const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("/task/?onlyOwned=true"),
+          apiFetch(userRole === "Lab Admin" ? "/task/" : "/task/?onlyOwned=true"),
           apiFetch("/category/").catch(() => null),
           apiFetch("/account/").catch(() => null),
         ]);
@@ -274,7 +289,7 @@ export default function RequestTable() {
 
     loadTasks();
     return () => { cancelled = true; };
-  }, []);
+  }, [userRole]);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
@@ -612,7 +627,7 @@ export default function RequestTable() {
       taskStatusFilter === "All" ? true : task.status === taskStatusFilter
     )
     .filter((task) =>
-    userRole === "admin" ? true : isAssignedToCurrentUser(task)
+    userRole === "Lab Admin" ? true : isAssignedToCurrentUser(task)
     );
 
   return (
@@ -623,7 +638,7 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Tickets
-              {(userRole === "admin" || userRole === "member") && (
+              {(userRole === "Lab Admin" || userRole === "Lab user") && (
                 <button
                   onClick={() => setIsCreatingTicket(true)}
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
@@ -736,7 +751,7 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Task
-              {userRole === "admin" && (
+              {userRole === "Lab Admin" && (
               <button
                 onClick={() => setIsCreatingTask(true)}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
@@ -867,7 +882,7 @@ export default function RequestTable() {
               <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  {userRole === "admin" ? (
+                  {userRole === "Lab Admin" ? (
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTicket.title}
                     </div>
@@ -884,7 +899,7 @@ export default function RequestTable() {
                 <div className="flex gap-4">
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    {userRole === "admin" ? (
+                    {userRole === "Lab Admin" ? (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                         {selectedTicket.category}
                       </div>
@@ -899,7 +914,7 @@ export default function RequestTable() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Due Date</label>
-                    {userRole === "admin" ? (
+                    {userRole === "Lab Admin" ? (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                         {selectedTicket.dueDate || "—"}
                       </div>
@@ -916,7 +931,7 @@ export default function RequestTable() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  {userRole === "admin" ? (
+                  {userRole === "Lab Admin" ? (
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
                       {selectedTicket.description}
                     </div>
@@ -937,7 +952,7 @@ export default function RequestTable() {
                 </div>
               </div>
 
-              {userRole === "admin" && (
+              {userRole === "Lab Admin" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
                   <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Assign</span>
@@ -978,7 +993,7 @@ export default function RequestTable() {
                 Cancel
               </button>
 
-              {userRole === "admin" ? (
+              {userRole === "Lab Admin" ? (
                 <>
                   <button
                     onClick={() => handleDecision("Rejected")}
@@ -1209,7 +1224,7 @@ export default function RequestTable() {
               <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  {userRole === "admin" ? (
+                  {userRole === "Lab Admin" ? (
                     <input
                       type="text"
                       value={editTaskTitle}
@@ -1226,7 +1241,7 @@ export default function RequestTable() {
                 <div className="flex gap-4">
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    {userRole === "admin" ? (
+                    {userRole === "Lab Admin" ? (
                       <input
                         type="text"
                         value={editTaskCategory}
@@ -1247,7 +1262,7 @@ export default function RequestTable() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Due Date</label>
-                    {userRole === "admin" ? (
+                    {userRole === "Lab Admin" ? (
                       <input
                         type="date"
                         value={editTaskDueDate}
@@ -1271,7 +1286,7 @@ export default function RequestTable() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  {userRole === "admin" ? (
+                  {userRole === "Lab Admin" ? (
                     <textarea
                       value={editTaskDescription}
                       onChange={(e) => setEditTaskDescription(e.target.value)}
@@ -1284,7 +1299,7 @@ export default function RequestTable() {
                   )}
                 </div>
 
-                {userRole !== "admin" && (
+                {userRole !== "Lab Admin" && (
                   <div>
                     <label className="block text-sm font-medium mb-1">Assigned</label>
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
@@ -1294,7 +1309,7 @@ export default function RequestTable() {
                 )}
               </div>
 
-              {userRole === "admin" && (
+              {userRole === "Lab Admin" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
                   <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Assign</span>
@@ -1330,7 +1345,7 @@ export default function RequestTable() {
               >
                 Cancel
               </button>
-                {userRole === "admin" ? (
+                {userRole === "Lab Admin" ? (
                 <button
                   onClick={handleUpdateTask}
                   className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
