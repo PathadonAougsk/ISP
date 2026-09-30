@@ -12,6 +12,8 @@ const bucketMeta = [
 export default function ActiveTask({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
     const now = new Date();
     const dueToday = tasks.filter((task) => {
+        if (task.due_date === null) return false;
+
         const due = new Date(task.due_date);
         return due.getUTCFullYear() === now.getUTCFullYear()
             && due.getUTCMonth() === now.getUTCMonth()

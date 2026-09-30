@@ -3,7 +3,7 @@
 import Image from "next/image";
 import type { CategoryMap } from "@/components/category";
 import type { Task } from "@/components/task";
-import { getDueBucket, type DueBucketKey } from "../../app/(contents)/dashboard/page";
+import { getDueBucket, type DueBucketKey } from "@/app/(contents)/dashboard/page";
 
 const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
     { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },

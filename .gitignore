@@ -44,3 +44,6 @@ next-env.d.ts
 *.log
 *.out
 *.toc
+
+# personal use
+/other/
