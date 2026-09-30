@@ -1,6 +1,7 @@
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,8 +32,26 @@ async def create_account(
     return await account_service.create_account(session, auth_user.id, auth_user.email, body.username)
 
 @accountRouter.get("/{account_id}", tags=["Account"])
-async def retrieve_account(account_id: str):
-    pass
+async def retrieve_account(
+    account_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
+):
+    # Your own account is always readable. everyone else's is admin only.
+    if me.id != account_id and not account_service.is_admin(me):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to view this account",
+        )
+
+    account = await session.get(Account, account_id)
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Account with id {account_id} not found",
+        )
+
+    return {"Account": account}
 
 @accountRouter.put("/{account_id}", tags=["Account"])
 async def update_account(account_id: str):

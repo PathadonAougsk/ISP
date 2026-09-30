@@ -16,6 +16,12 @@ class TicketCreate(BaseModel):
     category_id: int
     due_date: dt.datetime | None = None
 
+class TicketUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    category_id: int | None = None
+    due_date: dt.datetime | None = None
+
 ticketRouter = APIRouter(prefix="/ticket", dependencies=[Depends(account_service.get_current_auth_user)])
 
 @ticketRouter.get("/", tags=["Tickets"])
@@ -78,7 +84,7 @@ async def create_ticket(data: TicketCreate,
         raise HTTPException(status_code=404, detail="Category not found")
 
     if me.quota is not None and me.quota < 0:
-     raise HTTPException(
+        raise HTTPException(
             status_code=403,
             detail={
                     "message": "Ticket quota exhausted",
@@ -140,8 +146,37 @@ async def create_ticket(data: TicketCreate,
     return ticket
 
 @ticketRouter.put("/{ticket_id}", tags=["Tickets"])
-async def update_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
-    pass
+async def update_ticket(ticket_id: int,
+                        data: TicketUpdate,
+                        session: Annotated[AsyncSession, Depends(getSession)]
+):
+    ticket = await session.get(Ticket, ticket_id)
+
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if data.category_id is not None:
+        category = await session.get(Category, data.category_id)
+
+        if category is None:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+    if data.name is not None:
+        ticket.name = data.name
+
+    if data.description is not None:
+        ticket.description = data.description
+
+    if data.category_id is not None:
+        ticket.category_id = data.category_id
+
+    if data.due_date is not None:
+        ticket.due_date = data.due_date
+
+    await session.commit()
+    await session.refresh(ticket)
+
+    return ticket
 
 @ticketRouter.delete("/{ticket_id}", tags=["Tickets"])
 async def delete_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):

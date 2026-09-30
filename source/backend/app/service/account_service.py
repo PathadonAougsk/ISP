@@ -9,7 +9,7 @@ from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.dependencies import supabase
-from app.model import Account
+from app.model import Account, AccountRole
 
 bearer_scheme = HTTPBearer(auto_error=False, description="Supabase access token")
 
@@ -35,6 +35,13 @@ def get_current_auth_user(
     if response is None or response.user is None:
         raise UNAUTHENTICATED
     return response.user
+
+
+ADMIN_ROLES = frozenset({AccountRole.LAB_OWNER, AccountRole.LAB_ADMIN})
+
+
+def is_admin(account: Account) -> bool:
+    return account.role in ADMIN_ROLES
 
 
 async def get_current_account(
