@@ -9,6 +9,8 @@ import Announcement from "@/components/dashboard/announcement";
 import ActiveTask from "@/components/dashboard/active_task";
 import TaskOverview from "@/components/dashboard/task_overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
+import TaskPopup from "@/components/dashboard/task_popup";
+import TicketPopup from "@/components/dashboard/ticket_popup";
 
 export type DueBucketKey = "thisWeek" | "nextWeek" | "later";
 
@@ -19,7 +21,9 @@ export function getWeekBounds(date: Date) {
   return { start, end };
 }
 
-export function getDueBucket(dueDateIso: string, now: Date): DueBucketKey {
+export function getDueBucket(dueDateIso: string | null, now: Date): DueBucketKey {
+  if (dueDateIso === null) return "later";
+
   const due = new Date(dueDateIso);
   const { end: thisWeekEnd } = getWeekBounds(now);
   const nextWeekEnd = new Date(Date.UTC(thisWeekEnd.getUTCFullYear(), thisWeekEnd.getUTCMonth(), thisWeekEnd.getUTCDate() + 7, 23, 59, 59, 999));
@@ -39,6 +43,10 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
 
+  // item opened in the popup (null = popup closed)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+
   // id -> name lookup
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
@@ -49,7 +57,7 @@ export default function Dashboard() {
     async function load() {
       try {
         const [{ Tasks }, { Categories }] = await Promise.all([
-          getTasks(),
+          getTasks({ status: "in_progress" }),
           getCategories().catch(() => ({ Categories: [] as Category[] })),
         ]);
 
@@ -96,7 +104,11 @@ export default function Dashboard() {
       <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
         <ActiveTask tasks={tasks} loadingTasks={loadingTasks} />
-        <TaskOverview tasks={tasks} loadingTasks={loadingTasks} categoryMap={categoryMap} />
+        <TaskOverview
+          tasks={tasks}
+          loadingTasks={loadingTasks}
+          categoryMap={categoryMap}
+        />
       </div>
 
       <TaskTicketList
@@ -106,7 +118,26 @@ export default function Dashboard() {
         loadingTickets={loadingTickets || loadingTasks}
         categoryMap={categoryMap}
         usernames={usernames}
+        onSelectTask={setSelectedTask}
+        onSelectTicket={setSelectedTicket}
       />
+
+      {selectedTask && (
+        <TaskPopup
+          task={selectedTask}
+          categoryMap={categoryMap}
+          usernames={usernames}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
+
+      {selectedTicket && (
+        <TicketPopup
+          ticket={selectedTicket}
+          categoryMap={categoryMap}
+          onClose={() => setSelectedTicket(null)}
+        />
+      )}
     </main>
   );
 }
