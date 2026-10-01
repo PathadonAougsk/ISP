@@ -42,7 +42,7 @@ function TaskList({
             ) : tasks.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">Good job! You have completed all tasks.</p>
             ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex max-h-98 flex-col gap-2 overflow-y-auto">
                     {tasks.map((task) => {
                         const isUnassigned =
                             currentAccount !== null &&
@@ -53,7 +53,7 @@ function TaskList({
                             <div
                                 key={task.id}
                                 onClick={() => onSelectTask(task)}
-                                className={`group flex h-8 cursor-pointer items-center gap-6 rounded-[20px] px-3 ${isUnassigned ? "bg-gray-100 hover:bg-gray-200" : "bg-white hover:bg-gray-100"
+                                className={`group flex h-8 shrink-0 cursor-pointer items-center gap-6 rounded-[20px] px-3 ${isUnassigned ? "bg-gray-100 hover:bg-gray-200" : "bg-white hover:bg-gray-100"
                                     }`}
                             >
                                 <span className={`h-2 w-2 shrink-0 rounded-full ${task.updated !== task.created ? "bg-(--primary-red)" : "bg-(--primary-blue)"}`} />
@@ -90,9 +90,9 @@ function TicketList({ tickets, loadingTickets, categoryMap, onSelectTicket }: { 
             ) : tickets.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">"Looks like everything's pretty peaceful around here. Hell yeah!"</p>
             ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex max-h-98 flex-col gap-2 overflow-y-auto">
                     {tickets.map((ticket) => (
-                        <div key={ticket.id} onClick={() => onSelectTicket(ticket)} className="flex h-8 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 hover:bg-gray-100">
+                        <div key={ticket.id} onClick={() => onSelectTicket(ticket)} className="flex h-8 shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 hover:bg-gray-100">
                             <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto shrink-0" alt={ticket.status} draggable={false} />
                             <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
                                 <p className="truncate text-sm text-black">{ticket.name}</p>

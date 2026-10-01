@@ -64,7 +64,7 @@ export default function Dashboard() {
     async function load() {
       try {
         const [{ Tasks }, { Categories }] = await Promise.all([
-          getTasks({ status: "in_progress" }),
+          getTasks({ status: "in_progress" , limit: 50}),
           getCategories().catch(() => ({ Categories: [] as Category[] })),
         ]);
 
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
   // get ticket
   useEffect(() => {
-    getTickets({ status: "pending" })
+    getTickets({ status: "pending" , limit: 50})
       .then(({ Tickets }) => setTickets(Tickets))
       .catch(() => setTickets([]))
       .finally(() => setLoadingTickets(false));
