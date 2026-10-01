@@ -199,7 +199,6 @@ export default function RequestTable() {
   const userRole: "Lab Admin" | "Lab user" =
     me && isAdminRole(me.role) ? "Lab Admin" : "Lab user";
 
-  const currentUserName = me?.username ?? "";
   const currentUserId = me?.id ?? "";
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -367,6 +366,24 @@ export default function RequestTable() {
     );
   }
 
+  function toggleAssignAll() {
+    setAssignedMemberIds((prev) =>
+      prev.length === members.length ? [] : members.map((m) => m.id)
+    );
+  }
+
+  function toggleNewTaskAssignAll() {
+    setNewTaskAssignedIds((prev) =>
+      prev.length === members.length ? [] : members.map((m) => m.id)
+    );
+  }
+
+  function toggleEditTaskAssignAll() {
+    setEditTaskAssignedIds((prev) =>
+      prev.length === members.length ? [] : members.map((m) => m.id)
+    );
+  }
+
   function toggleNewTaskAssign(memberId: string) {
     setNewTaskAssignedIds((prev) =>
       prev.includes(memberId)
@@ -381,13 +398,6 @@ export default function RequestTable() {
         ? prev.filter((id) => id !== memberId)
         : [...prev, memberId]
     );
-  }
-
-  function isAssignedToCurrentUser(task: Task) {
-    return task.assignedTo
-      .split(",")
-      .map((name) => name.trim())
-      .includes(currentUserName);
   }
 
   async function sendTask(path: string, method: "POST" | "PUT", body: object) {
@@ -664,7 +674,8 @@ export default function RequestTable() {
 
   const canEditTicket =
     !!selectedTicket &&
-    (userRole === "Lab Admin" || selectedTicket.createdById === currentUserId);
+    (userRole === "Lab Admin" ||  
+      (selectedTicket.createdById === currentUserId && selectedTicket.status === "Pending"));
 
   const filteredTasks = tasks
     .filter((task) =>
@@ -678,7 +689,7 @@ export default function RequestTable() {
       taskStatusFilter === "All" ? true : task.status === taskStatusFilter
     )
     .filter((task) =>
-    userRole === "Lab Admin" ? true : isAssignedToCurrentUser(task)
+      userRole === "Lab Admin" ? true : task.assigneeIds.includes(currentUserId)
     );
 
   return (
@@ -876,11 +887,7 @@ export default function RequestTable() {
                       setEditTaskCategory(task.category);
                       setEditTaskDescription(task.description);
                       setEditTaskDueDate(task.dueDate);
-                      setEditTaskAssignedIds(
-                        members
-                          .filter((m) => task.assignedTo.split(",").map((n) => n.trim()).includes(m.name))
-                          .map((m) => m.id)
-                      );
+                      setEditTaskAssignedIds(task.assigneeIds);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
@@ -1014,9 +1021,16 @@ export default function RequestTable() {
 
               {userRole === "Lab Admin" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
-                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                    <span>Assign</span>
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Members — {members.length}</span>
+                    <button
+                      type="button"
+                      onClick={toggleAssignAll}
+                      disabled={members.length === 0}
+                      className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                    >
+                      {members.length > 0 && assignedMemberIds.length === members.length ? "Clear all" : "Assign all"}
+                    </button>
                   </div>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {members.map((member) => (
@@ -1227,9 +1241,16 @@ export default function RequestTable() {
 
               {/* Right column: assign members */}
               <div className="w-64 border-l border-gray-200 pl-4">
-                <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                  <span>Assign</span>
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                   <span>Members — {members.length}</span>
+                  <button
+                    type="button"
+                    onClick={toggleNewTaskAssignAll}
+                    disabled={members.length === 0}
+                    className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                  >
+                    {members.length > 0 && newTaskAssignedIds.length === members.length ? "Clear all" : "Assign all"}
+                  </button>
                 </div>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {membersLoading && (
@@ -1393,9 +1414,16 @@ export default function RequestTable() {
 
               {userRole === "Lab Admin" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
-                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                    <span>Assign</span>
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Members — {members.length}</span>
+                    <button
+                      type="button"
+                      onClick={toggleEditTaskAssignAll}
+                      disabled={members.length === 0}
+                      className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                    >
+                      {members.length > 0 && editTaskAssignedIds.length === members.length ? "Clear all" : "Assign all"}
+                    </button>
                   </div>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {members.map((member) => (
