@@ -165,8 +165,6 @@ async def update_task(
         audit_list.append(update_helper(dt1, dt2))
         task.due_date = body.due_date
     
-    print(body.assignees)
-
     if body.assignees is not None:
         audit_list.append(update_helper(task.assignees, body.assignees))
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
@@ -180,7 +178,7 @@ async def update_task(
         if i != 0:
             session.add(i)
     await session.commit()
-    await session.refresh(task)
+    await session.refresh(task, ["assignees"])
 
     return {"Task": task}
 
