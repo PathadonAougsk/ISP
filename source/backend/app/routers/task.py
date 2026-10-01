@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
-from app.model import Account, AccountRole, Task, TaskStatus
+from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
 
 
@@ -20,7 +20,7 @@ class TaskRequest(BaseModel):
     description: str | None = None
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
-    due_date: datetime
+    due_date: datetime | None = None
     assignee_ids: list[uuid.UUID] | None = None
 
 
@@ -84,17 +84,28 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
         due_date=body.due_date,
         created_by=auth_user.id,
     )
+
+    # Create an audit log for the creation!
+    al = AuditLog(
+        from_table = "task",
+        row_id = str(task.id),
+        column_name = "status",
+        old_value = None,
+        new_value = TaskStatus.IN_PROGRESS.value,
+        by_whom = auth_user.id
+    )
+    
     if body.assignee_ids:
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignee_ids)))
         task.assignees = list(assignees.all())
 
     # Add it to session, and update.
+    session.add(al)
     session.add(task)
     await session.commit()
     await session.refresh(task)
 
     return {"Task": task}
-
 
 @taskRouter.put("/{task_id}", tags=["Task"])
 async def update_task(
@@ -109,19 +120,57 @@ async def update_task(
         .where(Task.id == task_id)
     )
 
+    # Create an audit log for the update! 
+    def update_helper(old_val, new_value):
+        al = AuditLog(
+            from_table = "task",
+            row_id = str(task.id),
+            column_name = "status",
+            old_value = old_val,
+            new_value = new_value,
+            by_whom = auth_user.id
+        )
+        return al
+    
+    audit_list = []
+
+
     # If it does not exist, 404!
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
-    task.name = body.name
-    task.description = body.description
-    task.status = body.status
-    task.category_id = body.category_id
-    task.due_date = body.due_date
+    # If it exists, then you definetly should update it!
+    if body.name is not None:
+        audit_list.append(update_helper(task.name, body.name))
+        task.name = body.name
+    
+    if body.description is not None:
+        audit_list.append(update_helper(task.description, body.description))
+        task.description = body.description
+
+    if body.status is not None:
+        audit_list.append(update_helper(task.status, body.status))
+        task.status = body.status
+
+    if body.category_id is not None:
+        audit_list.append(update_helper(task.category_id, body.category_id))
+        task.category_id = body.category_id
+
+    if body.due_date is not None:
+        audit_list.append(update_helper(task.due_date, body.due_date))
+        task.due_date = body.due_date
+
     if body.assignee_ids is not None:
+        audit_list.append(update_helper(task.assignee_ids, body.assignee_ids))
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignee_ids)))
         task.assignees = list(assignees.all())
 
+    if body.status is not None:
+        audit_list.append(update_helper(task.status, body.status))
+        task.status = body.status
+
+    for i in audit_list:
+        session.add(i)
     await session.commit()
     await session.refresh(task)
 
@@ -133,10 +182,21 @@ async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(get
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )
+    
+    # Create an audit log for the deletes!
+    al = AuditLog(
+        from_table = "task",
+        row_id = str(task.id),
+        column_name = "status",
+        old_value = None,
+        new_value = None,
+        by_whom = auth_user.id
+    )
     # If it does not exist, 404!
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
+    session.add(al)
     await session.delete(task)
     await session.commit()
 
