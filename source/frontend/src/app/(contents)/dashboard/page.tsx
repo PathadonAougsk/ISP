@@ -39,20 +39,25 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
-  // true until tasks + categories + account names are all ready 
+  // true until tasks + categories + account names are all ready
   const [loadingTasks, setLoadingTasks] = useState(true);
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
 
-  // item opened in the popup (null = popup closed) 
+  // item opened in the popup (null = popup closed)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
-  // id -> name lookup 
+  // id -> name lookup
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
-  // get tasks + categories 
+  const assignedTasks = useMemo(
+    () => currentAccount === null ? [] : tasks.filter((task) => task.assignees.some((assignee) => assignee.id === currentAccount.id)),
+    [tasks, currentAccount]
+  );
+
+  // get tasks + categories
   useEffect(() => {
     let cancelled = false;
 
@@ -93,7 +98,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  // get ticket 
+  // get ticket
   useEffect(() => {
     getTickets({ status: "pending" })
       .then(({ Tickets }) => setTickets(Tickets))
@@ -105,9 +110,9 @@ export default function Dashboard() {
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
-        <ActiveTask tasks={tasks} loadingTasks={loadingTasks} />
+        <ActiveTask tasks={assignedTasks} loadingTasks={loadingTasks} />
         <TaskOverview
-          tasks={tasks}
+          tasks={assignedTasks}
           loadingTasks={loadingTasks}
           categoryMap={categoryMap}
         />
