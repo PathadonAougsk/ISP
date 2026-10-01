@@ -1,16 +1,8 @@
 "use client";
 import { apiFetch } from "@/lib/api";
+import { getMe, isAdminRole, type Account } from "@/lib/account";
+import { formatDueDate } from "@/lib/format";
 import { useState, useEffect } from "react";
-
-function formatDateTime(date: Date = new Date()) {
-  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = date.toLocaleDateString("en-US", { month: "short" });
-  const year = String(date.getFullYear()).slice(-2);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${weekday} ${day} ${month} ${year}, ${hours}:${minutes}`;
-}
 
 type BackendTicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -55,12 +47,14 @@ function mapBackendTicket(
     title: bt.name,
     status: mapTicketStatus(bt.status),
     dueDate: toDateOnly(bt.due_date),
-    createdDate: formatDateTime(new Date(bt.created)),
-    lastUpdate: formatDateTime(new Date(bt.updated)),
+    createdDate: formatDueDate(bt.created),
+    lastUpdate: formatDueDate(bt.updated),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     description: bt.description ?? "",
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
     assignedTo: bt.assigned_id ? (accountById.get(bt.assigned_id) ?? bt.assigned_id) : "",
+    categoryId: bt.category_id,
+    createdById: bt.created_by,
   };
 }
 
@@ -100,9 +94,11 @@ function mapBackendTask(
     assignedTo: bt.assignees.map((a) => a.username).join(", "),
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
     dueDate: toDateOnly(bt.due_date),
-    createdDate: formatDateTime(new Date(bt.created)),
-    lastUpdate: formatDateTime(new Date(bt.updated)),
+    createdDate: formatDueDate(bt.created),
+    lastUpdate: formatDueDate(bt.updated),
     status: mapTaskStatus(bt.status),
+    categoryId: bt.category_id,
+    assigneeIds: bt.assignees.map((a) => a.id),
   };
 }
 
@@ -121,6 +117,8 @@ interface Ticket {
   description: string;
   createdBy: string;
   assignedTo: string;
+  categoryId: number;
+  createdById: string;
 }
 
 interface Task {
@@ -135,6 +133,8 @@ interface Task {
   lastUpdate: string;
   status: "In_progress" | "Completed";
   sourceTicketId?: string;
+  categoryId: number;
+  assigneeIds: string[];
 }
 
 interface Member {
@@ -155,12 +155,17 @@ export default function RequestTable() {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskCategoryId, setNewTaskCategoryId] = useState<number | "">("");
   const [taskStatusFilter, setTaskStatusFilter] = useState("All");
   const [editTaskDueDate, setEditTaskDueDate] = useState("");
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskCategory, setEditTaskCategory] = useState("");
+  const [editTaskCategoryId, setEditTaskCategoryId] = useState<number | "">("");
   const [editTaskDescription, setEditTaskDescription] = useState("");
   const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>([]);
+  const [tasksReloadKey, setTasksReloadKey] = useState(0);
+  const [isSavingTask, setIsSavingTask] = useState(false);
+  const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null);
   const [editTicketTitle, setEditTicketTitle] = useState("");
   const [editTicketCategory, setEditTicketCategory] = useState("");
   const [editTicketDescription, setEditTicketDescription] = useState("");
@@ -169,30 +174,45 @@ export default function RequestTable() {
   const [newTicketTitle, setNewTicketTitle] = useState("");
   const [newTicketDueDate, setNewTicketDueDate] = useState("");
   const [newTicketDescription, setNewTicketDescription] = useState("")
+  const [editTicketCategoryId, setEditTicketCategoryId] = useState<number | "">("");
+  const [ticketsReloadKey, setTicketsReloadKey] = useState(0);
 
   // Task table search + filter
   const [taskSearchTerm, setTaskSearchTerm] = useState("");
   const [taskCategoryFilter, setTaskCategoryFilter] = useState("All");
 
-  // TODO: wire this up to real auth/session later
-  function getUserRole(): "admin" | "member" {
-    return "admin"; // TODO: wire to real auth
-  }
-  const userRole = getUserRole();
+  const [me, setMe] = useState<Account | null>(null);
+  const [meLoading, setMeLoading] = useState(true);
 
-  const currentUserName = "Chris Kim"; // TODO: wire to real auth
+  useEffect(() => {
+    let cancelled = false;
+
+    getMe()
+      .then((account) => { if (!cancelled) setMe(account ?? null); })
+      .catch(() => { /* leave me as null, which falls back to Lab user */ })
+      .finally(() => { if (!cancelled) setMeLoading(false); });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // "Lab Owner" and "Lab Admin" both count as admin
+  const userRole: "Lab Admin" | "Lab user" =
+    me && isAdminRole(me.role) ? "Lab Admin" : "Lab user";
+
+  const currentUserId = me?.id ?? "";
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (meLoading) return; 
     let cancelled = false;
 
     async function loadTickets() {
       try {
         const [ticketsRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("/ticket/?onlyOwned=true"),
+          apiFetch(userRole === "Lab Admin" ? "/ticket/?limit=0" : "/ticket/?onlyOwned=true&limit=0"),
           apiFetch("/category/").catch(() => null),
           apiFetch("/account/").catch(() => null),
         ]);
@@ -227,7 +247,7 @@ export default function RequestTable() {
 
     loadTickets();
     return () => { cancelled = true; };
-  }, []);
+  }, [userRole, meLoading, ticketsReloadKey]);
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
@@ -239,7 +259,7 @@ export default function RequestTable() {
     async function loadTasks() {
       try {
         const [tasksRes, categoriesRes, accountsRes] = await Promise.all([
-          apiFetch("/task/?onlyOwned=true"),
+          apiFetch("/task/"),
           apiFetch("/category/").catch(() => null),
           apiFetch("/account/").catch(() => null),
         ]);
@@ -274,7 +294,7 @@ export default function RequestTable() {
 
     loadTasks();
     return () => { cancelled = true; };
-  }, []);
+  }, [userRole, meLoading, tasksReloadKey]);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
@@ -346,6 +366,24 @@ export default function RequestTable() {
     );
   }
 
+  function toggleAssignAll() {
+    setAssignedMemberIds((prev) =>
+      prev.length === members.length ? [] : members.map((m) => m.id)
+    );
+  }
+
+  function toggleNewTaskAssignAll() {
+    setNewTaskAssignedIds((prev) =>
+      prev.length === members.length ? [] : members.map((m) => m.id)
+    );
+  }
+
+  function toggleEditTaskAssignAll() {
+    setEditTaskAssignedIds((prev) =>
+      prev.length === members.length ? [] : members.map((m) => m.id)
+    );
+  }
+
   function toggleNewTaskAssign(memberId: string) {
     setNewTaskAssignedIds((prev) =>
       prev.includes(memberId)
@@ -362,33 +400,38 @@ export default function RequestTable() {
     );
   }
 
-  function isAssignedToCurrentUser(task: Task) {
-    return task.assignedTo
-      .split(",")
-      .map((name) => name.trim())
-      .includes(currentUserName);
+  async function sendTask(path: string, method: "POST" | "PUT", body: object) {
+    const res = await apiFetch(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
   }
 
-  function handleCreateTask() {
-    if (!newTaskTitle.trim()) return;
-
-    const newTask: Task = {
-      id: getNextTaskId(tasks),
-      title: newTaskTitle,
-      description: newTaskDescription,
-      category: newTaskCategory,
-      assignedTo: newTaskAssignedIds
-        .map((id) => members.find((m) => m.id === id)?.name)
-        .join(", "),
-      createdBy: currentUserName,
-      dueDate: newTaskDueDate,
-      createdDate: formatDateTime(),
-      lastUpdate: formatDateTime(),
-      status: "In_progress",
-    };
-
-    setTasks((prev) => [...prev, newTask]);
-    resetTaskForm();
+  async function handleCreateTask() {
+    if (!newTaskTitle.trim() || newTaskCategoryId === "" || !newTaskDueDate) {
+      setTaskSubmitError("Title, category and due date are required.");
+      return;
+    }
+    setIsSavingTask(true);
+    setTaskSubmitError(null);
+    try {
+      await sendTask("/task/", "POST", {
+        name: newTaskTitle.trim(),
+        description: newTaskDescription || null,
+        category_id: newTaskCategoryId,
+        due_date: newTaskDueDate,
+        assignee_ids: newTaskAssignedIds,
+      });
+      setTasksReloadKey((k) => k + 1);
+      resetTaskForm();
+    } catch (err) {
+      setTaskSubmitError(err instanceof Error ? err.message : "Failed to create task");
+    } finally {
+      setIsSavingTask(false);
+    }
   }
 
   function resetTaskForm() {
@@ -398,6 +441,8 @@ export default function RequestTable() {
     setNewTaskAssignedIds([]);
     setNewTaskDueDate("");
     setIsCreatingTask(false);
+    setNewTaskCategoryId("");
+    setTaskSubmitError(null);
   }
 
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
@@ -466,114 +511,141 @@ export default function RequestTable() {
     return `${maxNum + 1}`;
   }
 
-  function handleDecision(newStatus: Ticket["status"]) {
+  async function handleDecision(newStatus: Ticket["status"]) {
     if (!selectedTicket) return;
     if (selectedTicket.status === newStatus) return;
 
-    const assignedNames = assignedMemberIds
-      .map((id) => members.find((m) => m.id === id)?.name)
-      .join(", ");
+    // Use the edited form values when the user can edit, otherwise the saved ones
+    const title = canEditTicket ? editTicketTitle.trim() : selectedTicket.title;
+    const description = canEditTicket ? editTicketDescription : selectedTicket.description;
+    const categoryId = canEditTicket ? editTicketCategoryId : selectedTicket.categoryId;
+    const dueDate = canEditTicket ? editTicketDueDate : selectedTicket.dueDate;
 
-    setTickets((prevTickets) =>
-      prevTickets.map((t) =>
-        t.id === selectedTicket.id
-          ? {
-              ...t,
-              status: newStatus,
-              assignedTo: assignedNames,
-              lastUpdate: formatDateTime(),
-            }
-          : t
-      )
-    );
+    if (!title || categoryId === "") {
+      setTaskSubmitError("Title and category are required.");
+      return;
+    }
+    if (newStatus === "Approved" && !dueDate) {
+      setTaskSubmitError("This ticket has no due date, and tasks require one.");
+      return;
+    }
 
-    setTasks((prevTasks) => {
-      // Always drop any task previously converted from this ticket
-      const withoutConverted = prevTasks.filter(
-        (t) => t.sourceTicketId !== selectedTicket.id
-      );
+    const backendStatus = newStatus === "Approved" ? "accepted" : "rejected";
+    const previousStatus =
+      selectedTicket.status === "Approved" ? "accepted"
+      : selectedTicket.status === "Rejected" ? "rejected"
+      : "pending";
 
-      // Only (re)create the task if the ticket is being approved
-      if (newStatus !== "Approved") return withoutConverted;
+    setIsSavingTask(true);
+    setTaskSubmitError(null);
 
-      const newTask: Task = {
-        id: getNextTaskId(prevTasks),
-        title: selectedTicket.title,
-        description: selectedTicket.description,
-        category: selectedTicket.category,
-        assignedTo: assignedNames,
-        createdBy: currentUserName,
-        dueDate: selectedTicket.dueDate,
-        createdDate: formatDateTime(),
-        lastUpdate: formatDateTime(),
-        status: "In_progress",
-        sourceTicketId: selectedTicket.id,
-      };
+    try {
+      // 1. Save the edits and the new status together
+      await sendTask(`/ticket/${selectedTicket.id}`, "PUT", {
+        name: title,
+        description: description || null,
+        category_id: categoryId,
+        due_date: dueDate || null,
+        status: backendStatus,
+      });
 
-      return [...withoutConverted, newTask];
-    });
+      // 2. If approved, create the task from the edited values
+      if (newStatus === "Approved") {
+        try {
+          await sendTask("/task/", "POST", {
+            name: title,
+            description: description || null,
+            category_id: categoryId,
+            due_date: dueDate,
+            assignee_ids: assignedMemberIds,
+          });
+        } catch (taskErr) {
+          // Task failed: restore the previous status so it can be approved again
+          await sendTask(`/ticket/${selectedTicket.id}`, "PUT", { status: previousStatus }).catch(() => {});
+          throw taskErr;
+        }
+        setTasksReloadKey((k) => k + 1);
+      }
 
-    setSelectedTicket(null);
-    setAssignedMemberIds([]);
+      setTicketsReloadKey((k) => k + 1);
+      setSelectedTicket(null);
+      setAssignedMemberIds([]);
+    } catch (err) {
+      setTaskSubmitError(err instanceof Error ? err.message : "Failed to update ticket");
+    } finally {
+      setIsSavingTask(false);
+    }
   }
 
-  function handleUpdateTicket() {
+  async function handleUpdateTicket() {
     if (!selectedTicket) return;
-
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === selectedTicket.id
-          ? {
-              ...t,
-              title: editTicketTitle,
-              category: editTicketCategory,
-              description: editTicketDescription,
-              dueDate: editTicketDueDate,
-              lastUpdate: formatDateTime(),
-            }
-          : t
-      )
-    );
-
-    setSelectedTicket(null);
+    if (!editTicketTitle.trim() || editTicketCategoryId === "") {
+      setTaskSubmitError("Title and category are required.");
+      return;
+    }
+    setIsSavingTask(true);
+    setTaskSubmitError(null);
+    try {
+      await sendTask(`/ticket/${selectedTicket.id}`, "PUT", {
+        name: editTicketTitle.trim(),
+        description: editTicketDescription || null,
+        category_id: editTicketCategoryId,
+        due_date: editTicketDueDate || null,
+      });
+      setTicketsReloadKey((k) => k + 1);
+      setSelectedTicket(null);
+    } catch (err) {
+      setTaskSubmitError(err instanceof Error ? err.message : "Failed to update ticket");
+    } finally {
+      setIsSavingTask(false);
+    }
   }
 
-  function handleSubmitTask() {
+  async function handleSubmitTask() {
     if (!selectedTask) return;
-
-    setTasks((prevTasks) =>
-      prevTasks.map((t) =>
-        t.id === selectedTask.id
-          ? { ...t, status: "Completed", lastUpdate: formatDateTime() }
-          : t
-      )
-    );
-
-    setSelectedTask(null);
+    setIsSavingTask(true);
+    setTaskSubmitError(null);
+    try {
+      await sendTask(`/task/${selectedTask.id}`, "PUT", {
+        name: selectedTask.title,
+        description: selectedTask.description || null,
+        status: "completed",
+        category_id: selectedTask.categoryId,
+        due_date: selectedTask.dueDate,
+      });
+      setTasksReloadKey((k) => k + 1);
+      setSelectedTask(null);
+    } catch (err) {
+      setTaskSubmitError(err instanceof Error ? err.message : "Failed to submit task");
+    } finally {
+      setIsSavingTask(false);
+    }
   }
 
-  function handleUpdateTask() {
+  async function handleUpdateTask() {
     if (!selectedTask) return;
-
-    setTasks((prevTasks) =>
-      prevTasks.map((t) =>
-        t.id === selectedTask.id
-          ? {
-              ...t,
-              title: editTaskTitle,
-              category: editTaskCategory,
-              description: editTaskDescription,
-              assignedTo: editTaskAssignedIds
-                .map((id) => members.find((m) => m.id === id)?.name)
-                .join(", "),
-              dueDate: editTaskDueDate,
-              lastUpdate: formatDateTime(),
-            }
-          : t
-      )
-    );
-
-    setSelectedTask(null);
+    if (!editTaskTitle.trim() || editTaskCategoryId === "" || !editTaskDueDate) {
+      setTaskSubmitError("Title, category and due date are required.");
+      return;
+    }
+    setIsSavingTask(true);
+    setTaskSubmitError(null);
+    try {
+      await sendTask(`/task/${selectedTask.id}`, "PUT", {
+        name: editTaskTitle.trim(),
+        description: editTaskDescription || null,
+        status: selectedTask.status === "Completed" ? "completed" : "in_progress",
+        category_id: editTaskCategoryId,
+        due_date: editTaskDueDate,
+        assignee_ids: editTaskAssignedIds,
+      });
+      setTasksReloadKey((k) => k + 1);
+      setSelectedTask(null);
+    } catch (err) {
+      setTaskSubmitError(err instanceof Error ? err.message : "Failed to update task");
+    } finally {
+      setIsSavingTask(false);
+    }
   }
 
   function truncateLabel(text: string, maxLength = 20) {
@@ -600,6 +672,11 @@ export default function RequestTable() {
     new Set(tasks.map((t) => t.category).filter(Boolean))
   );
 
+  const canEditTicket =
+    !!selectedTicket &&
+    (userRole === "Lab Admin" ||  
+      (selectedTicket.createdById === currentUserId && selectedTicket.status === "Pending"));
+
   const filteredTasks = tasks
     .filter((task) =>
       task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
@@ -612,7 +689,7 @@ export default function RequestTable() {
       taskStatusFilter === "All" ? true : task.status === taskStatusFilter
     )
     .filter((task) =>
-    userRole === "admin" ? true : isAssignedToCurrentUser(task)
+      userRole === "Lab Admin" ? true : task.assigneeIds.includes(currentUserId)
     );
 
   return (
@@ -623,7 +700,7 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Tickets
-              {(userRole === "admin" || userRole === "member") && (
+              {(userRole === "Lab Admin" || userRole === "Lab user") && (
                 <button
                   onClick={() => setIsCreatingTicket(true)}
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
@@ -688,11 +765,13 @@ export default function RequestTable() {
                     key={ticket.id}
                     onClick={() => {
                       setSelectedTicket(ticket);
+                      setTaskSubmitError(null);
                       setAssignedMemberIds([]);
                       setEditTicketTitle(ticket.title);
                       setEditTicketCategory(ticket.category);
                       setEditTicketDescription(ticket.description);
                       setEditTicketDueDate(ticket.dueDate);
+                      setEditTicketCategoryId(ticket.categoryId);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
@@ -736,7 +815,7 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Task
-              {userRole === "admin" && (
+              {userRole === "Lab Admin" && (
               <button
                 onClick={() => setIsCreatingTask(true)}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
@@ -802,15 +881,13 @@ export default function RequestTable() {
                     key={task.id}
                     onClick={() => {
                       setSelectedTask(task);
+                      setEditTaskCategoryId(task.categoryId);
+                      setTaskSubmitError(null);
                       setEditTaskTitle(task.title);
                       setEditTaskCategory(task.category);
                       setEditTaskDescription(task.description);
                       setEditTaskDueDate(task.dueDate);
-                      setEditTaskAssignedIds(
-                        members
-                          .filter((m) => task.assignedTo.split(",").map((n) => n.trim()).includes(m.name))
-                          .map((m) => m.id)
-                      );
+                      setEditTaskAssignedIds(task.assigneeIds);
                     }}
                     className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
                   >
@@ -867,7 +944,7 @@ export default function RequestTable() {
               <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  {userRole === "admin" ? (
+                  {!canEditTicket ? (
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                       {selectedTicket.title}
                     </div>
@@ -884,22 +961,27 @@ export default function RequestTable() {
                 <div className="flex gap-4">
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    {userRole === "admin" ? (
+                    {!canEditTicket ? (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                         {selectedTicket.category}
                       </div>
                     ) : (
-                      <input
-                        type="text"
-                        value={editTicketCategory}
-                        onChange={(e) => setEditTicketCategory(e.target.value)}
+                      <select
+                        value={editTicketCategoryId}
+                        onChange={(e) => setEditTicketCategoryId(e.target.value ? Number(e.target.value) : "")}
                         className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      />
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
                     )}
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Due Date</label>
-                    {userRole === "admin" ? (
+                    {!canEditTicket ? (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                         {selectedTicket.dueDate || "—"}
                       </div>
@@ -916,7 +998,7 @@ export default function RequestTable() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  {userRole === "admin" ? (
+                  {!canEditTicket ? (
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
                       {selectedTicket.description}
                     </div>
@@ -937,11 +1019,18 @@ export default function RequestTable() {
                 </div>
               </div>
 
-              {userRole === "admin" && (
+              {userRole === "Lab Admin" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
-                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                    <span>Assign</span>
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Members — {members.length}</span>
+                    <button
+                      type="button"
+                      onClick={toggleAssignAll}
+                      disabled={members.length === 0}
+                      className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                    >
+                      {members.length > 0 && assignedMemberIds.length === members.length ? "Clear all" : "Assign all"}
+                    </button>
                   </div>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {members.map((member) => (
@@ -967,41 +1056,50 @@ export default function RequestTable() {
             </div>
 
             {/* Footer: action buttons, bottom-right */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
+              {taskSubmitError && (
+                <span className="text-sm text-red-500 mr-auto">{taskSubmitError}</span>
+              )}
+
               <button
                 onClick={() => {
                   setSelectedTicket(null);
                   setAssignedMemberIds([]);
+                  setTaskSubmitError(null);
                 }}
-                className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm"
+                disabled={isSavingTask}
+                className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
 
-              {userRole === "admin" ? (
+              {canEditTicket && (
+                <button
+                  onClick={handleUpdateTicket}
+                  disabled={isSavingTask}
+                  className="px-5 py-2 rounded bg-(--primary-color-2) text-black hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
+                >
+                  {isSavingTask ? "Saving…" : "Save Changes"}
+                </button>
+              )}
+
+              {userRole === "Lab Admin" && (
                 <>
                   <button
                     onClick={() => handleDecision("Rejected")}
-                    disabled={selectedTicket.status === "Rejected"}
+                    disabled={isSavingTask || selectedTicket.status === "Rejected"}
                     className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-red)"
                   >
                     Reject
                   </button>
                   <button
                     onClick={() => handleDecision("Approved")}
-                    disabled={selectedTicket.status === "Approved"}
+                    disabled={isSavingTask || selectedTicket.status === "Approved"}
                     className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
                   >
-                    Approve
+                    {isSavingTask ? "Saving…" : "Approve"}
                   </button>
                 </>
-              ) : (
-                <button
-                  onClick={handleUpdateTicket}
-                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
-                >
-                  Save Changes
-                </button>
               )}
             </div>
           </div>
@@ -1109,12 +1207,16 @@ export default function RequestTable() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Category</label>
-                  <input
-                    type="text"
-                    value={newTaskCategory}
-                    onChange={(e) => setNewTaskCategory(e.target.value)}
+                  <select
+                    value={newTaskCategoryId}
+                    onChange={(e) => setNewTaskCategoryId(e.target.value ? Number(e.target.value) : "")}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -1139,9 +1241,16 @@ export default function RequestTable() {
 
               {/* Right column: assign members */}
               <div className="w-64 border-l border-gray-200 pl-4">
-                <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                  <span>Assign</span>
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                   <span>Members — {members.length}</span>
+                  <button
+                    type="button"
+                    onClick={toggleNewTaskAssignAll}
+                    disabled={members.length === 0}
+                    className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                  >
+                    {members.length > 0 && newTaskAssignedIds.length === members.length ? "Clear all" : "Assign all"}
+                  </button>
                 </div>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {membersLoading && (
@@ -1179,18 +1288,23 @@ export default function RequestTable() {
             </div>
 
             {/* Footer: action buttons, bottom-right */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
+              {taskSubmitError && (
+                <span className="text-sm text-red-500 mr-auto">{taskSubmitError}</span>
+              )}
               <button
                 onClick={resetTaskForm}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+                disabled={isSavingTask}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTask}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                disabled={isSavingTask}
+                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
               >
-                Submit
+                {isSavingTask ? "Saving…" : "Submit"}
               </button>
             </div>
           </div>
@@ -1209,7 +1323,7 @@ export default function RequestTable() {
               <div className="flex-1 space-y-4 min-w-0">
                 <div>
                   <label className="block text-sm font-medium mb-1">Title</label>
-                  {userRole === "admin" ? (
+                  {userRole === "Lab Admin" ? (
                     <input
                       type="text"
                       value={editTaskTitle}
@@ -1226,13 +1340,17 @@ export default function RequestTable() {
                 <div className="flex gap-4">
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Category</label>
-                    {userRole === "admin" ? (
-                      <input
-                        type="text"
-                        value={editTaskCategory}
-                        onChange={(e) => setEditTaskCategory(e.target.value)}
+                    {userRole === "Lab Admin" ? (
+                      <select
+                        value={editTaskCategoryId}
+                        onChange={(e) => setEditTaskCategoryId(e.target.value ? Number(e.target.value) : "")}
                         className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      />
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
                     ) : (
                       <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
                         {selectedTask.category}
@@ -1247,7 +1365,7 @@ export default function RequestTable() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-sm font-medium mb-1">Due Date</label>
-                    {userRole === "admin" ? (
+                    {userRole === "Lab Admin" ? (
                       <input
                         type="date"
                         value={editTaskDueDate}
@@ -1271,7 +1389,7 @@ export default function RequestTable() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  {userRole === "admin" ? (
+                  {userRole === "Lab Admin" ? (
                     <textarea
                       value={editTaskDescription}
                       onChange={(e) => setEditTaskDescription(e.target.value)}
@@ -1284,7 +1402,7 @@ export default function RequestTable() {
                   )}
                 </div>
 
-                {userRole !== "admin" && (
+                {userRole !== "Lab Admin" && (
                   <div>
                     <label className="block text-sm font-medium mb-1">Assigned</label>
                     <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
@@ -1294,11 +1412,18 @@ export default function RequestTable() {
                 )}
               </div>
 
-              {userRole === "admin" && (
+              {userRole === "Lab Admin" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
-                  <div className="grid grid-cols-[auto_1fr] gap-x-3 text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                    <span>Assign</span>
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Members — {members.length}</span>
+                    <button
+                      type="button"
+                      onClick={toggleEditTaskAssignAll}
+                      disabled={members.length === 0}
+                      className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                    >
+                      {members.length > 0 && editTaskAssignedIds.length === members.length ? "Clear all" : "Assign all"}
+                    </button>
                   </div>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {members.map((member) => (
@@ -1323,26 +1448,39 @@ export default function RequestTable() {
               )}
             </div>
 
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
+              {taskSubmitError && (
+                <span className="text-sm text-red-500 mr-auto">{taskSubmitError}</span>
+              )}
+
               <button
-                onClick={() => setSelectedTask(null)}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm"
+                onClick={() => {
+                  setSelectedTask(null);
+                  setTaskSubmitError(null);
+                }}
+                disabled={isSavingTask}
+                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
-                {userRole === "admin" ? (
+
+              {userRole === "Lab Admin" && (
                 <button
                   onClick={handleUpdateTask}
-                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                  disabled={isSavingTask}
+                  className="px-5 py-2 rounded bg-(--primary-color-2) text-black hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
                 >
-                  Save Changes
+                  {isSavingTask ? "Saving…" : "Save Changes"}
                 </button>
-              ) : (
+              )}
+
+              {(userRole !== "Lab Admin" || selectedTask.assigneeIds.includes(currentUserId)) && (
                 <button
                   onClick={handleSubmitTask}
-                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm"
+                  disabled={isSavingTask || selectedTask.status === "Completed"}
+                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
                 >
-                  Submit
+                  {isSavingTask ? "Saving…" : "Submit"}
                 </button>
               )}
             </div>
