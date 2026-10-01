@@ -21,7 +21,7 @@ class TaskRequest(BaseModel):
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
     due_date: datetime | None = None
-    assignee_ids: list[uuid.UUID] | None = None
+    assignees: list[uuid.UUID] | None = None
 
 
 taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get_current_auth_user)])
@@ -95,8 +95,8 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
         by_whom = auth_user.id
     )
     
-    if body.assignee_ids:
-        assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignee_ids)))
+    if body.assignees:
+        assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
 
     # Add it to session, and update.
@@ -160,9 +160,9 @@ async def update_task(
         audit_list.append(update_helper(task.due_date, body.due_date))
         task.due_date = body.due_date
 
-    if body.assignee_ids is not None:
-        audit_list.append(update_helper(task.assignee_ids, body.assignee_ids))
-        assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignee_ids)))
+    if body.assignees is not None:
+        audit_list.append(update_helper(task.assignees, body.assignees))
+        assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
 
     if body.status is not None:
