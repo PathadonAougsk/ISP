@@ -1,5 +1,6 @@
 const TIME_ZONE = "Asia/Bangkok";
 
+// formatDueDate("2026-08-28T02:47:00Z") -> "Fri 28 Aug 2026, 09:47"
 export function formatDueDate(iso: string | null) {
   if (iso === null) return "No due date";
 
@@ -18,7 +19,7 @@ export function formatDueDate(iso: string | null) {
   return `${weekday} ${day} ${month} ${year}, ${time}`;
 }
 
-// full length -> "Friday 28 August 2026, 09:47"
+// formatFullDateTime("2026-08-28T02:47:00Z") -> "Friday 28 August 2026, 09:47"
 export function formatFullDateTime(iso: string | null) {
   if (iso === null) return "No due date";
 

@@ -32,7 +32,17 @@ export default function TicketPopup({
             <div className={`popup-overlay absolute inset-0 bg-black/60 ${isClosing ? "popup-overlay-closing" : ""}`} onClick={handleClose} />
 
             <div className={`popup-panel absolute bottom-0 left-[10%] flex h-[90%] w-[80%] flex-col rounded-t-[30px] bg-white p-5 ${isClosing ? "popup-panel-closing" : ""}`}>
-                <h1 className="wrap-break-word text-3xl font-bold text-black">{ticket.name}</h1>
+                <div className="flex min-w-0 items-start gap-2">
+                    <h1 className="min-w-0 flex-1 wrap-break-word text-3xl font-bold text-black">{ticket.name}</h1>
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
+                        aria-label="Close"
+                    >
+                        <Image src="/close.svg" width={0} height={0} sizes="auto" className="h-auto w-5" alt="" draggable={false} />
+                    </button>
+                </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-x-12 gap-y-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">

@@ -93,7 +93,7 @@ export default function Dashboard() {
 
   // get ticket 
   useEffect(() => {
-    getTickets({ onlyOwned: true })
+    getTickets({ status: "pending", limit: 50})
       .then(({ Tickets }) => setTickets(Tickets))
       .catch(() => setTickets([]))
       .finally(() => setLoadingTickets(false));

@@ -77,7 +77,7 @@ export default function ActiveTask({ tasks, loadingTasks }: { tasks: Task[]; loa
                                 <div className="flex w-7.5 items-center">
                                     <div className={`h-5 w-5 rounded-full ${bucket.color}`} />
                                 </div>
-                                <div className="flex w-5 items-center text-base">
+                                <div className="flex w-6 items-center text-base">
                                     <p>{loadingTasks ? "-" : bucket.count}</p>
                                 </div>
                                 <div className="flex flex-1 items-center text-base">
