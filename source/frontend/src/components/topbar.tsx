@@ -7,7 +7,7 @@ import { getMe, type Account } from "@/lib/account";
 
 export default function Topbar() {
   const pathname = usePathname().replace("/", "");
-  const [account, setAccount] = useState<Account | undefined>(undefined);
+  const [account, setAccount] = useState<Account | undefined>();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -20,14 +20,14 @@ export default function Topbar() {
   return (
     <div className="sticky top-0 z-10 flex h-15 w-full flex-row items-center justify-between bg-(--primary-color-3) p-7.5">
       <h1 className="text-3xl font-bold">
-        {pathname[0].toUpperCase() + pathname.slice(1)}
+        {pathname[0]?.toUpperCase() + pathname.slice(1)}
       </h1>
 
       <div className="flex flex-row items-center justify-center gap-5 text-center">
         <Image src="./profile.svg" width={36} height={36} alt="Profile" />
 
         {!isLoading && account && (
-          <div className="hidden flex-row items-center gap-2 text-lg md:flex">
+          <div className="hidden items-center gap-2 text-lg md:flex">
             <h1 className="font-bold">{account.username}</h1>
             <h1 className="font-bold">|</h1>
             <h1 className="font-bold">{account.role}</h1>

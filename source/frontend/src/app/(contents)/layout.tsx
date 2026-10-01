@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${notoSansThai.variable} ${anuphan.variable} h-full antialiased`}
     >
-      <body className="h-screen overflow-hidden flex flex-row">
+      <body suppressHydrationWarning className="h-screen overflow-hidden flex flex-row">
         <SettingsProvider>
           <Sidebar />
 
