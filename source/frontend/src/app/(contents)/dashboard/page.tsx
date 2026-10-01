@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAccount } from "@/lib/account";
+import { useCurrentAccount } from "@/components/account";
 import { getCategories, toCategoryMap, type Category } from "@/components/category";
 import { getTasks, type Task } from "@/components/task";
 import { getTickets, type Ticket } from "@/components/ticket";
@@ -34,6 +35,7 @@ export function getDueBucket(dueDateIso: string | null, now: Date): DueBucketKey
 }
 
 export default function Dashboard() {
+  const { account: currentAccount } = useCurrentAccount();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
@@ -93,7 +95,7 @@ export default function Dashboard() {
 
   // get ticket 
   useEffect(() => {
-    getTickets({ status: "pending", limit: 50})
+    getTickets({ status: "pending" })
       .then(({ Tickets }) => setTickets(Tickets))
       .catch(() => setTickets([]))
       .finally(() => setLoadingTickets(false));
@@ -118,6 +120,7 @@ export default function Dashboard() {
         loadingTickets={loadingTickets || loadingTasks}
         categoryMap={categoryMap}
         usernames={usernames}
+        currentAccount={currentAccount}
         onSelectTask={setSelectedTask}
         onSelectTicket={setSelectedTicket}
       />
@@ -140,4 +143,4 @@ export default function Dashboard() {
       )}
     </main>
   );
-} 
+}
