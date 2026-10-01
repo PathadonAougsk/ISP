@@ -1,53 +1,30 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
+import { getMe, type Account } from "@/lib/account";
+import { useEffect, useState } from "react";
 
-export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab user";
+// Resolves the signed in user against the account table, which is where the
+// username lives - the Supabase access token only carries the id and email.
+export function useCurrentAccount(enabled: boolean = true) {
+    const [account, setAccount] = useState<Account | null>(null);
+    const [loading, setLoading] = useState(true);
 
-export type Account = {
-    id: string;
-    username: string;
-    email: string;
-    role: AccountRole;
-    quota: number | null;
-    active: boolean;
-};
+    useEffect(() => {
+        if (!enabled) return;
 
-export type AccountsResponse = {
-    Accounts: Account[];
-};
+        getMe()
+            .then((found) => {
+                setAccount(found ?? null);
+            })
+            .catch(() => {
+                setAccount(null);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, [enabled]);
 
-export async function getAccounts(): Promise<AccountsResponse> {
-    const res = await apiFetch("/account/");
-
-    if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-    }
-
-    return res.json();
-}
-
-export async function getAccount(userId: string): Promise<Account | undefined> {
-    const { Accounts } = await getAccounts();
-
-    return Accounts.find((user) => user.id === userId);
-}
-
-export async function getCurrentAccount(): Promise<Account | undefined> {
-    const supabase = createClient();
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) return undefined;
-
-    const { Accounts } = await getAccounts();
-
-    return (
-        Accounts.find((user) => user.id === session.user.id) ??
-        Accounts.find((user) => user.email === session.user.email)
-    );
+    return { account, loading };
 }
 
 export default function Acoounts() {
