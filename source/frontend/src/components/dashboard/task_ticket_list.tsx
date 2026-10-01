@@ -25,6 +25,20 @@ function TaskList({
     currentAccount: Account | null;
     onSelectTask: (task: Task) => void;
 }) {
+    const sortedTasks =
+        currentAccount !== null && currentAccount.role !== "Lab user"
+            ? [...tasks].sort((a, b) => {
+                const aAssigned = a.assignees.some((assignee) => assignee.id === currentAccount.id);
+                const bAssigned = b.assignees.some((assignee) => assignee.id === currentAccount.id);
+
+                if (aAssigned !== bAssigned) {
+                    return aAssigned ? -1 : 1;
+                }
+
+                return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+            })
+            : tasks;
+
     return (
         <div className="flex min-h-25 flex-1 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
@@ -39,11 +53,11 @@ function TaskList({
 
             {loadingTasks ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">Loading tasks...</p>
-            ) : tasks.length === 0 ? (
+            ) : sortedTasks.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">Good job! You have completed all tasks.</p>
             ) : (
                 <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-                    {tasks.map((task) => {
+                    {sortedTasks.map((task) => {
                         const isUnassigned =
                             currentAccount !== null &&
                             currentAccount.role !== "Lab user" &&
@@ -72,7 +86,17 @@ function TaskList({
     );
 }
 
-function TicketList({ tickets, loadingTickets, categoryMap, onSelectTicket }: { tickets: Ticket[]; loadingTickets: boolean; categoryMap: CategoryMap; onSelectTicket: (ticket: Ticket) => void }) {
+function TicketList({
+    tickets,
+    loadingTickets,
+    categoryMap,
+    onSelectTicket
+}: {
+    tickets: Ticket[];
+    loadingTickets: boolean;
+    categoryMap: CategoryMap;
+    onSelectTicket: (ticket: Ticket) => void
+}) {
     return (
         <div className="flex min-h-25 flex-1 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
