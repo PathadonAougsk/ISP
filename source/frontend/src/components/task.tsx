@@ -16,7 +16,7 @@ export type Task = {
     completed_by: string | null;
     created: string;
     updated: string;
-    due_date: string;
+    due_date: string | null;
     completed_at: string | null;
     assignees: Account[];
 };

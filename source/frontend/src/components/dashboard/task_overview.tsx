@@ -26,7 +26,7 @@ export default function TaskOverview({ tasks, loadingTasks, categoryMap }: { tas
     return (
         <div className="flex min-h-25 flex-1 flex-col gap-3 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
             <div className="flex h-8 items-center gap-2 rounded-[20px] bg-(--primary-color-2) px-2">
-                <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
+                <Image src="/header_donut_dark_green.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
                 <h1 className="text-base font-bold text-white">Task Overview</h1>
             </div>
 
