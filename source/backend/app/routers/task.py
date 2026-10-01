@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -122,15 +122,17 @@ async def update_task(
 
     # Create an audit log for the update! 
     def update_helper(old_val, new_value):
+
         al = AuditLog(
             from_table = "task",
             row_id = str(task.id),
             column_name = "status",
-            old_value = old_val,
-            new_value = new_value,
+            old_value = f"{old_val}",
+            new_value = f"{new_value}",
             by_whom = auth_user.id
         )
-        return al
+        if (al.old_value == al.new_value): return 0
+        else: return al
     
     audit_list = []
 
@@ -157,7 +159,10 @@ async def update_task(
         task.category_id = body.category_id
 
     if body.due_date is not None:
-        audit_list.append(update_helper(task.due_date, body.due_date))
+        # TIME ZONE PROBLEM!!!! THIS IS A TEMPORARY FIX!!!
+        dt1 = task.due_date.replace(tzinfo=timezone.utc)
+        dt2 = body.due_date.replace(tzinfo=timezone.utc)
+        audit_list.append(update_helper(dt1, dt2))
         task.due_date = body.due_date
 
     if body.assignees is not None:
@@ -170,7 +175,8 @@ async def update_task(
         task.status = body.status
 
     for i in audit_list:
-        session.add(i)
+        if i != 0:
+            session.add(i)
     await session.commit()
     await session.refresh(task)
 
