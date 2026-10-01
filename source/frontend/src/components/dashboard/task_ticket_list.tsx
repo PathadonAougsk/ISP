@@ -7,8 +7,17 @@ import type { Task } from "@/components/task";
 import type { Ticket } from "@/components/ticket";
 import { formatDueDate } from "@/lib/format";
 
-export const ticketStatusText: Record<string, string> = { pending: "Pending", accepted: "Accepted", rejected: "Rejected" };
-export const ticketStatusIcon: Record<string, string> = { pending: "/pending.svg", accepted: "/accepted.svg", rejected: "/rejected.svg" };
+export const ticketStatusText: Record<string, string> = {
+    pending: "Pending",
+    accepted: "Accepted",
+    rejected: "Rejected",
+};
+
+export const ticketStatusIcon: Record<string, string> = {
+    pending: "/pending.svg",
+    accepted: "/accepted.svg",
+    rejected: "/rejected.svg",
+};
 
 function TaskList({
     tasks,
@@ -35,12 +44,16 @@ function TaskList({
                     return aAssigned ? -1 : 1;
                 }
 
+                if (a.due_date === null && b.due_date === null) return 0;
+                if (a.due_date === null) return 1;
+                if (b.due_date === null) return -1;
+
                 return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
             })
             : tasks;
 
     return (
-        <div className="flex min-h-25 flex-1 flex-col gap-2">
+        <div className="flex max-h-[calc(50%-4px)] min-h-0 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
                 <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
                 <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
@@ -56,7 +69,7 @@ function TaskList({
             ) : sortedTasks.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">Good job! You have completed all tasks.</p>
             ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
                     {sortedTasks.map((task) => {
                         const isUnassigned =
                             currentAccount !== null &&
@@ -98,7 +111,7 @@ function TicketList({
     onSelectTicket: (ticket: Ticket) => void
 }) {
     return (
-        <div className="flex min-h-25 flex-1 flex-col gap-2">
+        <div className="flex max-h-[calc(50%-4px)] min-h-0 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
                 <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
                 <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
@@ -114,7 +127,7 @@ function TicketList({
             ) : tickets.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">"Looks like everything's pretty peaceful around here. Hell yeah!"</p>
             ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
                     {tickets.map((ticket) => (
                         <div key={ticket.id} onClick={() => onSelectTicket(ticket)} className="flex h-8 shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 hover:bg-gray-100">
                             <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto shrink-0" alt={ticket.status} draggable={false} />
