@@ -26,7 +26,7 @@ function TaskList({
     onSelectTask: (task: Task) => void;
 }) {
     return (
-        <div className="flex min-h-25 flex-col gap-2">
+        <div className="flex min-h-25 flex-1 flex-col gap-2">
             <div className="flex h-8 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
                 <Image src="/header_arrow_down.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
                 <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
@@ -42,7 +42,7 @@ function TaskList({
             ) : tasks.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">Good job! You have completed all tasks.</p>
             ) : (
-                <div className="flex max-h-98 flex-col gap-2 overflow-y-auto">
+                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
                     {tasks.map((task) => {
                         const isUnassigned =
                             currentAccount !== null &&
@@ -90,7 +90,7 @@ function TicketList({ tickets, loadingTickets, categoryMap, onSelectTicket }: { 
             ) : tickets.length === 0 ? (
                 <p className="py-4 text-center text-base font-medium text-gray-500">"Looks like everything's pretty peaceful around here. Hell yeah!"</p>
             ) : (
-                <div className="flex max-h-98 flex-col gap-2 overflow-y-auto">
+                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
                     {tickets.map((ticket) => (
                         <div key={ticket.id} onClick={() => onSelectTicket(ticket)} className="flex h-8 shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 hover:bg-gray-100">
                             <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto shrink-0" alt={ticket.status} draggable={false} />
@@ -130,8 +130,8 @@ export default function TaskTicketList({
     onSelectTicket: (ticket: Ticket) => void;
 }) {
     return (
-        <div className="flex min-w-0 flex-1 shrink-0">
-            <div className="flex h-full w-full flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
+        <div className="relative flex min-w-0 flex-1 shrink-0">
+            <div className="absolute inset-0 flex flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
                 <TaskList tasks={tasks} loadingTasks={loadingTasks} categoryMap={categoryMap} usernames={usernames} currentAccount={currentAccount} onSelectTask={onSelectTask} />
                 <TicketList tickets={tickets} loadingTickets={loadingTickets} categoryMap={categoryMap} onSelectTicket={onSelectTicket} />
             </div>
