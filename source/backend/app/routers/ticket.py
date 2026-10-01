@@ -19,6 +19,7 @@ class TicketCreate(BaseModel):
 class TicketUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+    status: TicketStatus | None = None
     category_id: int | None = None
     due_date: dt.datetime | None = None
 
@@ -166,6 +167,9 @@ async def update_ticket(ticket_id: int,
 
     if data.description is not None:
         ticket.description = data.description
+
+    if data.status is not None:
+        ticket.status = data.status
 
     if data.category_id is not None:
         ticket.category_id = data.category_id
