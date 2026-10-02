@@ -13,27 +13,6 @@ import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskPopup from "@/components/dashboard/task_popup";
 import TicketPopup from "@/components/dashboard/ticket_popup";
 
-export type DueBucketKey = "thisWeek" | "nextWeek" | "later";
-
-export function getWeekBounds(date: Date) {
-  const day = date.getUTCDay();
-  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
-  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 6, 23, 59, 59, 999));
-  return { start, end };
-}
-
-export function getDueBucket(dueDateIso: string | null, now: Date): DueBucketKey {
-  if (dueDateIso === null) return "later";
-
-  const due = new Date(dueDateIso);
-  const { end: thisWeekEnd } = getWeekBounds(now);
-  const nextWeekEnd = new Date(Date.UTC(thisWeekEnd.getUTCFullYear(), thisWeekEnd.getUTCMonth(), thisWeekEnd.getUTCDate() + 7, 23, 59, 59, 999));
-
-  if (due <= thisWeekEnd) return "thisWeek";
-  if (due <= nextWeekEnd) return "nextWeek";
-  return "later";
-}
-
 export default function Dashboard() {
   const { account: currentAccount } = useCurrentAccount();
   const [tasks, setTasks] = useState<Task[]>([]);

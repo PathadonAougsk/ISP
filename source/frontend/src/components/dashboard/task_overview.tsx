@@ -3,13 +3,7 @@
 import Image from "next/image";
 import type { CategoryMap } from "@/components/category";
 import type { Task } from "@/components/task";
-import { getDueBucket, type DueBucketKey } from "@/app/(contents)/dashboard/page";
-
-const bucketMeta: { key: DueBucketKey; label: string; color: string }[] = [
-    { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },
-    { key: "nextWeek", label: "Next week", color: "bg-(--primary-yellow)" },
-    { key: "later", label: "Later", color: "bg-(--primary-blue)" },
-];
+import { dueBucketMeta, getDueBucket, type DueBucketKey } from "@/components/dashboard/due_bucket";
 
 export default function TaskOverview({ tasks, loadingTasks, categoryMap }: { tasks: Task[]; loadingTasks: boolean; categoryMap: CategoryMap }) {
     const now = new Date();
@@ -40,7 +34,7 @@ export default function TaskOverview({ tasks, loadingTasks, categoryMap }: { tas
                 categoryIds.map((id) => {
                     const counts = grouped[id];
                     const total = counts.thisWeek + counts.nextWeek + counts.later;
-                    const visibleBuckets = bucketMeta.filter((b) => counts[b.key] > 0);
+                    const visibleBuckets = dueBucketMeta.filter((b) => counts[b.key] > 0);
 
                     return (
                         <div key={id} className="flex h-15 rounded-2xl bg-white px-2 py-2">
@@ -62,7 +56,7 @@ export default function TaskOverview({ tasks, loadingTasks, categoryMap }: { tas
                                 </div>
 
                                 <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200">
-                                    {bucketMeta.map((b) =>
+                                    {dueBucketMeta.map((b) =>
                                         counts[b.key] > 0 ? (
                                             <div key={b.key} className={b.color} style={{ width: `${total > 0 ? (counts[b.key] / total) * 100 : 0}%` }} />
                                         ) : null
