@@ -62,7 +62,7 @@ export default function Dashboard() {
         if (cancelled) return;
         setTasks(Tasks);
         setCategories(Categories);
-        setUsernames(Object.fromEntries(accountEntries));
+        setUsernames((prev) => ({ ...prev, ...Object.fromEntries(accountEntries) }));
       } catch {
         if (!cancelled) setTasks([]);
       } finally {
@@ -79,10 +79,39 @@ export default function Dashboard() {
 
   // get ticket
   useEffect(() => {
-    getTickets({ status: "pending", limit: 50 })
-      .then(({ Tickets }) => setTickets(Tickets))
-      .catch(() => setTickets([]))
-      .finally(() => setLoadingTickets(false));
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const { Tickets } = await getTickets({ status: "pending", limit: 50 });
+
+        const uniqueAccountIds = [...new Set(Tickets.map((ticket) => ticket.created_by))];
+        const accountEntries = await Promise.all(
+          uniqueAccountIds.map(async (userId) => {
+            try {
+              const user = await getAccount(userId);
+              return [userId, user?.username ?? userId] as const;
+            } catch {
+              return [userId, userId] as const;
+            }
+          })
+        );
+
+        if (cancelled) return;
+        setTickets(Tickets);
+        setUsernames((prev) => ({ ...prev, ...Object.fromEntries(accountEntries) }));
+      } catch {
+        if (!cancelled) setTickets([]);
+      } finally {
+        if (!cancelled) setLoadingTickets(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -122,6 +151,7 @@ export default function Dashboard() {
         <TicketPopup
           ticket={selectedTicket}
           categoryMap={categoryMap}
+          usernames={usernames}
           onClose={() => setSelectedTicket(null)}
         />
       )}

@@ -10,10 +10,12 @@ import { PopupEdited, PopupFrame, PopupMeta, usePopupClose } from "@/components/
 export default function TicketPopup({
     ticket,
     categoryMap,
+    usernames,
     onClose,
 }: {
     ticket: Ticket;
     categoryMap: CategoryMap;
+    usernames: Record<string, string>;
     onClose: () => void;
 }) {
     const { isClosing, handleClose } = usePopupClose(onClose);
@@ -38,6 +40,10 @@ export default function TicketPopup({
                         <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
                     )}
                     <span>{ticketStatusText[ticket.status] ?? ticket.status}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Image src="/user.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
+                    <span>{usernames[ticket.created_by] ?? "-"}</span>
                 </div>
             </PopupMeta>
 
