@@ -73,7 +73,7 @@ type BackendTask = {
   created: string;
   updated: string;
   completed_at: string | null;
-  due_date: string;
+  due_date: string | null;
   assignees: BackendTaskAssignee[];
 };
 
@@ -411,8 +411,8 @@ export default function RequestTable() {
   }
 
   async function handleCreateTask() {
-    if (!newTaskTitle.trim() || newTaskCategoryId === "" || !newTaskDueDate) {
-      setTaskSubmitError("Title, category and due date are required.");
+    if (!newTaskTitle.trim() || newTaskCategoryId === "") {
+      setTaskSubmitError("Title and category are required.");
       return;
     }
     setIsSavingTask(true);
@@ -422,7 +422,7 @@ export default function RequestTable() {
         name: newTaskTitle.trim(),
         description: newTaskDescription || null,
         category_id: newTaskCategoryId,
-        due_date: newTaskDueDate,
+        due_date: newTaskDueDate || null,
         assignee_ids: newTaskAssignedIds,
       });
       setTasksReloadKey((k) => k + 1);
@@ -525,10 +525,6 @@ export default function RequestTable() {
       setTaskSubmitError("Title and category are required.");
       return;
     }
-    if (newStatus === "Approved" && !dueDate) {
-      setTaskSubmitError("This ticket has no due date, and tasks require one.");
-      return;
-    }
 
     const backendStatus = newStatus === "Approved" ? "accepted" : "rejected";
     const previousStatus =
@@ -556,7 +552,7 @@ export default function RequestTable() {
             name: title,
             description: description || null,
             category_id: categoryId,
-            due_date: dueDate,
+            due_date: dueDate || null,
             assignee_ids: assignedMemberIds,
           });
         } catch (taskErr) {
@@ -611,7 +607,7 @@ export default function RequestTable() {
         description: selectedTask.description || null,
         status: "completed",
         category_id: selectedTask.categoryId,
-        due_date: selectedTask.dueDate,
+        due_date: selectedTask.dueDate || null,
       });
       setTasksReloadKey((k) => k + 1);
       setSelectedTask(null);
@@ -622,10 +618,31 @@ export default function RequestTable() {
     }
   }
 
+  async function handleUnsubmitTask() {
+    if (!selectedTask) return;
+    setIsSavingTask(true);
+    setTaskSubmitError(null);
+    try {
+      await sendTask(`/task/${selectedTask.id}`, "PUT", {
+        name: selectedTask.title,
+        description: selectedTask.description || null,
+        status: "in_progress",
+        category_id: selectedTask.categoryId,
+        due_date: selectedTask.dueDate || null,
+      });
+      setTasksReloadKey((k) => k + 1);
+      setSelectedTask(null);
+    } catch (err) {
+      setTaskSubmitError(err instanceof Error ? err.message : "Failed to unsubmit task");
+    } finally {
+      setIsSavingTask(false);
+    }
+  }
+
   async function handleUpdateTask() {
     if (!selectedTask) return;
-    if (!editTaskTitle.trim() || editTaskCategoryId === "" || !editTaskDueDate) {
-      setTaskSubmitError("Title, category and due date are required.");
+    if (!editTaskTitle.trim() || editTaskCategoryId === "") {
+      setTaskSubmitError("Title and category are required.");
       return;
     }
     setIsSavingTask(true);
@@ -636,7 +653,7 @@ export default function RequestTable() {
         description: editTaskDescription || null,
         status: selectedTask.status === "Completed" ? "completed" : "in_progress",
         category_id: editTaskCategoryId,
-        due_date: editTaskDueDate,
+        due_date: editTaskDueDate || null,
         assignee_ids: editTaskAssignedIds,
       });
       setTasksReloadKey((k) => k + 1);
@@ -1019,7 +1036,7 @@ export default function RequestTable() {
                 </div>
               </div>
 
-              {userRole === "Lab Admin" && (
+              {userRole === "Lab Admin" && selectedTicket.status !== "Approved" && (
                 <div className="w-64 border-l border-gray-200 pl-4">
                   <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                     <span>Members — {members.length}</span>
@@ -1032,6 +1049,11 @@ export default function RequestTable() {
                       {members.length > 0 && assignedMemberIds.length === members.length ? "Clear all" : "Assign all"}
                     </button>
                   </div>
+
+                  <p className="text-xs text-gray-400 mb-2 normal-case">
+                    Selected members are assigned to the task when you approve.
+                  </p>
+
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {members.map((member) => (
                       <label key={member.id} className="grid grid-cols-[auto_1fr] gap-x-3 items-center">
@@ -1475,13 +1497,23 @@ export default function RequestTable() {
               )}
 
               {(userRole !== "Lab Admin" || selectedTask.assigneeIds.includes(currentUserId)) && (
-                <button
-                  onClick={handleSubmitTask}
-                  disabled={isSavingTask || selectedTask.status === "Completed"}
-                  className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
-                >
-                  {isSavingTask ? "Saving…" : "Submit"}
-                </button>
+                selectedTask.status === "Completed" ? (
+                  <button
+                    onClick={handleUnsubmitTask}
+                    disabled={isSavingTask}
+                    className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
+                  >
+                    {isSavingTask ? "Saving…" : "Unsubmit"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmitTask}
+                    disabled={isSavingTask}
+                    className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
+                  >
+                    {isSavingTask ? "Saving…" : "Submit"}
+                  </button>
+                )
               )}
             </div>
           </div>
