@@ -1,13 +1,7 @@
 "use client";
 
 import type { Task } from "@/components/task";
-import { getDueBucket } from "../../app/(contents)/dashboard/page";
-
-const bucketMeta = [
-    { key: "thisWeek", label: "This week", color: "bg-(--primary-red)" },
-    { key: "nextWeek", label: "Next week", color: "bg-(--primary-yellow)" },
-    { key: "later", label: "Later", color: "bg-(--primary-blue)" },
-] as const;
+import { dueBucketMeta, getDueBucket } from "@/components/dashboard/due_bucket";
 
 export default function ActiveTask({ tasks, loadingTasks }: { tasks: Task[]; loadingTasks: boolean }) {
     const now = new Date();
@@ -26,7 +20,7 @@ export default function ActiveTask({ tasks, loadingTasks }: { tasks: Task[]; loa
         return acc;
     }, {});
 
-    const dueBuckets = bucketMeta.map((bucket) => ({
+    const dueBuckets = dueBucketMeta.map((bucket) => ({
         ...bucket,
         count: counts[bucket.key] ?? 0,
     }));

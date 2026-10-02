@@ -121,12 +121,12 @@ async def update_task(
     )
 
     # Create an audit log for the update! 
-    def update_helper(old_val, new_value):
+    def update_helper(col_name,old_val, new_value):
 
         al = AuditLog(
             from_table = "task",
             row_id = str(task.id),
-            column_name = "status",
+            column_name = col_name,
             old_value = f"{old_val}",
             new_value = f"{new_value}",
             by_whom = auth_user.id
@@ -143,35 +143,35 @@ async def update_task(
 
     # If it exists, then you definetly should update it!
     if body.name is not None:
-        audit_list.append(update_helper(task.name, body.name))
+        audit_list.append(update_helper("name",task.name, body.name))
         task.name = body.name
     
     if body.description is not None:
-        audit_list.append(update_helper(task.description, body.description))
+        audit_list.append(update_helper("description",task.description, body.description))
         task.description = body.description
 
     if body.status is not None:
-        audit_list.append(update_helper(task.status, body.status))
+        audit_list.append(update_helper("status",task.status, body.status))
         task.status = body.status
 
     if body.category_id is not None:
-        audit_list.append(update_helper(task.category_id, body.category_id))
+        audit_list.append(update_helper("category_id",task.category_id, body.category_id))
         task.category_id = body.category_id
 
     if body.due_date is not None:
         # TIME ZONE PROBLEM!!!! THIS IS A TEMPORARY FIX!!!
         dt1 = task.due_date.replace(tzinfo=timezone.utc)
         dt2 = body.due_date.replace(tzinfo=timezone.utc)
-        audit_list.append(update_helper(dt1, dt2))
+        audit_list.append(update_helper("due_date",dt1, dt2))
         task.due_date = body.due_date
 
     if body.assignees is not None:
-        audit_list.append(update_helper(task.assignees, body.assignees))
+        audit_list.append(update_helper("assignees",task.assignees, body.assignees))
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
 
     if body.status is not None:
-        audit_list.append(update_helper(task.status, body.status))
+        audit_list.append(update_helper("status",task.status, body.status))
         task.status = body.status
 
     for i in audit_list:
