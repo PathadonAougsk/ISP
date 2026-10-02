@@ -78,20 +78,33 @@ export default function TaskPopup({
                     </div>
                 </div>
 
-                <div className="flex w-72 shrink-0 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
-                    <h1 className="text-base font-bold text-black">Responsible person</h1>
+                <div className="flex w-72 shrink-0 flex-col gap-2">
+                    <div className="flex h-7.5 w-full justify-end">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="flex h-7.5 w-7.5 items-center justify-center rounded-full bg-white hover:bg-gray-200"
+                            aria-label="Close"
+                        >
+                            <Image src="/close.svg" width={0} height={0} sizes="auto" className="h-auto w-5" alt="" draggable={false} />
+                        </button>
+                    </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                        <div className="flex flex-col gap-2">
-                            {sortedAssignees.map((assignee) => (
-                                <div key={assignee.id} className="flex items-center gap-2">
-                                    <Image src="/profile.svg" width={0} height={0} sizes="auto" className="h-5 w-auto shrink-0" alt="" draggable={false} />
-                                    <span className="truncate text-base text-gray-700">
-                                        {assignee.username}
-                                        {assignee.id === currentUserId && " (You)"}
-                                    </span>
-                                </div>
-                            ))}
+                    <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
+                        <h1 className="text-base font-bold text-black">Responsible person</h1>
+
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            <div className="flex flex-col gap-2">
+                                {sortedAssignees.map((assignee) => (
+                                    <div key={assignee.id} className="flex items-center gap-2">
+                                        <Image src="/profile.svg" width={0} height={0} sizes="auto" className="h-5 w-auto shrink-0" alt="" draggable={false} />
+                                        <span className="truncate text-base text-gray-700">
+                                            {assignee.username}
+                                            {assignee.id === currentUserId && " (You)"}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
