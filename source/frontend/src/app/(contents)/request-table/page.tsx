@@ -423,7 +423,7 @@ export default function RequestTable() {
         description: newTaskDescription || null,
         category_id: newTaskCategoryId,
         due_date: newTaskDueDate || null,
-        assignee_ids: newTaskAssignedIds,
+        assignees: newTaskAssignedIds,
       });
       setTasksReloadKey((k) => k + 1);
       resetTaskForm();
@@ -553,7 +553,7 @@ export default function RequestTable() {
             description: description || null,
             category_id: categoryId,
             due_date: dueDate || null,
-            assignee_ids: assignedMemberIds,
+            assignees: assignedMemberIds,
           });
         } catch (taskErr) {
           // Task failed: restore the previous status so it can be approved again
@@ -654,7 +654,7 @@ export default function RequestTable() {
         status: selectedTask.status === "Completed" ? "completed" : "in_progress",
         category_id: editTaskCategoryId,
         due_date: editTaskDueDate || null,
-        assignee_ids: editTaskAssignedIds,
+        assignees: editTaskAssignedIds,
       });
       setTasksReloadKey((k) => k + 1);
       setSelectedTask(null);
