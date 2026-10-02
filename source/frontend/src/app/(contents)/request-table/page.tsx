@@ -189,15 +189,15 @@ export default function RequestTable() {
 
     getMe()
       .then((account) => { if (!cancelled) setMe(account ?? null); })
-      .catch(() => { /* leave me as null, which falls back to Lab user */ })
+      .catch(() => { /* leave me as null, which falls back to Lab User */ })
       .finally(() => { if (!cancelled) setMeLoading(false); });
 
     return () => { cancelled = true; };
   }, []);
 
   // "Lab Owner" and "Lab Admin" both count as admin
-  const userRole: "Lab Admin" | "Lab user" =
-    me && isAdminRole(me.role) ? "Lab Admin" : "Lab user";
+  const userRole: "Lab Admin" | "Lab User" =
+    me && isAdminRole(me.role) ? "Lab Admin" : "Lab User";
 
   const currentUserId = me?.id ?? "";
 
@@ -717,7 +717,7 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Tickets
-              {(userRole === "Lab Admin" || userRole === "Lab user") && (
+              {(userRole === "Lab Admin" || userRole === "Lab User") && (
                 <button
                   onClick={() => setIsCreatingTicket(true)}
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
