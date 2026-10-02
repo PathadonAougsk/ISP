@@ -87,7 +87,7 @@ export default function Dashboard() {
 
   return (
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
-      <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
+      <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
         <ActiveTask tasks={assignedTasks} loadingTasks={loadingTasks} />
         <TaskOverview

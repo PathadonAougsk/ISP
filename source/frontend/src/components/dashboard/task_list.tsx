@@ -47,7 +47,7 @@ export default function TaskList({
         <div className="flex max-h-[calc(50%-4px)] min-h-0 flex-col gap-2">
             <div className="flex h-8 shrink-0 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
                 <Image src="/header_donut_dark_green.svg" width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
-                <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
+                <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
                     <h1 className="truncate text-base font-bold text-white">Task Name</h1>
                     <h1 className="truncate text-base font-bold text-white">Created by</h1>
                     <h1 className="truncate text-base font-bold text-white">Category</h1>
@@ -80,7 +80,7 @@ export default function TaskList({
                                     className="group flex h-8 shrink-0 cursor-pointer items-center gap-6 rounded-[20px] bg-white px-3 hover:bg-gray-100"
                                 >
                                     <span className={`h-2 w-2 shrink-0 rounded-full ${dueBucketColor[getDueBucket(task.due_date, now)]}`} />
-                                    <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_1.4fr] items-center gap-2">
+                                    <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
                                         <p className="truncate text-sm text-black">{task.name}</p>
                                         <p className="truncate text-sm text-black">{usernames[task.created_by] ?? "-"}</p>
                                         <p className="truncate text-sm text-black">{categoryMap[task.category_id] ?? "-"}</p>
