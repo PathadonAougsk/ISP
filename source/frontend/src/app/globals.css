@@ -99,13 +99,13 @@ button {
     width: 3.75rem;
   }
   to {
-    width: 12rem;
+    width: 14rem;
   }
 }
 
 @keyframes sidebar-collapse {
   from {
-    width: 12rem;
+    width: 14rem;
   }
   to {
     width: 3.75rem;
@@ -122,13 +122,13 @@ button {
 }
 
 .sidebar-expand {
-  animation: sidebar-expand 125ms ease-out;
+  animation: sidebar-expand 100ms ease-out;
 }
 
 .sidebar-collapse {
-  animation: sidebar-collapse 125ms ease-in;
+  animation: sidebar-collapse 100ms ease-in;
 }
 
 .sidebar-name-visible {
-  animation: sidebar-name-show 125ms ease-out;
+  animation: sidebar-name-show 100ms ease-out;
 }
