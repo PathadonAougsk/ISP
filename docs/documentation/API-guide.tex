@@ -163,7 +163,7 @@ application profile for an authenticated user. \texttt{id} is a uuid primary
 key and foreign key to auth.users.id. \texttt{username} and \texttt{email} are
 varchar not null. \texttt{quota} is an integer. \texttt{active} is a boolean
 not null. \texttt{role} is an enum \texttt{public.account\_role} not null which
-contains Lab Owner, Lab Admin and Lab user, stored as \texttt{lab\_owner},
+contains Lab Owner, Lab Admin and Lab User, stored as \texttt{lab\_owner},
 \texttt{lab\_admin} and \texttt{lab\_user}.
 
 \begin{note}
@@ -283,7 +283,7 @@ every endpoint that changes a row has to write its own audit rows.
 \texttt{Account(id, username, email, role, quota, active)} maps to
 public.account. \texttt{id} is a foreign key to auth.users.id with cascade on
 delete. \texttt{username} and \texttt{email} are unique and not null.
-\texttt{role} defaults to Lab user. \texttt{active} defaults to true.
+\texttt{role} defaults to Lab User. \texttt{active} defaults to true.
 \texttt{quota} has a check constraint requiring it to be greater than or equal
 to zero. It also exposes relationships for tasks and tickets created,
 completed, assigned, plus \texttt{announcements} and \texttt{audit\_entries}.

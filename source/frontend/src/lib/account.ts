@@ -1,7 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 
-export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab user";
+export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
 export type Account = {
   id: string;
@@ -37,7 +37,7 @@ export function readCachedRole(): AccountRole | null {
   const hit = document.cookie.split("; ").find((part) => part.startsWith(prefix));
   const value = hit ? decodeURIComponent(hit.slice(prefix.length)) : null;
 
-  return value === "Lab Owner" || value === "Lab Admin" || value === "Lab user" ? value : null;
+  return value === "Lab Owner" || value === "Lab Admin" || value === "Lab User" ? value : null;
 }
 
 export function cacheRole(role: AccountRole) {

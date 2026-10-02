@@ -26,7 +26,7 @@ export default function TaskList({
     const now = new Date();
 
     const sortedTasks =
-        currentAccount !== null && currentAccount.role !== "Lab user"
+        currentAccount !== null && currentAccount.role !== "Lab User"
             ? [...tasks].sort((a, b) => {
                 const aAssigned = a.assignees.some((assignee) => assignee.id === currentAccount.id);
                 const bAssigned = b.assignees.some((assignee) => assignee.id === currentAccount.id);
@@ -66,10 +66,10 @@ export default function TaskList({
                             index > 0 && sortedTasks[index - 1].assignees.some((assignee) => assignee.id === currentAccount?.id);
                         const isAssigned =
                             currentAccount !== null &&
-                            currentAccount.role !== "Lab user" &&
+                            currentAccount.role !== "Lab User" &&
                             task.assignees.some((assignee) => assignee.id === currentAccount.id);
-                        const showMyTasksHeader = currentAccount !== null && currentAccount.role !== "Lab user" && index === 0 && isAssigned;
-                        const showOtherTasksHeader = currentAccount !== null && currentAccount.role !== "Lab user" && !isAssigned && previousIsAssigned;
+                        const showMyTasksHeader = currentAccount !== null && currentAccount.role !== "Lab User" && index === 0 && isAssigned;
+                        const showOtherTasksHeader = currentAccount !== null && currentAccount.role !== "Lab User" && !isAssigned && previousIsAssigned;
 
                         return (
                             <Fragment key={task.id}>
