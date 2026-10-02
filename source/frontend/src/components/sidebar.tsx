@@ -56,7 +56,7 @@ export default function Sidebar() {
         />
       )}
 
-      <div className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-48 sidebar-expand" : "w-15 sidebar-collapse"}`}>
+      <div className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-56 sidebar-expand" : "w-15 sidebar-collapse"}`}>
         <div className="flex h-fit w-full flex-col items-center justify-evenly">
           <button type="button" onClick={() => setExpanded(!expanded)} className={getItemClass()}>
             <NavigationIcon name="sidebar" />
