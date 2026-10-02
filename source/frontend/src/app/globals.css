@@ -58,14 +58,14 @@ button {
 }
 .popup-overlay {
   opacity: 0.6;
-  animation: popup-fade 150ms ease-out;
+  animation: popup-fade 125ms ease-out;
 }
 .popup-overlay-closing {
-  animation: popup-fade-out 150ms ease-in forwards;
+  animation: popup-fade-out 125ms ease-in forwards;
 }
 .popup-panel {
-  animation: popup-slide-up 150ms ease-out;
+  animation: popup-slide-up 125ms ease-out;
 }
 .popup-panel-closing {
-  animation: popup-slide-down 150ms ease-in forwards;
+  animation: popup-slide-down 125ms ease-in forwards;
 }

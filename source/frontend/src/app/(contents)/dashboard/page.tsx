@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAccount } from "@/lib/account";
+import { useCurrentAccount } from "@/components/account";
 import { getCategories, toCategoryMap, type Category } from "@/components/category";
 import { getTasks, type Task } from "@/components/task";
 import { getTickets, type Ticket } from "@/components/ticket";
@@ -34,6 +35,7 @@ export function getDueBucket(dueDateIso: string | null, now: Date): DueBucketKey
 }
 
 export default function Dashboard() {
+  const { account: currentAccount } = useCurrentAccount();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
@@ -50,6 +52,11 @@ export default function Dashboard() {
   // id -> name lookup
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
+  const assignedTasks = useMemo(
+    () => currentAccount === null ? [] : tasks.filter((task) => task.assignees.some((assignee) => assignee.id === currentAccount.id)),
+    [tasks, currentAccount]
+  );
+
   // get tasks + categories
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +64,7 @@ export default function Dashboard() {
     async function load() {
       try {
         const [{ Tasks }, { Categories }] = await Promise.all([
-          getTasks({ status: "in_progress" }),
+          getTasks({ status: "in_progress", limit: 50 }),
           getCategories().catch(() => ({ Categories: [] as Category[] })),
         ]);
 
@@ -93,7 +100,7 @@ export default function Dashboard() {
 
   // get ticket
   useEffect(() => {
-    getTickets({ onlyOwned: true })
+    getTickets({ status: "pending", limit: 50 })
       .then(({ Tickets }) => setTickets(Tickets))
       .catch(() => setTickets([]))
       .finally(() => setLoadingTickets(false));
@@ -103,9 +110,9 @@ export default function Dashboard() {
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
-        <ActiveTask tasks={tasks} loadingTasks={loadingTasks} />
+        <ActiveTask tasks={assignedTasks} loadingTasks={loadingTasks} />
         <TaskOverview
-          tasks={tasks}
+          tasks={assignedTasks}
           loadingTasks={loadingTasks}
           categoryMap={categoryMap}
         />
@@ -118,6 +125,7 @@ export default function Dashboard() {
         loadingTickets={loadingTickets || loadingTasks}
         categoryMap={categoryMap}
         usernames={usernames}
+        currentAccount={currentAccount}
         onSelectTask={setSelectedTask}
         onSelectTicket={setSelectedTicket}
       />
