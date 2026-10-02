@@ -30,7 +30,7 @@ export default function TaskTicketList({
 }) {
     return (
         <div className="relative flex min-w-0 flex-1 shrink-0">
-            <div className="absolute inset-0 flex flex-col gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
+            <div className="absolute inset-0 grid grid-rows-[minmax(0,auto)_minmax(0,auto)] content-start gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
                 <TaskList tasks={tasks} loadingTasks={loadingTasks} categoryMap={categoryMap} usernames={usernames} currentAccount={currentAccount} onSelectTask={onSelectTask} />
                 <TicketList tickets={tickets} loadingTickets={loadingTickets} categoryMap={categoryMap} currentAccount={currentAccount} onSelectTicket={onSelectTicket} />
             </div>
