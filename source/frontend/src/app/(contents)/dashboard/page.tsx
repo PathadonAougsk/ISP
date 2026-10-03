@@ -13,6 +13,23 @@ import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskPopup from "@/components/dashboard/task_popup";
 import TicketPopup from "@/components/dashboard/ticket_popup";
 
+// cache (same user is only fetched once)
+const usernameRequests = new Map<string, Promise<string>>();
+
+function getUsername(userId: string) {
+  let request = usernameRequests.get(userId);
+  if (!request) {
+    request = getAccount(userId)
+      .then((user) => user?.username ?? userId)
+      .catch(() => {
+        usernameRequests.delete(userId);
+        return userId;
+      });
+    usernameRequests.set(userId, request);
+  }
+  return request;
+}
+
 export default function Dashboard() {
   const { account: currentAccount } = useCurrentAccount();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -23,6 +40,9 @@ export default function Dashboard() {
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
+
+  const maxTask = 20;
+  const maxTicket = 20;
 
   // item opened in the popup (null = popup closed)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -38,25 +58,41 @@ export default function Dashboard() {
 
   // get tasks + categories
   useEffect(() => {
+    if (currentAccount === null) return;
+
     let cancelled = false;
 
     async function load() {
       try {
-        const [{ Tasks }, { Categories }] = await Promise.all([
-          getTasks({ status: "in_progress", limit: 50 }),
-          getCategories().catch(() => ({ Categories: [] as Category[] })),
+        if (currentAccount === null) return;
+
+        const categoriesPromise = getCategories().catch(() => ({ Categories: [] as Category[] }));
+
+        const [{ Tasks: myTasks }, { Tasks: otherTasks }] = await Promise.all([
+          getTasks({
+            status: "in_progress",
+            assignsTo: currentAccount.id,
+            limit: maxTask,
+          }),
+          currentAccount.role !== "Lab User"
+            ? getTasks({
+              status: "in_progress",
+              limit: maxTask,
+            })
+            : Promise.resolve({ Tasks: [] }),
         ]);
+
+        const { Categories } = await categoriesPromise;
+
+        const myTaskIds = new Set(myTasks.map((task) => task.id));
+        const Tasks = [
+          ...myTasks,
+          ...otherTasks.filter((task) => !myTaskIds.has(task.id)),
+        ].slice(0, maxTask);
 
         const uniqueAccountIds = [...new Set(Tasks.map((task) => task.created_by))];
         const accountEntries = await Promise.all(
-          uniqueAccountIds.map(async (userId) => {
-            try {
-              const user = await getAccount(userId);
-              return [userId, user?.username ?? userId] as const;
-            } catch {
-              return [userId, userId] as const;
-            }
-          })
+          uniqueAccountIds.map(async (userId) => [userId, await getUsername(userId)] as const)
         );
 
         if (cancelled) return;
@@ -75,7 +111,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentAccount]);
 
   // get ticket
   useEffect(() => {
@@ -83,18 +119,11 @@ export default function Dashboard() {
 
     async function load() {
       try {
-        const { Tickets } = await getTickets({ status: "pending", limit: 50 });
+        const { Tickets } = await getTickets({ status: "pending", limit: maxTicket });
 
         const uniqueAccountIds = [...new Set(Tickets.map((ticket) => ticket.created_by))];
         const accountEntries = await Promise.all(
-          uniqueAccountIds.map(async (userId) => {
-            try {
-              const user = await getAccount(userId);
-              return [userId, user?.username ?? userId] as const;
-            } catch {
-              return [userId, userId] as const;
-            }
-          })
+          uniqueAccountIds.map(async (userId) => [userId, await getUsername(userId)] as const)
         );
 
         if (cancelled) return;
