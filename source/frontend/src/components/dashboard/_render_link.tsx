@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 
-const urlRegex = /((?:https?:\/\/|www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?::\d+)?(?:\/(?:[^\s]*[^\s.,!?;:])?)?)/g;
+const urlRegex = /(?<![\w.-])((?:https?:\/\/|www\.)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?::\d+)?(?:\/(?:[^\s]*[^\s.,!?;:])?)?)/g;
 
 // make plain text into text with clickable links
 export function renderWithLinks(text: string): ReactNode {
