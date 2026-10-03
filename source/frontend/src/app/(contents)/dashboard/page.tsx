@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAccount } from "@/lib/account";
 import { useCurrentAccount } from "@/components/account";
 import { getCategories, toCategoryMap, type Category } from "@/components/category";
@@ -32,11 +32,15 @@ function getUsername(userId: string) {
 
 export default function Dashboard() {
   const { account: currentAccount } = useCurrentAccount();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [myTasks, setMyTasks] = useState<Task[]>([]);
+  const [otherTasks, setOtherTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
-  // true until tasks + categories + account names are all ready
-  const [loadingTasks, setLoadingTasks] = useState(true);
+
+  // every part loads on its own and shows as soon as it is ready
+  const [loadingMyTasks, setLoadingMyTasks] = useState(true);
+  const [loadingOtherTasks, setLoadingOtherTasks] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
@@ -51,67 +55,100 @@ export default function Dashboard() {
   // id -> name lookup
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
-  const assignedTasks = useMemo(
-    () => currentAccount === null ? [] : tasks.filter((task) => task.assignees.some((assignee) => assignee.id === currentAccount.id)),
-    [tasks, currentAccount]
-  );
+  const isLabUser = currentAccount?.role === "Lab User";
 
-  // get tasks + categories
+  // other tasks fill to reach maxTask
+  const visibleOtherTasks = useMemo(() => {
+    if (loadingMyTasks) return [];
+    const myTaskIds = new Set(myTasks.map((task) => task.id));
+    return otherTasks
+      .filter((task) => !myTaskIds.has(task.id))
+      .slice(0, Math.max(maxTask - myTasks.length, 0));
+  }, [loadingMyTasks, myTasks, otherTasks]);
+
+  // lab user not load and my task length = 20 doesn't load
+  const showLoadingOtherTasks =
+    !isLabUser && loadingOtherTasks && (loadingMyTasks || myTasks.length < maxTask);
+
+  // fetch the account names one by one, each name shows when it arrives
+  const addUsernames = useCallback((userIds: string[]) => {
+    new Set(userIds).forEach((userId) => {
+      getUsername(userId).then((username) => {
+        setUsernames((prev) => (prev[userId] === username ? prev : { ...prev, [userId]: username }));
+      });
+    });
+  }, []);
+
+  // get my tasks
   useEffect(() => {
     if (currentAccount === null) return;
 
     let cancelled = false;
 
-    async function load() {
-      try {
-        if (currentAccount === null) return;
-
-        const categoriesPromise = getCategories().catch(() => ({ Categories: [] as Category[] }));
-
-        const [{ Tasks: myTasks }, { Tasks: otherTasks }] = await Promise.all([
-          getTasks({
-            status: "in_progress",
-            assignsTo: currentAccount.id,
-            limit: maxTask,
-          }),
-          currentAccount.role !== "Lab User"
-            ? getTasks({
-              status: "in_progress",
-              limit: maxTask,
-            })
-            : Promise.resolve({ Tasks: [] }),
-        ]);
-
-        const { Categories } = await categoriesPromise;
-
-        const myTaskIds = new Set(myTasks.map((task) => task.id));
-        const Tasks = [
-          ...myTasks,
-          ...otherTasks.filter((task) => !myTaskIds.has(task.id)),
-        ].slice(0, maxTask);
-
-        const uniqueAccountIds = [...new Set(Tasks.map((task) => task.created_by))];
-        const accountEntries = await Promise.all(
-          uniqueAccountIds.map(async (userId) => [userId, await getUsername(userId)] as const)
-        );
-
-        if (cancelled) return;
-        setTasks(Tasks);
-        setCategories(Categories);
-        setUsernames((prev) => ({ ...prev, ...Object.fromEntries(accountEntries) }));
-      } catch {
-        if (!cancelled) setTasks([]);
-      } finally {
-        if (!cancelled) setLoadingTasks(false);
-      }
-    }
-
-    load();
+    getTasks({
+      status: "in_progress",
+      assignsTo: currentAccount.id,
+      limit: maxTask,
+    })
+      .then(({ Tasks }) => {
+        if (!cancelled) setMyTasks(Tasks);
+      })
+      .catch(() => {
+        if (!cancelled) setMyTasks([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMyTasks(false);
+      });
 
     return () => {
       cancelled = true;
     };
   }, [currentAccount]);
+
+  // get other tasks (not for lab users)
+  useEffect(() => {
+    if (currentAccount === null || currentAccount.role === "Lab User") return;
+
+    let cancelled = false;
+
+    getTasks({
+      status: "in_progress",
+      limit: maxTask,
+    })
+      .then(({ Tasks }) => {
+        if (!cancelled) setOtherTasks(Tasks);
+      })
+      .catch(() => {
+        if (!cancelled) setOtherTasks([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingOtherTasks(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAccount]);
+
+  // get categories
+  useEffect(() => {
+    let cancelled = false;
+
+    getCategories()
+      .then(({ Categories }) => {
+        if (!cancelled) setCategories(Categories);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCategories(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // get ticket
   useEffect(() => {
@@ -121,14 +158,8 @@ export default function Dashboard() {
       try {
         const { Tickets } = await getTickets({ status: "pending", limit: maxTicket });
 
-        const uniqueAccountIds = [...new Set(Tickets.map((ticket) => ticket.created_by))];
-        const accountEntries = await Promise.all(
-          uniqueAccountIds.map(async (userId) => [userId, await getUsername(userId)] as const)
-        );
-
         if (cancelled) return;
         setTickets(Tickets);
-        setUsernames((prev) => ({ ...prev, ...Object.fromEntries(accountEntries) }));
       } catch {
         if (!cancelled) setTickets([]);
       } finally {
@@ -143,23 +174,34 @@ export default function Dashboard() {
     };
   }, []);
 
+  // get the creator names for whatever is on screen
+  useEffect(() => {
+    addUsernames([
+      ...myTasks.map((task) => task.created_by),
+      ...visibleOtherTasks.map((task) => task.created_by),
+      ...tickets.map((ticket) => ticket.created_by),
+    ]);
+  }, [myTasks, visibleOtherTasks, tickets, addUsernames]);
+
   return (
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
-        <ActiveTask tasks={assignedTasks} loadingTasks={loadingTasks} />
+        <ActiveTask tasks={myTasks} loadingTasks={loadingMyTasks} />
         <TaskOverview
-          tasks={assignedTasks}
-          loadingTasks={loadingTasks}
+          tasks={myTasks}
+          loadingTasks={loadingMyTasks || loadingCategories}
           categoryMap={categoryMap}
         />
       </div>
 
       <TaskTicketList
-        tasks={tasks}
-        loadingTasks={loadingTasks}
+        myTasks={myTasks}
+        otherTasks={visibleOtherTasks}
+        loadingMyTasks={loadingMyTasks}
+        loadingOtherTasks={showLoadingOtherTasks}
         tickets={tickets}
-        loadingTickets={loadingTickets || loadingTasks}
+        loadingTickets={loadingTickets || loadingCategories}
         categoryMap={categoryMap}
         usernames={usernames}
         currentAccount={currentAccount}

@@ -9,15 +9,19 @@ import { formatDueDate } from "@/lib/format";
 import { dueBucketColor, getDueBucket } from "@/components/dashboard/due_bucket";
 
 export default function TaskList({
-    tasks,
-    loadingTasks,
+    myTasks,
+    otherTasks,
+    loadingMyTasks,
+    loadingOtherTasks,
     categoryMap,
     usernames,
     currentAccount,
     onSelectTask,
 }: {
-    tasks: Task[];
-    loadingTasks: boolean;
+    myTasks: Task[];
+    otherTasks: Task[];
+    loadingMyTasks: boolean;
+    loadingOtherTasks: boolean;
     categoryMap: CategoryMap;
     usernames: Record<string, string>;
     currentAccount: Account | null;
@@ -25,40 +29,10 @@ export default function TaskList({
 }) {
     const now = new Date();
 
-    const sortedTasks =
-        currentAccount !== null && currentAccount.role !== "Lab User"
-            ? [...tasks].sort((a, b) => {
-                const aAssigned = a.assignees.some((assignee) => assignee.id === currentAccount.id);
-                const bAssigned = b.assignees.some((assignee) => assignee.id === currentAccount.id);
-
-                if (aAssigned !== bAssigned) {
-                    return aAssigned ? -1 : 1;
-                }
-
-                if (a.due_date === null && b.due_date === null) return 0;
-                if (a.due_date === null) return 1;
-                if (b.due_date === null) return -1;
-
-                return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-            })
-            : tasks;
-
     const isLabUser = currentAccount?.role === "Lab User";
 
-    const myTasks =
-        !isLabUser && currentAccount !== null
-            ? sortedTasks.filter((task) =>
-                task.assignees.some((assignee) => assignee.id === currentAccount.id)
-            )
-            : [];
-
-    const otherTasks =
-        !isLabUser && currentAccount !== null
-            ? sortedTasks.filter(
-                (task) =>
-                    !task.assignees.some((assignee) => assignee.id === currentAccount.id)
-            )
-            : [];
+    const hasMyTasks = !loadingMyTasks && myTasks.length > 0;
+    const hasOtherTasks = otherTasks.length > 0;
 
     const renderTask = (task: Task) => (
         <div
@@ -88,34 +62,36 @@ export default function TaskList({
                 </div>
             </div>
 
-            {loadingTasks ? (
-                <p className="py-12 text-center text-base font-medium text-gray-500">Loading tasks...</p>
-            ) : sortedTasks.length === 0 ? (
+            {!hasMyTasks && !hasOtherTasks ? (
                 <p className="py-12 text-center text-base font-medium text-gray-500">
-                    Good job! You have completed all tasks.
+                    {loadingMyTasks || loadingOtherTasks
+                        ? "Loading tasks..."
+                        : "Good job! You have completed all tasks."}
                 </p>
-            ) : isLabUser ? (
-                <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
-                    {sortedTasks.map(renderTask)}
-                </div>
             ) : (
                 <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
-                    {myTasks.length > 0 && (
+                    {hasMyTasks && (
                         <Fragment>
-                            <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                                My tasks
-                            </h1>
+                            {!isLabUser && (
+                                <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
+                                    My tasks
+                                </h1>
+                            )}
                             {myTasks.map(renderTask)}
                         </Fragment>
                     )}
 
-                    {otherTasks.length > 0 && (
+                    {hasOtherTasks && (
                         <Fragment>
                             <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
                                 Other tasks
                             </h1>
                             {otherTasks.map(renderTask)}
                         </Fragment>
+                    )}
+
+                    {loadingOtherTasks && (
+                        <p className="py-2 text-center text-sm font-medium text-gray-500">Loading tasks...</p>
                     )}
                 </div>
             )}
