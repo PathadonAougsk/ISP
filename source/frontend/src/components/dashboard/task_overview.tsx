@@ -10,12 +10,6 @@ import {
   type DueBucketKey,
 } from "@/components/dashboard/due_bucket";
 
-const darkTextColor: Record<DueBucketKey, string> = {
-  thisWeek: "text-(--primary-red-darker)",
-  nextWeek: "text-(--primary-yellow-darker)",
-  later: "text-(--primary-blue-darker)",
-};
-
 export default function TaskOverview({
   tasks,
   loadingTasks,
@@ -35,7 +29,12 @@ export default function TaskOverview({
     (acc, task) => {
       const bucket = getDueBucket(task.due_date, limits);
       if (!acc[task.category_id])
-        acc[task.category_id] = { thisWeek: 0, nextWeek: 0, later: 0 };
+        acc[task.category_id] = {
+          missing: 0,
+          thisWeek: 0,
+          nextWeek: 0,
+          later: 0,
+        };
       acc[task.category_id][bucket] += 1;
       return acc;
     },
@@ -54,15 +53,15 @@ export default function TaskOverview({
       </div>
 
       {loadingTasks ? (
-        <p className="py-4 text-center text-base font-medium text-gray-500">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           Loading tasks...
         </p>
       ) : errorTasks ? (
-        <p className="py-4 text-center text-base font-medium text-(--primary-red-darker)">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           Failed to load tasks
         </p>
       ) : errorCategories ? (
-        <p className="py-4 text-center text-base font-medium text-(--primary-red-darker)">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           Failed to load categories
         </p>
       ) : tasks.length === 0 ? (
@@ -72,7 +71,8 @@ export default function TaskOverview({
       ) : (
         categoryIds.map((id) => {
           const counts = grouped[id];
-          const total = counts.thisWeek + counts.nextWeek + counts.later;
+          const total =
+            counts.missing + counts.thisWeek + counts.nextWeek + counts.later;
           const visibleBuckets = dueBucketMeta.filter((b) => counts[b.key] > 0);
 
           return (
@@ -83,15 +83,13 @@ export default function TaskOverview({
                     {categoryMap[id] ?? `Category ${id}`}
                   </p>
 
-                  <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-4">
                     {visibleBuckets.map((b) => (
                       <div key={b.key} className="flex items-center gap-1">
                         <span
                           className={`h-4 w-4 shrink-0 rounded-full ${b.color}`}
                         />
-                        <span
-                          className={`text-base font-medium ${darkTextColor[b.key]}`}
-                        >
+                        <span className={`text-base font-medium text-black`}>
                           {counts[b.key]}
                         </span>
                       </div>

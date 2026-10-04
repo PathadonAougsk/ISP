@@ -104,7 +104,7 @@ export function PopupMeta({
   children?: ReactNode;
 }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-12 gap-y-2 text-sm text-gray-600">
+    <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
       <span className="font-semibold">#{id}</span>
       <div className="flex items-center gap-2">
         <Icon src="/header_donut_gray.svg" />

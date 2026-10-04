@@ -3,6 +3,7 @@
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import Icon from "@/components/icon";
+import { isMissing } from "@/components/dashboard/due_bucket";
 import {
   PopupCloseButton,
   PopupDescription,
@@ -53,6 +54,12 @@ export default function TaskPopup({
             <Icon src="/user.svg" />
             <span>{usernames[task.created_by] ?? "-"}</span>
           </div>
+
+          {isMissing(task.due_date, new Date()) && (
+            <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+              Missing
+            </div>
+          )}
         </PopupMeta>
 
         <PopupEdited created={task.created} updated={task.updated} />
@@ -65,7 +72,9 @@ export default function TaskPopup({
           <PopupCloseButton onClose={handleClose} />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
+        <div
+          className={`flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)`}
+        >
           <h1 className="text-base font-bold text-black">Responsible person</h1>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -73,7 +82,7 @@ export default function TaskPopup({
               {sortedAssignees.map((assignee) => (
                 <div key={assignee.id} className="flex items-center gap-2">
                   <Icon src="/profile.svg" className="h-5 w-auto shrink-0" />
-                  <span className="truncate text-base text-gray-700">
+                  <span className="truncate text-base font-medium text-gray-900">
                     {assignee.username}
                     {assignee.id === currentUserId && " (You)"}
                   </span>

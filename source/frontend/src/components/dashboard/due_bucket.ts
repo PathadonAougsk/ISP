@@ -1,7 +1,8 @@
-export type DueBucketKey = "thisWeek" | "nextWeek" | "later";
+export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
 export const dueBucketColor: Record<DueBucketKey, string> = {
-  thisWeek: "bg-(--primary-red)",
+  missing: "bg-(--primary-red)",
+  thisWeek: "bg-(--primary-orange)",
   nextWeek: "bg-(--primary-yellow)",
   later: "bg-(--primary-blue)",
 };
@@ -11,6 +12,7 @@ export const dueBucketMeta: {
   label: string;
   color: string;
 }[] = [
+  { key: "missing", label: "Missing", color: dueBucketColor.missing },
   { key: "thisWeek", label: "This week", color: dueBucketColor.thisWeek },
   { key: "nextWeek", label: "Next week", color: dueBucketColor.nextWeek },
   { key: "later", label: "Later", color: dueBucketColor.later },
@@ -39,7 +41,11 @@ export function getWeekBounds(date: Date) {
   return { start, end };
 }
 
-export type DueBucketLimits = { thisWeekEnd: Date; nextWeekEnd: Date };
+export type DueBucketLimits = {
+  now: Date;
+  thisWeekEnd: Date;
+  nextWeekEnd: Date;
+};
 
 // call this once per render, then reuse for every task
 export function getDueBucketLimits(now: Date): DueBucketLimits {
@@ -56,7 +62,20 @@ export function getDueBucketLimits(now: Date): DueBucketLimits {
     ),
   );
 
-  return { thisWeekEnd, nextWeekEnd };
+  return { now, thisWeekEnd, nextWeekEnd };
+}
+
+// missing = due date already pass. no due date is never missing
+export function isMissing(dueDateIso: string | null, now: Date): boolean {
+  return dueDateIso !== null && new Date(dueDateIso) <= now;
+}
+
+// only pending ticket can be missing
+export function isMissingTicket(
+  ticket: { status: string; due_date: string | null },
+  now: Date,
+): boolean {
+  return ticket.status === "pending" && isMissing(ticket.due_date, now);
 }
 
 export function getDueBucket(
@@ -67,6 +86,7 @@ export function getDueBucket(
 
   const due = new Date(dueDateIso);
 
+  if (due <= limits.now) return "missing";
   if (due <= limits.thisWeekEnd) return "thisWeek";
   if (due <= limits.nextWeekEnd) return "nextWeek";
   return "later";

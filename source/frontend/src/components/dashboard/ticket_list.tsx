@@ -4,6 +4,7 @@ import type { CategoryMap } from "@/lib/category";
 import type { Ticket } from "@/lib/ticket";
 import { formatDueDate } from "@/lib/format";
 import Icon from "@/components/icon";
+import { isMissingTicket } from "@/components/dashboard/due_bucket";
 import {
   ticketStatusIcon,
   ticketStatusText,
@@ -22,6 +23,8 @@ export default function TicketList({
   categoryMap: CategoryMap;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
+  const now = new Date();
+
   return (
     <div className="flex min-h-0 flex-col gap-2">
       <div className="flex h-8 shrink-0 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
@@ -41,7 +44,7 @@ export default function TicketList({
           Loading tickets...
         </p>
       ) : errorTickets ? (
-        <p className="py-6 text-center text-base font-medium text-(--primary-red-darker)">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           Failed to load tickets
         </p>
       ) : tickets.length === 0 ? (
@@ -58,7 +61,11 @@ export default function TicketList({
               className="flex h-8 w-full shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 text-left hover:bg-gray-100"
             >
               <Icon
-                src={ticketStatusIcon[ticket.status]}
+                src={
+                  isMissingTicket(ticket, now)
+                    ? "/alert.svg"
+                    : ticketStatusIcon[ticket.status]
+                }
                 className="h-4 w-auto shrink-0"
                 alt={ticket.status}
               />

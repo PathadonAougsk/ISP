@@ -5,18 +5,19 @@ import { useCurrentAccount } from "@/lib/current_account";
 import { toCategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import Announcement from "@/components/dashboard/announcement";
+import Missing from "@/components/dashboard/missing";
 import ActiveTask from "@/components/dashboard/active_task";
 import TaskOverview from "@/components/dashboard/task_overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskPopup from "@/components/dashboard/task_popup";
 import TicketPopup from "@/components/dashboard/ticket_popup";
-import { useDashboardFetching } from "@/components/dashboard/fetching";
+import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
 export default function Dashboard() {
   const { account: currentAccount } = useCurrentAccount();
 
-  const maxTask = 20;
-  const maxTicket = 20;
+  const maxTask = 30;
+  const maxTicket = 30;
 
   const {
     myTasks,
@@ -62,6 +63,15 @@ export default function Dashboard() {
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
+        <Missing
+          myTasks={myTasks}
+          otherTasks={otherTasks}
+          tickets={tickets}
+          loadingMyTasks={loadingMyTasks || errorMyTasks}
+          loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
+          loadingTickets={loadingTickets || errorTickets}
+          isLabUser={isLabUser}
+        />
         <ActiveTask
           tasks={myTasks}
           loadingTasks={loadingMyTasks || errorMyTasks}

@@ -15,13 +15,14 @@
   --primary-color-2-hover: #acd6c1;
   --primary-color-3-hover: #d0edb4;
 
-  --primary-red: #e74a4a;
-  --primary-yellow: #fcdc5d;
+  --primary-red: #ff4d4d;
+  --primary-orange: #ffa259;
+  --primary-yellow: #fef072;
   --primary-blue: #a2dcf8;
-  --primary-red-hover: #e18686;
-  --primary-red-darker: #990000;
-  --primary-yellow-darker: #a58408;
-  --primary-blue-darker: #3b7591;
+  --primary-red-hover: #ff6868;
+  --primary-orange-hover: #ffb072;
+  --primary-yellow-hover: #fff286;
+  --primary-blue-hover: #aae3ff;
 }
 
 /* ==========================================================

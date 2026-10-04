@@ -22,6 +22,7 @@ export default function ActiveTask({
 
     const due = new Date(task.due_date);
     return (
+      due > now &&
       due.getUTCFullYear() === now.getUTCFullYear() &&
       due.getUTCMonth() === now.getUTCMonth() &&
       due.getUTCDate() === now.getUTCDate()
@@ -34,25 +35,28 @@ export default function ActiveTask({
       acc[bucket] += 1;
       return acc;
     },
-    { thisWeek: 0, nextWeek: 0, later: 0 },
+    { missing: 0, thisWeek: 0, nextWeek: 0, later: 0 },
   );
 
-  const dueBuckets = dueBucketMeta.map((bucket) => ({
-    ...bucket,
-    count: counts[bucket.key],
-  }));
+  // missing only show when something is missing
+  const dueBuckets = dueBucketMeta
+    .map((bucket) => ({
+      ...bucket,
+      count: counts[bucket.key],
+    }))
+    .filter((bucket) => bucket.key !== "missing" || bucket.count > 0);
 
   return (
-    <div className="flex h-25 w-full gap-5">
+    <div className="flex w-full gap-5">
       <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[30px] bg-(--panel-bg) p-0">
-        <div className="flex flex-1 flex-col items-center justify-center gap-1">
+        <div className="flex flex-1 flex-col items-center justify-evenly">
           <h1 className="text-lg font-bold text-black">Due Today</h1>
           <h1 className="text-5xl font-extrabold text-black">
             {loadingTasks ? "-" : dueToday}
           </h1>
         </div>
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-1">
+        <div className="flex flex-1 flex-col items-center justify-evenly">
           <h1 className="text-lg font-bold text-black">Active Task</h1>
           <h1 className="text-5xl font-extrabold text-black">
             {loadingTasks ? "-" : tasks.length}
@@ -82,7 +86,7 @@ export default function ActiveTask({
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col justify-between text-lg font-medium text-black">
+          <div className="flex flex-1 flex-col justify-between gap-1 text-lg font-medium text-black">
             {dueBuckets.map((bucket) => (
               <div key={bucket.key} className="flex items-center">
                 <div className="flex w-7.5 items-center">
