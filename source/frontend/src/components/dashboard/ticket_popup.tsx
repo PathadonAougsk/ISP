@@ -3,6 +3,7 @@
 import type { CategoryMap } from "@/lib/category";
 import type { Ticket } from "@/lib/ticket";
 import Icon from "@/components/icon";
+import { isMissing } from "@/components/dashboard/due_bucket";
 import {
   ticketStatusIcon,
   ticketStatusText,
@@ -57,6 +58,12 @@ export default function TicketPopup({
           <Icon src="/user.svg" />
           <span>{usernames[ticket.created_by] ?? "-"}</span>
         </div>
+
+        {isMissing(ticket.due_date, new Date()) && (
+          <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+            Missing
+          </div>
+        )}
       </PopupMeta>
 
       <PopupEdited created={ticket.created} updated={ticket.updated} />
