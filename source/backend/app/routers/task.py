@@ -38,7 +38,7 @@ async def retrieve_tasks(
     categories: int | None = Query(None),
     assignsTo: uuid.UUID | None = Query(None),
     status: TaskStatus | None = Query(None),
-    limit: int | None = Query(None, ge=20),
+    limit: int | None = Query(None, ge=1),
 ):
     tasks = select(Task).options(selectinload(Task.assignees))
     # Then, we filter each attribute one by one.
