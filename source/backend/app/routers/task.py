@@ -34,11 +34,11 @@ taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get
 async def retrieve_tasks(
     me: Annotated[Account, Depends(account_service.get_current_account)],
     session: Annotated[AsyncSession, Depends(getSession)],
-    id: int | None = Query(None),
-    categories: int | None = Query(None),
-    assignsTo: uuid.UUID | None = Query(None),
-    status: TaskStatus | None = Query(None),
-    limit: int | None = Query(None, ge=1),
+    id: int | None = None,
+    categories: int | None = None,
+    assignsTo: uuid.UUID | None = None,
+    status: TaskStatus | None = None,
+    limit: int = 20
 ):
     tasks = select(Task).options(selectinload(Task.assignees))
     # Then, we filter each attribute one by one.
@@ -62,8 +62,7 @@ async def retrieve_tasks(
     tasks = tasks.order_by(Task.due_date, status_order)
 
     # Cap how many tasks come back, if asked for.
-    if limit:
-        tasks = tasks.limit(limit)
+    tasks = tasks.limit(limit)
 
     tasks = (await session.scalars(tasks)).all()
     # Asking for a specific task that does not exist is a 404.
