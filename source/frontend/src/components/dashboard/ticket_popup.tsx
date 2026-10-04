@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { CategoryMap } from "@/components/category";
-import type { Ticket } from "@/components/ticket";
+import type { CategoryMap } from "@/lib/category";
+import type { Ticket } from "@/lib/ticket";
 import {
   ticketStatusIcon,
   ticketStatusText,

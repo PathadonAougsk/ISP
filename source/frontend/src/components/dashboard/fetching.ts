@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getAccounts, type Account } from "@/lib/account";
-import { getCategories, type Category } from "@/components/category";
-import { getTasks, type Task } from "@/components/task";
-import { getTickets, type Ticket } from "@/components/ticket";
+import { getCategories, type Category } from "@/lib/category";
+import { getTasks, type Task } from "@/lib/task";
+import { getTickets, type Ticket } from "@/lib/ticket";
 
 const accountsRequest = getAccounts()
   .then(({ Accounts }) => Accounts)

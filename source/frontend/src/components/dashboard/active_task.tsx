@@ -1,6 +1,6 @@
 "use client";
 
-import type { Task } from "@/components/task";
+import type { Task } from "@/lib/task";
 import { dueBucketMeta, getDueBucket } from "@/components/dashboard/due_bucket";
 
 export default function ActiveTask({

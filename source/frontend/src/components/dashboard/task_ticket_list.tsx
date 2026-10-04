@@ -1,9 +1,9 @@
 "use client";
 
-import type { CategoryMap } from "@/components/category";
+import type { CategoryMap } from "@/lib/category";
 import type { Account } from "@/lib/account";
-import type { Task } from "@/components/task";
-import type { Ticket } from "@/components/ticket";
+import type { Task } from "@/lib/task";
+import type { Ticket } from "@/lib/ticket";
 import TaskList from "@/components/dashboard/task_list";
 import TicketList from "@/components/dashboard/ticket_list";
 

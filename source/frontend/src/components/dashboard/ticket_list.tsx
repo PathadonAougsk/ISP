@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import type { Account } from "@/lib/account";
-import type { CategoryMap } from "@/components/category";
-import type { Ticket } from "@/components/ticket";
+import type { CategoryMap } from "@/lib/category";
+import type { Ticket } from "@/lib/ticket";
 import { formatDueDate } from "@/lib/format";
 import {
   ticketStatusIcon,

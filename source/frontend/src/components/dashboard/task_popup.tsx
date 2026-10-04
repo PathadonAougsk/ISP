@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import type { CategoryMap } from "@/components/category";
-import type { Task } from "@/components/task";
+import type { CategoryMap } from "@/lib/category";
+import type { Task } from "@/lib/task";
 import { createClient } from "@/lib/supabase/client";
 import { renderWithLinks } from "@/components/dashboard/render_link";
 import {

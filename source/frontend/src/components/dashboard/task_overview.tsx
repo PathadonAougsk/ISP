@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { CategoryMap } from "@/components/category";
-import type { Task } from "@/components/task";
+import type { CategoryMap } from "@/lib/category";
+import type { Task } from "@/lib/task";
 import {
   dueBucketMeta,
   getDueBucket,

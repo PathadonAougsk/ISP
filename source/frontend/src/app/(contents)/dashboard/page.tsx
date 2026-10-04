@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCurrentAccount } from "@/components/account";
-import { toCategoryMap } from "@/components/category";
-import type { Task } from "@/components/task";
+import { useCurrentAccount } from "@/lib/current_account";
+import { toCategoryMap } from "@/lib/category";
+import type { Task } from "@/lib/task";
 import Announcement from "@/components/dashboard/announcement";
 import ActiveTask from "@/components/dashboard/active_task";
 import TaskOverview from "@/components/dashboard/task_overview";

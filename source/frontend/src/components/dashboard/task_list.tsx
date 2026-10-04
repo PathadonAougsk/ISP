@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import { Fragment } from "react";
-import type { CategoryMap } from "@/components/category";
+import type { CategoryMap } from "@/lib/category";
 import type { Account } from "@/lib/account";
-import type { Task } from "@/components/task";
+import type { Task } from "@/lib/task";
 import { formatDueDate } from "@/lib/format";
 import {
   dueBucketColor,
