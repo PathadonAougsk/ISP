@@ -34,10 +34,14 @@ export function readCachedRole(): AccountRole | null {
   if (typeof document === "undefined") return null;
 
   const prefix = `${ROLE_COOKIE}=`;
-  const hit = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+  const hit = document.cookie
+    .split("; ")
+    .find((part) => part.startsWith(prefix));
   const value = hit ? decodeURIComponent(hit.slice(prefix.length)) : null;
 
-  return value === "Lab Owner" || value === "Lab Admin" || value === "Lab User" ? value : null;
+  return value === "Lab Owner" || value === "Lab Admin" || value === "Lab User"
+    ? value
+    : null;
 }
 
 export function cacheRole(role: AccountRole) {

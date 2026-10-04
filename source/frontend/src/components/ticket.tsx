@@ -32,8 +32,11 @@ export type GetTicketsParams = {
   limit?: number;
 };
 
-export async function getTickets(params: GetTicketsParams = {}): Promise<TicketsResponse> {
-  const { ticket_id, status, category_id, due_before, onlyOwned, limit } = params;
+export async function getTickets(
+  params: GetTicketsParams = {},
+): Promise<TicketsResponse> {
+  const { ticket_id, status, category_id, due_before, onlyOwned, limit } =
+    params;
   const query = new URLSearchParams();
 
   if (ticket_id !== undefined) query.set("ticket_id", String(ticket_id));
@@ -53,14 +56,11 @@ export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    getTickets()
-      .then((body) => {
-        setTickets(body.Tickets);
-        console.log(body.Tickets)
-      })
+    getTickets().then((body) => {
+      setTickets(body.Tickets);
+      console.log(body.Tickets);
+    });
   }, []);
 
-  return (
-    <div></div>
-  );
+  return <div></div>;
 }
