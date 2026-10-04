@@ -9,6 +9,12 @@ import {
   type DueBucketKey,
 } from "@/components/dashboard/due_bucket";
 
+const darkTextColor: Record<DueBucketKey, string> = {
+  thisWeek: "text-(--primary-red-darker)",
+  nextWeek: "text-(--primary-yellow-darker)",
+  later: "text-(--primary-blue-darker)",
+};
+
 export default function TaskOverview({
   tasks,
   loadingTasks,
@@ -65,20 +71,23 @@ export default function TaskOverview({
           const visibleBuckets = dueBucketMeta.filter((b) => counts[b.key] > 0);
 
           return (
-            <div key={id} className="flex h-22 rounded-2xl bg-white px-2 py-2">
+            <div key={id} className="flex rounded-2xl bg-white px-2 py-2">
               <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div>
-                  <p className="text-base font-bold text-black">
+                <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1">
+                  <p className="max-w-full shrink-0 truncate text-base font-bold text-black">
                     {categoryMap[id] ?? `Category ${id}`}
                   </p>
-                  <div className="flex flex-wrap items-center gap-4">
+
+                  <div className="flex shrink-0 items-center gap-3">
                     {visibleBuckets.map((b) => (
-                      <div key={b.key} className="flex items-center gap-2">
+                      <div key={b.key} className="flex items-center gap-1">
                         <span
                           className={`h-4 w-4 shrink-0 rounded-full ${b.color}`}
                         />
-                        <span className="text-base font-medium whitespace-nowrap text-black">
-                          {counts[b.key]} {b.label}
+                        <span
+                          className={`text-base font-medium ${darkTextColor[b.key]}`}
+                        >
+                          {counts[b.key]}
                         </span>
                       </div>
                     ))}
