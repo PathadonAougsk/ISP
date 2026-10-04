@@ -46,11 +46,11 @@ export default function TicketList({
       </div>
 
       {loadingTickets ? (
-        <p className="py-12 text-center text-base font-medium text-gray-500">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           Loading tickets...
         </p>
       ) : tickets.length === 0 ? (
-        <p className="py-12 text-center text-base font-medium text-gray-500">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           "Looks like everything's pretty peaceful around here. Hell yeah!"
         </p>
       ) : (

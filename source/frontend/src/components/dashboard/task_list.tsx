@@ -82,7 +82,7 @@ export default function TaskList({
       </div>
 
       {!hasMyTasks && !hasOtherTasks ? (
-        <p className="py-12 text-center text-base font-medium text-gray-500">
+        <p className="py-6 text-center text-base font-medium text-gray-500">
           {loadingMyTasks || loadingOtherTasks
             ? "Loading tasks..."
             : "Good job! You have completed all tasks."}
