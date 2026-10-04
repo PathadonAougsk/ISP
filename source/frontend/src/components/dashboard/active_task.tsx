@@ -1,7 +1,12 @@
 "use client";
 
 import type { Task } from "@/lib/task";
-import { dueBucketMeta, getDueBucket } from "@/components/dashboard/due_bucket";
+import {
+  dueBucketMeta,
+  getDueBucket,
+  getDueBucketLimits,
+  type DueBucketKey,
+} from "@/components/dashboard/due_bucket";
 
 export default function ActiveTask({
   tasks,
@@ -11,6 +16,7 @@ export default function ActiveTask({
   loadingTasks: boolean;
 }) {
   const now = new Date();
+  const limits = getDueBucketLimits(now);
   const dueToday = tasks.filter((task) => {
     if (task.due_date === null) return false;
 
@@ -22,15 +28,18 @@ export default function ActiveTask({
     );
   }).length;
 
-  const counts = tasks.reduce<Record<string, number>>((acc, task) => {
-    const bucket = getDueBucket(task.due_date, now);
-    acc[bucket] = (acc[bucket] ?? 0) + 1;
-    return acc;
-  }, {});
+  const counts = tasks.reduce<Record<DueBucketKey, number>>(
+    (acc, task) => {
+      const bucket = getDueBucket(task.due_date, limits);
+      acc[bucket] += 1;
+      return acc;
+    },
+    { thisWeek: 0, nextWeek: 0, later: 0 },
+  );
 
   const dueBuckets = dueBucketMeta.map((bucket) => ({
     ...bucket,
-    count: counts[bucket.key] ?? 0,
+    count: counts[bucket.key],
   }));
 
   return (
@@ -63,7 +72,7 @@ export default function ActiveTask({
                 <div className="flex h-full w-full flex-col">
                   {dueBuckets.map((bucket) => (
                     <div
-                      key={bucket.label}
+                      key={bucket.key}
                       className={`w-full ${bucket.color}`}
                       style={{ flexGrow: bucket.count }}
                     />
@@ -75,7 +84,7 @@ export default function ActiveTask({
 
           <div className="flex flex-1 flex-col justify-between text-lg font-medium text-black">
             {dueBuckets.map((bucket) => (
-              <div key={bucket.label} className="flex items-center">
+              <div key={bucket.key} className="flex items-center">
                 <div className="flex w-7.5 items-center">
                   <div className={`h-5 w-5 rounded-full ${bucket.color}`} />
                 </div>

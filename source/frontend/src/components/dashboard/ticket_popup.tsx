@@ -1,14 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import type { CategoryMap } from "@/lib/category";
 import type { Ticket } from "@/lib/ticket";
+import Icon from "@/components/icon";
 import {
   ticketStatusIcon,
   ticketStatusText,
 } from "@/components/dashboard/ticket_status";
-import { renderWithLinks } from "@/components/dashboard/render_link";
 import {
+  PopupCloseButton,
+  PopupDescription,
   PopupEdited,
   PopupFrame,
   PopupMeta,
@@ -38,65 +39,29 @@ export default function TicketPopup({
         <h1 className="min-w-0 flex-1 wrap-break-word text-3xl font-bold text-black">
           {ticket.name}
         </h1>
-        <button
-          type="button"
-          onClick={handleClose}
-          className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
-          aria-label="Close"
-        >
-          <Image
-            src="/close.svg"
-            width={0}
-            height={0}
-            sizes="auto"
-            className="h-auto w-5"
-            alt=""
-            draggable={false}
-          />
-        </button>
+        <PopupCloseButton onClose={handleClose} />
       </div>
 
       <PopupMeta
+        id={ticket.id}
         categoryName={categoryMap[ticket.category_id] ?? "-"}
         dueDate={ticket.due_date}
       >
         <div className="flex items-center gap-2">
           {ticketStatusIcon[ticket.status] && (
-            <Image
-              src={ticketStatusIcon[ticket.status]}
-              width={0}
-              height={0}
-              sizes="auto"
-              className="h-4 w-auto"
-              alt=""
-              draggable={false}
-            />
+            <Icon src={ticketStatusIcon[ticket.status]} />
           )}
           <span>{ticketStatusText[ticket.status] ?? ticket.status}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Image
-            src="/user.svg"
-            width={0}
-            height={0}
-            sizes="auto"
-            className="h-4 w-auto"
-            alt=""
-            draggable={false}
-          />
+          <Icon src="/user.svg" />
           <span>{usernames[ticket.created_by] ?? "-"}</span>
         </div>
       </PopupMeta>
 
       <PopupEdited created={ticket.created} updated={ticket.updated} />
 
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
-        {ticket.description ? (
-          renderWithLinks(ticket.description)
-        ) : (
-          <span className="text-gray-400">No description</span>
-        )}
-      </div>
+      <PopupDescription description={ticket.description} />
     </PopupFrame>
   );
 }

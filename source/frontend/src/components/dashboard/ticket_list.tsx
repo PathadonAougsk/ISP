@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import type { Account } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import type { Ticket } from "@/lib/ticket";
 import { formatDueDate } from "@/lib/format";
+import Icon from "@/components/icon";
 import {
   ticketStatusIcon,
   ticketStatusText,
@@ -13,28 +12,20 @@ import {
 export default function TicketList({
   tickets,
   loadingTickets,
+  errorTickets,
   categoryMap,
-  currentAccount,
   onSelectTicket,
 }: {
   tickets: Ticket[];
   loadingTickets: boolean;
+  errorTickets: boolean;
   categoryMap: CategoryMap;
-  currentAccount: Account | null;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
   return (
     <div className="flex min-h-0 flex-col gap-2">
       <div className="flex h-8 shrink-0 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Image
-          src="/header_donut_dark_green.svg"
-          width={0}
-          height={0}
-          sizes="auto"
-          className="h-4 w-auto"
-          alt=""
-          draggable={false}
-        />
+        <Icon src="/header_donut_dark_green.svg" />
         <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
           <h1 className="truncate text-base font-bold text-white">
             Ticket Name
@@ -49,26 +40,27 @@ export default function TicketList({
         <p className="py-6 text-center text-base font-medium text-gray-500">
           Loading tickets...
         </p>
+      ) : errorTickets ? (
+        <p className="py-6 text-center text-base font-medium text-(--primary-red-darker)">
+          Failed to load tickets
+        </p>
       ) : tickets.length === 0 ? (
         <p className="py-6 text-center text-base font-medium text-gray-500">
-          "Looks like everything's pretty peaceful around here. Hell yeah!"
+          {"Looks like everything's pretty peaceful around here. Hell yeah!"}
         </p>
       ) : (
         <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
           {tickets.map((ticket) => (
-            <div
+            <button
               key={ticket.id}
+              type="button"
               onClick={() => onSelectTicket(ticket)}
-              className="flex h-8 shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 hover:bg-gray-100"
+              className="flex h-8 w-full shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 text-left hover:bg-gray-100"
             >
-              <Image
+              <Icon
                 src={ticketStatusIcon[ticket.status]}
-                width={0}
-                height={0}
-                sizes="auto"
                 className="h-4 w-auto shrink-0"
                 alt={ticket.status}
-                draggable={false}
               />
               <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
                 <p className="truncate text-sm text-black">{ticket.name}</p>
@@ -82,7 +74,7 @@ export default function TicketList({
                   {formatDueDate(ticket.due_date)}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

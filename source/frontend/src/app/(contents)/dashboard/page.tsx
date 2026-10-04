@@ -28,6 +28,10 @@ export default function Dashboard() {
     loadingOtherTasks,
     loadingCategories,
     loadingTickets,
+    errorMyTasks,
+    errorOtherTasks,
+    errorCategories,
+    errorTickets,
   } = useDashboardFetching(currentAccount, maxTask, maxTicket);
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -58,10 +62,15 @@ export default function Dashboard() {
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
       <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
-        <ActiveTask tasks={myTasks} loadingTasks={loadingMyTasks} />
+        <ActiveTask
+          tasks={myTasks}
+          loadingTasks={loadingMyTasks || errorMyTasks}
+        />
         <TaskOverview
           tasks={myTasks}
           loadingTasks={loadingMyTasks || loadingCategories}
+          errorTasks={errorMyTasks}
+          errorCategories={errorCategories}
           categoryMap={categoryMap}
         />
       </div>
@@ -71,8 +80,11 @@ export default function Dashboard() {
         otherTasks={visibleOtherTasks}
         loadingMyTasks={loadingMyTasks}
         loadingOtherTasks={showLoadingOtherTasks}
+        errorMyTasks={errorMyTasks}
+        errorOtherTasks={errorOtherTasks}
         tickets={tickets}
         loadingTickets={loadingTickets || loadingCategories}
+        errorTickets={errorTickets}
         categoryMap={categoryMap}
         usernames={usernames}
         currentAccount={currentAccount}
@@ -85,6 +97,7 @@ export default function Dashboard() {
           task={selectedTask}
           categoryMap={categoryMap}
           usernames={usernames}
+          currentUserId={currentAccount?.id ?? null}
           onClose={() => setSelectedTask(null)}
         />
       )}

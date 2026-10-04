@@ -30,11 +30,15 @@ export default function Topbar() {
         className={`flex flex-row items-center justify-center gap-5 text-center ${isLoading ? "invisible" : ""}`}
       >
         {!isLoading && account && (
-          <div className="hidden items-center gap-2 text-lg md:flex">
-            <h1 className="font-bold">{account.username}</h1>
-            <h1 className="font-bold">|</h1>
-            <h1 className="font-bold">{account.role}</h1>
-          </div>
+          <>
+            <div className="hidden items-center gap-2 text-lg md:flex">
+              <h1 className="font-bold">{account.username}</h1>
+              <h1 className="font-bold">|</h1>
+              <h1 className="font-bold">{account.role}</h1>
+            </div>
+
+            <Image src="./profile.svg" width={36} height={36} alt="Profile" />
+          </>
         )}
       </div>
     </div>

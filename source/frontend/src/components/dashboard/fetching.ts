@@ -6,15 +6,56 @@ import { getCategories, type Category } from "@/lib/category";
 import { getTasks, type Task } from "@/lib/task";
 import { getTickets, type Ticket } from "@/lib/ticket";
 
-const accountsRequest = getAccounts()
-  .then(({ Accounts }) => Accounts)
-  .catch(() => null);
+const CACHE_MS = 60_000;
+
+// share one request between callers. retry after a failure or after CACHE_MS
+function cachedRequest<T>(load: () => Promise<T>) {
+  let request: Promise<T | null> | null = null;
+  let loadedAt = 0;
+
+  return () => {
+    if (request === null || Date.now() - loadedAt > CACHE_MS) {
+      loadedAt = Date.now();
+      const next: Promise<T | null> = load().catch(() => {
+        if (request === next) request = null;
+        return null;
+      });
+      request = next;
+    }
+
+    return request;
+  };
+}
+
+const loadAccounts = cachedRequest(() =>
+  getAccounts().then(({ Accounts }) => Accounts),
+);
+
+const loadCategories = cachedRequest(() =>
+  getCategories().then(({ Categories }) => Categories),
+);
+
+// due date asc, null last. both null or same date, sort by id asc
+function compareByDueDate<T extends { id: number; due_date: string | null }>(
+  a: T,
+  b: T,
+) {
+  if (a.due_date === null && b.due_date === null) return a.id - b.id;
+  if (a.due_date === null) return 1;
+  if (b.due_date === null) return -1;
+
+  const diff = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  return diff !== 0 ? diff : a.id - b.id;
+}
 
 export function useDashboardFetching(
   currentAccount: Account | null,
   maxTask: number,
   maxTicket: number,
 ) {
+  const accountId = currentAccount?.id;
+  const accountRole = currentAccount?.role;
+
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [otherTasks, setOtherTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -26,77 +67,75 @@ export function useDashboardFetching(
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingTickets, setLoadingTickets] = useState(true);
 
+  const [errorMyTasks, setErrorMyTasks] = useState(false);
+  const [errorOtherTasks, setErrorOtherTasks] = useState(false);
+  const [errorCategories, setErrorCategories] = useState(false);
+  const [errorTickets, setErrorTickets] = useState(false);
+
   useEffect(() => {
-    if (currentAccount === null) return;
+    if (accountId === undefined) return;
 
     let cancelled = false;
 
-    async function loadTasks() {
-      try {
-        if (currentAccount === null) return;
-
-        const requests = [
-          getTasks({
-            status: "in_progress",
-            assignsTo: currentAccount.id,
-            limit: maxTask,
-          }),
-        ];
-
-        if (currentAccount.role !== "Lab User") {
-          requests.push(
-            getTasks({
-              status: "in_progress",
-              limit: maxTask,
-            }),
-          );
-        }
-
-        const [myTasksResponse, otherTasksResponse] =
-          await Promise.all(requests);
-
+    getTasks({
+      status: "in_progress",
+      assignsTo: accountId,
+      limit: maxTask,
+    })
+      .then(({ Tasks }) => {
         if (cancelled) return;
 
-        setMyTasks(myTasksResponse.Tasks);
-        setLoadingMyTasks(false);
-
-        if (otherTasksResponse) {
-          setOtherTasks(otherTasksResponse.Tasks);
-        } else {
-          setOtherTasks([]);
-        }
-
-        setLoadingOtherTasks(false);
-      } catch {
+        setMyTasks([...Tasks].sort(compareByDueDate));
+        setErrorMyTasks(false);
+      })
+      .catch(() => {
         if (cancelled) return;
 
         setMyTasks([]);
-        setOtherTasks([]);
-        setLoadingMyTasks(false);
-        setLoadingOtherTasks(false);
-      }
-    }
+        setErrorMyTasks(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMyTasks(false);
+      });
 
-    loadTasks();
+    if (accountRole !== "Lab User") {
+      getTasks({
+        status: "in_progress",
+        limit: maxTask,
+      })
+        .then(({ Tasks }) => {
+          if (cancelled) return;
+
+          setOtherTasks([...Tasks].sort(compareByDueDate));
+          setErrorOtherTasks(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+
+          setOtherTasks([]);
+          setErrorOtherTasks(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingOtherTasks(false);
+        });
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [currentAccount, maxTask]);
+  }, [accountId, accountRole, maxTask]);
 
   useEffect(() => {
     let cancelled = false;
 
-    getCategories()
-      .then(({ Categories }) => {
-        if (!cancelled) setCategories(Categories);
-      })
-      .catch(() => {
-        if (!cancelled) setCategories([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingCategories(false);
-      });
+    loadCategories().then((result) => {
+      if (cancelled) return;
+
+      if (result === null) setErrorCategories(true);
+      else setCategories(result);
+
+      setLoadingCategories(false);
+    });
 
     return () => {
       cancelled = true;
@@ -104,15 +143,13 @@ export function useDashboardFetching(
   }, []);
 
   useEffect(() => {
-    if (currentAccount === null) return;
+    if (accountId === undefined) return;
 
     let cancelled = false;
 
     async function loadTickets() {
       try {
-        if (currentAccount === null) return;
-
-        if (currentAccount.role === "Lab User") {
+        if (accountRole === "Lab User") {
           const [{ Tickets: pendingTickets }, { Tickets: rejectedTickets }] =
             await Promise.all([
               getTickets({
@@ -129,15 +166,7 @@ export function useDashboardFetching(
 
           setTickets(
             [...pendingTickets, ...rejectedTickets]
-              .sort((a, b) => {
-                if (a.due_date === null) return 1;
-                if (b.due_date === null) return -1;
-
-                return (
-                  new Date(a.due_date).getTime() -
-                  new Date(b.due_date).getTime()
-                );
-              })
+              .sort(compareByDueDate)
               .slice(0, maxTicket),
           );
         } else {
@@ -146,10 +175,17 @@ export function useDashboardFetching(
             limit: maxTicket,
           });
 
-          if (!cancelled) setTickets(Tickets);
+          if (cancelled) return;
+
+          setTickets([...Tickets].sort(compareByDueDate));
         }
+
+        setErrorTickets(false);
       } catch {
-        if (!cancelled) setTickets([]);
+        if (cancelled) return;
+
+        setTickets([]);
+        setErrorTickets(true);
       } finally {
         if (!cancelled) setLoadingTickets(false);
       }
@@ -160,7 +196,7 @@ export function useDashboardFetching(
     return () => {
       cancelled = true;
     };
-  }, [currentAccount, maxTicket]);
+  }, [accountId, accountRole, maxTicket]);
 
   useEffect(() => {
     const userIds = [
@@ -174,14 +210,19 @@ export function useDashboardFetching(
 
     let cancelled = false;
 
-    accountsRequest.then((accounts) => {
+    loadAccounts().then((accounts) => {
       if (cancelled || !accounts) return;
 
+      const names = new Map(
+        accounts.map((account): [string, string] => [
+          account.id,
+          account.username,
+        ]),
+      );
       const nextUsernames: Record<string, string> = {};
 
       uniqueIds.forEach((userId) => {
-        nextUsernames[userId] =
-          accounts.find((account) => account.id === userId)?.username ?? userId;
+        nextUsernames[userId] = names.get(userId) ?? userId;
       });
 
       setUsernames((prev) => ({ ...prev, ...nextUsernames }));
@@ -199,8 +240,12 @@ export function useDashboardFetching(
     tickets,
     usernames,
     loadingMyTasks,
-    loadingOtherTasks,
+    loadingOtherTasks: loadingOtherTasks && accountRole !== "Lab User", // lab users never waiting for other tasks
     loadingCategories,
     loadingTickets,
+    errorMyTasks,
+    errorOtherTasks,
+    errorCategories,
+    errorTickets,
   };
 }

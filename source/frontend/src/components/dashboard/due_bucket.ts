@@ -39,13 +39,10 @@ export function getWeekBounds(date: Date) {
   return { start, end };
 }
 
-export function getDueBucket(
-  dueDateIso: string | null,
-  now: Date,
-): DueBucketKey {
-  if (dueDateIso === null) return "later";
+export type DueBucketLimits = { thisWeekEnd: Date; nextWeekEnd: Date };
 
-  const due = new Date(dueDateIso);
+// call this once per render, then reuse for every task
+export function getDueBucketLimits(now: Date): DueBucketLimits {
   const { end: thisWeekEnd } = getWeekBounds(now);
   const nextWeekEnd = new Date(
     Date.UTC(
@@ -59,7 +56,18 @@ export function getDueBucket(
     ),
   );
 
-  if (due <= thisWeekEnd) return "thisWeek";
-  if (due <= nextWeekEnd) return "nextWeek";
+  return { thisWeekEnd, nextWeekEnd };
+}
+
+export function getDueBucket(
+  dueDateIso: string | null,
+  limits: DueBucketLimits,
+): DueBucketKey {
+  if (dueDateIso === null) return "later";
+
+  const due = new Date(dueDateIso);
+
+  if (due <= limits.thisWeekEnd) return "thisWeek";
+  if (due <= limits.nextWeekEnd) return "nextWeek";
   return "later";
 }

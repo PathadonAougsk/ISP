@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
+import Icon from "@/components/icon";
 import {
   dueBucketMeta,
   getDueBucket,
+  getDueBucketLimits,
   type DueBucketKey,
 } from "@/components/dashboard/due_bucket";
 
@@ -18,17 +19,21 @@ const darkTextColor: Record<DueBucketKey, string> = {
 export default function TaskOverview({
   tasks,
   loadingTasks,
+  errorTasks,
+  errorCategories,
   categoryMap,
 }: {
   tasks: Task[];
   loadingTasks: boolean;
+  errorTasks: boolean;
+  errorCategories: boolean;
   categoryMap: CategoryMap;
 }) {
-  const now = new Date();
+  const limits = getDueBucketLimits(new Date());
 
   const grouped = tasks.reduce<Record<number, Record<DueBucketKey, number>>>(
     (acc, task) => {
-      const bucket = getDueBucket(task.due_date, now);
+      const bucket = getDueBucket(task.due_date, limits);
       if (!acc[task.category_id])
         acc[task.category_id] = { thisWeek: 0, nextWeek: 0, later: 0 };
       acc[task.category_id][bucket] += 1;
@@ -44,21 +49,21 @@ export default function TaskOverview({
   return (
     <div className="flex min-h-25 flex-1 flex-col gap-3 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
       <div className="flex h-8 items-center gap-2 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Image
-          src="/header_donut_dark_green.svg"
-          width={0}
-          height={0}
-          sizes="auto"
-          className="h-4 w-auto"
-          alt=""
-          draggable={false}
-        />
+        <Icon src="/header_donut_dark_green.svg" />
         <h1 className="text-base font-bold text-white">Task Overview</h1>
       </div>
 
       {loadingTasks ? (
         <p className="py-4 text-center text-base font-medium text-gray-500">
           Loading tasks...
+        </p>
+      ) : errorTasks ? (
+        <p className="py-4 text-center text-base font-medium text-(--primary-red-darker)">
+          Failed to load tasks
+        </p>
+      ) : errorCategories ? (
+        <p className="py-4 text-center text-base font-medium text-(--primary-red-darker)">
+          Failed to load categories
         </p>
       ) : tasks.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">

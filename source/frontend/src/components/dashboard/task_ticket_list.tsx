@@ -12,8 +12,11 @@ export default function TaskTicketList({
   otherTasks,
   loadingMyTasks,
   loadingOtherTasks,
+  errorMyTasks,
+  errorOtherTasks,
   tickets,
   loadingTickets,
+  errorTickets,
   categoryMap,
   usernames,
   currentAccount,
@@ -24,8 +27,11 @@ export default function TaskTicketList({
   otherTasks: Task[];
   loadingMyTasks: boolean;
   loadingOtherTasks: boolean;
+  errorMyTasks: boolean;
+  errorOtherTasks: boolean;
   tickets: Ticket[];
   loadingTickets: boolean;
+  errorTickets: boolean;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   currentAccount: Account | null;
@@ -40,6 +46,8 @@ export default function TaskTicketList({
           otherTasks={otherTasks}
           loadingMyTasks={loadingMyTasks}
           loadingOtherTasks={loadingOtherTasks}
+          errorMyTasks={errorMyTasks}
+          errorOtherTasks={errorOtherTasks}
           categoryMap={categoryMap}
           usernames={usernames}
           currentAccount={currentAccount}
@@ -48,8 +56,8 @@ export default function TaskTicketList({
         <TicketList
           tickets={tickets}
           loadingTickets={loadingTickets}
+          errorTickets={errorTickets}
           categoryMap={categoryMap}
-          currentAccount={currentAccount}
           onSelectTicket={onSelectTicket}
         />
       </div>

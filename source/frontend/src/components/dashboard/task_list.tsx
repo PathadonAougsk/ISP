@@ -1,14 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { Fragment } from "react";
 import type { CategoryMap } from "@/lib/category";
 import type { Account } from "@/lib/account";
 import type { Task } from "@/lib/task";
 import { formatDueDate } from "@/lib/format";
+import Icon from "@/components/icon";
 import {
   dueBucketColor,
   getDueBucket,
+  getDueBucketLimits,
 } from "@/components/dashboard/due_bucket";
 
 export default function TaskList({
@@ -16,6 +17,8 @@ export default function TaskList({
   otherTasks,
   loadingMyTasks,
   loadingOtherTasks,
+  errorMyTasks,
+  errorOtherTasks,
   categoryMap,
   usernames,
   currentAccount,
@@ -25,12 +28,14 @@ export default function TaskList({
   otherTasks: Task[];
   loadingMyTasks: boolean;
   loadingOtherTasks: boolean;
+  errorMyTasks: boolean;
+  errorOtherTasks: boolean;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   currentAccount: Account | null;
   onSelectTask: (task: Task) => void;
 }) {
-  const now = new Date();
+  const limits = getDueBucketLimits(new Date());
 
   const isLabUser = currentAccount?.role === "Lab User";
 
@@ -38,13 +43,14 @@ export default function TaskList({
   const hasOtherTasks = otherTasks.length > 0;
 
   const renderTask = (task: Task) => (
-    <div
+    <button
       key={task.id}
+      type="button"
       onClick={() => onSelectTask(task)}
-      className="group flex h-8 shrink-0 cursor-pointer items-center gap-6 rounded-[20px] bg-white px-3 hover:bg-gray-100"
+      className="group flex h-8 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] bg-white px-3 text-left hover:bg-gray-100"
     >
       <span
-        className={`h-2 w-2 shrink-0 rounded-full ${dueBucketColor[getDueBucket(task.due_date, now)]}`}
+        className={`h-2 w-2 shrink-0 rounded-full ${dueBucketColor[getDueBucket(task.due_date, limits)]}`}
       />
       <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
         <p className="truncate text-sm text-black">{task.name}</p>
@@ -56,21 +62,13 @@ export default function TaskList({
         </p>
         <p className="text-sm text-black">{formatDueDate(task.due_date)}</p>
       </div>
-    </div>
+    </button>
   );
 
   return (
     <div className="flex min-h-0 flex-col gap-2">
       <div className="flex h-8 shrink-0 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Image
-          src="/header_donut_dark_green.svg"
-          width={0}
-          height={0}
-          sizes="auto"
-          className="h-4 w-auto"
-          alt=""
-          draggable={false}
-        />
+        <Icon src="/header_donut_dark_green.svg" />
         <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
           <h1 className="truncate text-base font-bold text-white">Task Name</h1>
           <h1 className="truncate text-base font-bold text-white">
@@ -83,9 +81,11 @@ export default function TaskList({
 
       {!hasMyTasks && !hasOtherTasks ? (
         <p className="py-6 text-center text-base font-medium text-gray-500">
-          {loadingMyTasks || loadingOtherTasks
-            ? "Loading tasks..."
-            : "Good job! You have completed all tasks."}
+          {errorMyTasks || errorOtherTasks
+            ? "Failed to load tasks"
+            : loadingMyTasks || loadingOtherTasks
+              ? "Loading tasks..."
+              : "Good job! You have completed all tasks."}
         </p>
       ) : (
         <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
@@ -112,6 +112,18 @@ export default function TaskList({
           {loadingOtherTasks && (
             <p className="py-2 text-center text-sm font-medium text-gray-500">
               Loading tasks...
+            </p>
+          )}
+
+          {errorMyTasks && (
+            <p className="py-2 text-center text-sm font-medium text-(--primary-red-darker)">
+              {isLabUser ? "Failed to load tasks" : "Failed to load my tasks"}
+            </p>
+          )}
+
+          {errorOtherTasks && (
+            <p className="py-2 text-center text-sm font-medium text-(--primary-red-darker)">
+              Failed to load other tasks
             </p>
           )}
         </div>
