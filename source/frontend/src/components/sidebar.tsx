@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSettings } from "./setting-provider";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
@@ -43,6 +43,11 @@ export default function Sidebar() {
   const currentPath = pathname.split("/")[1];
   const { openSettings } = useSettings();
   const [expanded, setExpanded] = useState(false);
+  const [hasExpanded, setHasExpanded] = useState(false);
+
+  useEffect(() => {
+    if (expanded) setHasExpanded(true);
+  }, [expanded]);
 
   // Active tab: reverse the state. Other tab: go to that page and collapse.
   const handleNavigationClick = (name: string) => setExpanded(currentPath === name ? !expanded : false);
@@ -56,7 +61,7 @@ export default function Sidebar() {
         />
       )}
 
-      <div className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-56 sidebar-expand" : "w-15 sidebar-collapse"}`}>
+      <div className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-56 sidebar-expand" : hasExpanded ? "w-15 sidebar-collapse" : "w-15"}`}>
         <div className="flex h-fit w-full flex-col items-center justify-evenly">
           <button type="button" onClick={() => setExpanded(!expanded)} className={getItemClass()}>
             <NavigationIcon name="sidebar" />
