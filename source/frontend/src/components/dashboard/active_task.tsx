@@ -49,16 +49,28 @@ export default function ActiveTask({
   return (
     <div className="flex w-full gap-5">
       <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[30px] bg-(--panel-bg) p-0">
-        <div className="flex flex-1 flex-col items-center justify-evenly">
+        <div className="flex flex-1 flex-col items-center justify-center gap-1">
           <h1 className="text-lg font-bold text-black">Due Today</h1>
-          <h1 className="text-5xl font-extrabold text-black">
+          <h1
+            className={`font-extrabold text-black ${
+              dueBuckets.some((bucket) => bucket.key === "missing")
+                ? "text-7xl"
+                : "text-5xl"
+            }`}
+          >
             {loadingTasks ? "-" : dueToday}
           </h1>
         </div>
 
-        <div className="flex flex-1 flex-col items-center justify-evenly">
+        <div className="flex flex-1 flex-col items-center justify-center gap-1">
           <h1 className="text-lg font-bold text-black">Active Task</h1>
-          <h1 className="text-5xl font-extrabold text-black">
+          <h1
+            className={`font-extrabold text-black ${
+              dueBuckets.some((bucket) => bucket.key === "missing")
+                ? "text-7xl"
+                : "text-5xl"
+            }`}
+          >
             {loadingTasks ? "-" : tasks.length}
           </h1>
         </div>
