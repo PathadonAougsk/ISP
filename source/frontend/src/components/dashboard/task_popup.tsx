@@ -82,7 +82,7 @@ export default function TaskPopup({
               {sortedAssignees.map((assignee) => (
                 <div key={assignee.id} className="flex items-center gap-2">
                   <Icon src="/profile.svg" className="h-5 w-auto shrink-0" />
-                  <span className="truncate text-base font-medium text-gray-900">
+                  <span className="truncate text-base font-normal text-gray-800">
                     {assignee.username}
                     {assignee.id === currentUserId && " (You)"}
                   </span>
