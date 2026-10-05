@@ -189,15 +189,15 @@ export default function RequestTable() {
 
     getMe()
       .then((account) => { if (!cancelled) setMe(account ?? null); })
-      .catch(() => { /* leave me as null, which falls back to Lab user */ })
+      .catch(() => { /* leave me as null, which falls back to Lab User */ })
       .finally(() => { if (!cancelled) setMeLoading(false); });
 
     return () => { cancelled = true; };
   }, []);
 
   // "Lab Owner" and "Lab Admin" both count as admin
-  const userRole: "Lab Admin" | "Lab user" =
-    me && isAdminRole(me.role) ? "Lab Admin" : "Lab user";
+  const userRole: "Lab Admin" | "Lab User" =
+    me && isAdminRole(me.role) ? "Lab Admin" : "Lab User";
 
   const currentUserId = me?.id ?? "";
 
@@ -423,7 +423,7 @@ export default function RequestTable() {
         description: newTaskDescription || null,
         category_id: newTaskCategoryId,
         due_date: newTaskDueDate || null,
-        assignee_ids: newTaskAssignedIds,
+        assignees: newTaskAssignedIds,
       });
       setTasksReloadKey((k) => k + 1);
       resetTaskForm();
@@ -553,7 +553,7 @@ export default function RequestTable() {
             description: description || null,
             category_id: categoryId,
             due_date: dueDate || null,
-            assignee_ids: assignedMemberIds,
+            assignees: assignedMemberIds,
           });
         } catch (taskErr) {
           // Task failed: restore the previous status so it can be approved again
@@ -654,7 +654,7 @@ export default function RequestTable() {
         status: selectedTask.status === "Completed" ? "completed" : "in_progress",
         category_id: editTaskCategoryId,
         due_date: editTaskDueDate || null,
-        assignee_ids: editTaskAssignedIds,
+        assignees: editTaskAssignedIds,
       });
       setTasksReloadKey((k) => k + 1);
       setSelectedTask(null);
@@ -717,7 +717,7 @@ export default function RequestTable() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
               My Tickets
-              {(userRole === "Lab Admin" || userRole === "Lab user") && (
+              {(userRole === "Lab Admin" || userRole === "Lab User") && (
                 <button
                   onClick={() => setIsCreatingTicket(true)}
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"

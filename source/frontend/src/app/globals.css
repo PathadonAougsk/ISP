@@ -1,29 +1,49 @@
 @import "tailwindcss";
+
+/* ==========================================================
+   Theme variables
+   ========================================================== */
 :root {
   --background: #fff;
   --foreground: #171717;
-  --primary-color-1-hover: #87b7b9;
-  --primary-color-2-hover: #acd6c1;
-  --primary-color-3-hover: #d0edb4;
+  --panel-bg: #eaf1e3;
+
   --primary-color-1: #73a9ad;
   --primary-color-2: #90c8ac;
   --primary-color-3: #c4dfaa;
-  --primary-red: #e74a4a;
-  --primary-yellow: #fcdc5d;
+  --primary-color-1-hover: #87b7b9;
+  --primary-color-2-hover: #acd6c1;
+  --primary-color-3-hover: #d0edb4;
+
+  --primary-red: #ff4d4d;
+  --primary-orange: #ffa259;
+  --primary-yellow: #fef072;
   --primary-blue: #a2dcf8;
-  --panel-bg: #eaf1e3;
-  --primary-red-hover: #e18686;
+  --primary-red-hover: #ff6868;
+  --primary-orange-hover: #ffb072;
+  --primary-yellow-hover: #fff286;
+  --primary-blue-hover: #aae3ff;
 }
+
+/* ==========================================================
+   Base styles
+   ========================================================== */
 body {
   background: var(--background);
 }
+
 h1 {
   font-family: var(--font-noto-sans-thai);
 }
+
 p,
 button {
   font-family: var(--font-anuphan);
 }
+
+/* ==========================================================
+   Popup animations
+   ========================================================== */
 @keyframes popup-fade {
   from {
     opacity: 0;
@@ -32,6 +52,7 @@ button {
     opacity: 0.6;
   }
 }
+
 @keyframes popup-fade-out {
   from {
     opacity: 0.6;
@@ -40,6 +61,7 @@ button {
     opacity: 0;
   }
 }
+
 @keyframes popup-slide-up {
   from {
     transform: translateY(100%);
@@ -48,6 +70,7 @@ button {
     transform: translateY(0);
   }
 }
+
 @keyframes popup-slide-down {
   from {
     transform: translateY(0);
@@ -56,16 +79,62 @@ button {
     transform: translateY(100%);
   }
 }
+
 .popup-overlay {
   opacity: 0.6;
   animation: popup-fade 125ms ease-out;
 }
+
 .popup-overlay-closing {
   animation: popup-fade-out 125ms ease-in forwards;
 }
+
 .popup-panel {
   animation: popup-slide-up 125ms ease-out;
 }
+
 .popup-panel-closing {
   animation: popup-slide-down 125ms ease-in forwards;
+}
+
+/* ==========================================================
+   Sidebar animations
+   ========================================================== */
+@keyframes sidebar-expand {
+  from {
+    width: 3.75rem;
+  }
+  to {
+    width: 14rem;
+  }
+}
+
+@keyframes sidebar-collapse {
+  from {
+    width: 14rem;
+  }
+  to {
+    width: 3.75rem;
+  }
+}
+
+@keyframes sidebar-name-show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sidebar-expand {
+  animation: sidebar-expand 100ms ease-out;
+}
+
+.sidebar-collapse {
+  animation: sidebar-collapse 100ms ease-in;
+}
+
+.sidebar-name-visible {
+  animation: sidebar-name-show 100ms ease-out;
 }
