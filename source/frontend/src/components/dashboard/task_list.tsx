@@ -108,7 +108,7 @@ export default function TaskList({
           {hasOtherTasks && (
             <Fragment>
               <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                Other tasks
+                Others' tasks
               </h1>
               {otherTasks.map(renderTask)}
             </Fragment>
@@ -128,7 +128,7 @@ export default function TaskList({
 
           {errorOtherTasks && (
             <p className="py-6 text-center text-sm font-medium text-gray-500">
-              Failed to load other tasks
+              Failed to load others' tasks
             </p>
           )}
         </div>
