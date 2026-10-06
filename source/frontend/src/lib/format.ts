@@ -61,3 +61,33 @@ export function formatFullDateTime(iso: string | null) {
 
   return `${weekday} ${day} ${month} ${year}, ${time}`;
 }
+
+// shift date so getUTC* read Thai clock. only for read day or week, dont format it again
+export function localizeDateTime(input: string | Date): Date {
+  const date = new Date(input);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  return new Date(
+    Date.UTC(
+      get("year"),
+      get("month") - 1,
+      get("day"),
+      get("hour"),
+      get("minute"),
+      get("second"),
+      date.getUTCMilliseconds(),
+    ),
+  );
+}

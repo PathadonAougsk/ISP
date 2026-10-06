@@ -2,16 +2,19 @@
 
 import { Fragment } from "react";
 import type { CategoryMap } from "@/lib/category";
-import type { Account } from "@/lib/account";
 import type { Task } from "@/lib/task";
 import { formatDueDate } from "@/lib/format";
-import Icon from "@/components/icon";
 import {
   dueBucketColor,
   getDueBucket,
   getDueBucketLimits,
-  isMissing,
+  isMissingTask,
 } from "@/components/dashboard/due_bucket";
+import {
+  ListHeader,
+  ListMessage,
+  listGridClass,
+} from "@/components/dashboard/list_parts";
 
 export default function TaskList({
   myTasks,
@@ -22,7 +25,7 @@ export default function TaskList({
   errorOtherTasks,
   categoryMap,
   usernames,
-  currentAccount,
+  isLabUser,
   onSelectTask,
 }: {
   myTasks: Task[];
@@ -33,65 +36,57 @@ export default function TaskList({
   errorOtherTasks: boolean;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
-  currentAccount: Account | null;
+  isLabUser: boolean;
   onSelectTask: (task: Task) => void;
 }) {
   const limits = getDueBucketLimits(new Date());
 
-  const isLabUser = currentAccount?.role === "Lab User";
-
   const hasMyTasks = !loadingMyTasks && myTasks.length > 0;
   const hasOtherTasks = otherTasks.length > 0;
 
-  const isOverdue = (task: Task) => isMissing(task.due_date, limits.now);
+  const renderTask = (task: Task) => {
+    const overdue = isMissingTask(task, limits.now);
 
-  const renderTask = (task: Task) => (
-    <button
-      key={task.id}
-      type="button"
-      onClick={() => onSelectTask(task)}
-      className={`group flex h-8 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] px-3 text-left ${
-        isOverdue(task)
-          ? "bg-(--primary-red) text-white hover:bg-(--primary-red-hover)"
-          : "bg-white text-black hover:bg-gray-100"
-      }`}
-    >
-      <span
-        className={`h-2 w-2 shrink-0 rounded-full ${isOverdue(task) ? "bg-white" : dueBucketColor[getDueBucket(task.due_date, limits)]}`}
-      />
-      <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
-        <p className="truncate text-sm">{task.name}</p>
-        <p className="truncate text-sm">{usernames[task.created_by] ?? "-"}</p>
-        <p className="truncate text-sm">
-          {categoryMap[task.category_id] ?? "-"}
-        </p>
-        <p className="text-sm">{formatDueDate(task.due_date)}</p>
-      </div>
-    </button>
-  );
+    return (
+      <button
+        key={task.id}
+        type="button"
+        onClick={() => onSelectTask(task)}
+        className={`group flex h-8 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] px-3 text-left ${
+          overdue
+            ? "bg-(--primary-red) text-white hover:bg-(--primary-red-hover)"
+            : "bg-white text-black hover:bg-gray-100"
+        }`}
+      >
+        <span
+          className={`h-2 w-2 shrink-0 rounded-full ${overdue ? "bg-white" : dueBucketColor[getDueBucket(task.due_date, limits)]}`}
+        />
+        <div className={listGridClass}>
+          <p className="truncate text-sm">{task.name}</p>
+          <p className="truncate text-sm">
+            {usernames[task.created_by] ?? "-"}
+          </p>
+          <p className="truncate text-sm">
+            {categoryMap[task.category_id] ?? "-"}
+          </p>
+          <p className="text-sm">{formatDueDate(task.due_date)}</p>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="flex min-h-0 flex-col gap-2">
-      <div className="flex h-8 shrink-0 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Icon src="/header_donut_dark_green.svg" />
-        <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
-          <h1 className="truncate text-base font-bold text-white">Task Name</h1>
-          <h1 className="truncate text-base font-bold text-white">
-            Created by
-          </h1>
-          <h1 className="truncate text-base font-bold text-white">Category</h1>
-          <h1 className="truncate text-base font-bold text-white">Duedate</h1>
-        </div>
-      </div>
+      <ListHeader titles={["Task Name", "Created by", "Category", "Duedate"]} />
 
       {!hasMyTasks && !hasOtherTasks ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
+        <ListMessage>
           {errorMyTasks || errorOtherTasks
             ? "Failed to load tasks"
             : loadingMyTasks || loadingOtherTasks
               ? "Loading tasks..."
               : "Good job! You have completed all tasks."}
-        </p>
+        </ListMessage>
       ) : (
         <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
           {hasMyTasks && (
@@ -114,22 +109,16 @@ export default function TaskList({
             </Fragment>
           )}
 
-          {loadingOtherTasks && (
-            <p className="py-6 text-center text-sm font-medium text-gray-500">
-              Loading tasks...
-            </p>
-          )}
+          {loadingOtherTasks && <ListMessage>Loading tasks...</ListMessage>}
 
           {errorMyTasks && (
-            <p className="py-6 text-center text-sm font-medium text-gray-500">
+            <ListMessage>
               {isLabUser ? "Failed to load tasks" : "Failed to load my tasks"}
-            </p>
+            </ListMessage>
           )}
 
           {errorOtherTasks && (
-            <p className="py-6 text-center text-sm font-medium text-gray-500">
-              Failed to load others' tasks
-            </p>
+            <ListMessage>Failed to load others' tasks</ListMessage>
           )}
         </div>
       )}

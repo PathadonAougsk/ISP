@@ -1,8 +1,10 @@
 "use client";
 
 import type { Task } from "@/lib/task";
+import { localizeDateTime } from "@/lib/format";
 import {
   dueBucketMeta,
+  emptyBucketCounts,
   getDueBucket,
   getDueBucketLimits,
   type DueBucketKey,
@@ -15,28 +17,21 @@ export default function ActiveTask({
   tasks: Task[];
   loadingTasks: boolean;
 }) {
-  const now = new Date();
-  const limits = getDueBucketLimits(now);
-  const dueToday = tasks.filter((task) => {
-    if (task.due_date === null) return false;
+  const limits = getDueBucketLimits(new Date());
+  // compare day on Thai clock
+  const today = localizeDateTime(limits.now).toISOString().slice(0, 10);
+  const dueToday = tasks.filter(
+    (task) =>
+      task.due_date !== null &&
+      new Date(task.due_date) > limits.now &&
+      localizeDateTime(task.due_date).toISOString().slice(0, 10) === today,
+  ).length;
 
-    const due = new Date(task.due_date);
-    return (
-      due > now &&
-      due.getUTCFullYear() === now.getUTCFullYear() &&
-      due.getUTCMonth() === now.getUTCMonth() &&
-      due.getUTCDate() === now.getUTCDate()
-    );
-  }).length;
-
-  const counts = tasks.reduce<Record<DueBucketKey, number>>(
-    (acc, task) => {
-      const bucket = getDueBucket(task.due_date, limits);
-      acc[bucket] += 1;
-      return acc;
-    },
-    { missing: 0, thisWeek: 0, nextWeek: 0, later: 0 },
-  );
+  const counts = tasks.reduce<Record<DueBucketKey, number>>((acc, task) => {
+    const bucket = getDueBucket(task.due_date, limits);
+    acc[bucket] += 1;
+    return acc;
+  }, emptyBucketCounts());
 
   // missing only show when something is missing
   const dueBuckets = dueBucketMeta
@@ -46,34 +41,31 @@ export default function ActiveTask({
     }))
     .filter((bucket) => bucket.key !== "missing" || bucket.count > 0);
 
+  const hasMissing = dueBuckets.some((bucket) => bucket.key === "missing");
+
+  const summary = [
+    { label: "Due Today", value: dueToday },
+    { label: "Active Task", value: tasks.length },
+  ];
+
   return (
     <div className="flex w-full gap-5">
       <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[30px] bg-(--panel-bg) p-0">
-        <div className="flex flex-1 flex-col items-center justify-center gap-1">
-          <h1 className="text-lg font-bold text-black">Due Today</h1>
-          <h1
-            className={`font-extrabold text-black ${
-              dueBuckets.some((bucket) => bucket.key === "missing")
-                ? "text-7xl"
-                : "text-5xl"
-            }`}
+        {summary.map((item) => (
+          <div
+            key={item.label}
+            className="flex flex-1 flex-col items-center justify-center gap-1"
           >
-            {loadingTasks ? "-" : dueToday}
-          </h1>
-        </div>
-
-        <div className="flex flex-1 flex-col items-center justify-center gap-1">
-          <h1 className="text-lg font-bold text-black">Active Task</h1>
-          <h1
-            className={`font-extrabold text-black ${
-              dueBuckets.some((bucket) => bucket.key === "missing")
-                ? "text-7xl"
-                : "text-5xl"
-            }`}
-          >
-            {loadingTasks ? "-" : tasks.length}
-          </h1>
-        </div>
+            <h1 className="text-lg font-bold text-black">{item.label}</h1>
+            <h1
+              className={`font-extrabold text-black ${
+                hasMissing ? "text-7xl" : "text-5xl"
+              }`}
+            >
+              {loadingTasks ? "-" : item.value}
+            </h1>
+          </div>
+        ))}
       </div>
 
       <div className="flex w-fit shrink-0 flex-col pr-5">

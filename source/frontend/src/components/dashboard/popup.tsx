@@ -9,9 +9,13 @@ import {
 } from "react";
 import { formatFullDateTime } from "@/lib/format";
 import Icon from "@/components/icon";
+import {
+  isMissingTask,
+  isMissingTicket,
+} from "@/components/dashboard/due_bucket";
 import { renderWithLinks } from "@/components/dashboard/render_link";
 
-type DateInput = Parameters<typeof formatFullDateTime>[0];
+type DateInput = string | null;
 
 // must match the popup animation time in globals.css
 const POPUP_CLOSE_DELAY_MS = 125;
@@ -105,7 +109,7 @@ export function PopupMeta({
 }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
-      <span className="font-semibold">#{id}</span>
+      <span className="font-bold">#{id}</span>
       <div className="flex items-center gap-2">
         <Icon src="/header_donut_gray.svg" />
         <span>{categoryName}</span>
@@ -115,6 +119,30 @@ export function PopupMeta({
         <span>{formatFullDateTime(dueDate)}</span>
       </div>
       {children}
+    </div>
+  );
+}
+
+// red badge. show only when task in_progress or ticket pending is past due
+export function PopupMissingBadge({
+  type,
+  status,
+  dueDate,
+}: {
+  type: "task" | "ticket";
+  status: string;
+  dueDate: DateInput;
+}) {
+  const item = { status, due_date: dueDate };
+  const now = new Date();
+  const missing =
+    type === "task" ? isMissingTask(item, now) : isMissingTicket(item, now);
+
+  if (!missing) return null;
+
+  return (
+    <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+      Missing
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories, type Category } from "@/lib/category";
-import { getTasks, type Task } from "@/lib/task";
+import { getTasks, type GetTasksParams, type Task } from "@/lib/task";
 import { getTickets, type Ticket } from "@/lib/ticket";
 
 const CACHE_MS = 60_000;
@@ -77,47 +77,52 @@ export function useDashboardFetching(
 
     let cancelled = false;
 
-    getTasks({
-      status: "in_progress",
-      assignsTo: accountId,
-      limit: maxTask,
-    })
-      .then(({ Tasks }) => {
-        if (cancelled) return;
-
-        setMyTasks([...Tasks].sort(compareByDueDate));
-        setErrorMyTasks(false);
-      })
-      .catch(() => {
-        if (cancelled) return;
-
-        setMyTasks([]);
-        setErrorMyTasks(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingMyTasks(false);
-      });
-
-    if (accountRole !== "Lab User") {
-      getTasks({
-        status: "in_progress",
-        limit: maxTask,
-      })
+    // same flow for my tasks and other tasks
+    function loadTasks(
+      params: GetTasksParams,
+      setTasks: (tasks: Task[]) => void,
+      setError: (error: boolean) => void,
+      setLoading: (loading: boolean) => void,
+    ) {
+      getTasks(params)
         .then(({ Tasks }) => {
           if (cancelled) return;
 
-          setOtherTasks([...Tasks].sort(compareByDueDate));
-          setErrorOtherTasks(false);
+          setTasks([...Tasks].sort(compareByDueDate));
+          setError(false);
         })
         .catch(() => {
           if (cancelled) return;
 
-          setOtherTasks([]);
-          setErrorOtherTasks(true);
+          setTasks([]);
+          setError(true);
         })
         .finally(() => {
-          if (!cancelled) setLoadingOtherTasks(false);
+          if (!cancelled) setLoading(false);
         });
+    }
+
+    loadTasks(
+      {
+        status: "in_progress",
+        assignsTo: accountId,
+        limit: maxTask,
+      },
+      setMyTasks,
+      setErrorMyTasks,
+      setLoadingMyTasks,
+    );
+
+    if (accountRole !== "Lab User") {
+      loadTasks(
+        {
+          status: "in_progress",
+          limit: maxTask,
+        },
+        setOtherTasks,
+        setErrorOtherTasks,
+        setLoadingOtherTasks,
+      );
     }
 
     return () => {

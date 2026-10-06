@@ -6,6 +6,11 @@ import { formatDueDate } from "@/lib/format";
 import Icon from "@/components/icon";
 import { isMissingTicket } from "@/components/dashboard/due_bucket";
 import {
+  ListHeader,
+  ListMessage,
+  listGridClass,
+} from "@/components/dashboard/list_parts";
+import {
   ticketStatusIcon,
   ticketStatusText,
 } from "@/components/dashboard/ticket_status";
@@ -27,30 +32,16 @@ export default function TicketList({
 
   return (
     <div className="flex min-h-0 flex-col gap-2">
-      <div className="flex h-8 shrink-0 items-center gap-4 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Icon src="/header_donut_dark_green.svg" />
-        <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
-          <h1 className="truncate text-base font-bold text-white">
-            Ticket Name
-          </h1>
-          <h1 className="truncate text-base font-bold text-white">Status</h1>
-          <h1 className="truncate text-base font-bold text-white">Category</h1>
-          <h1 className="truncate text-base font-bold text-white">Duedate</h1>
-        </div>
-      </div>
+      <ListHeader titles={["Ticket Name", "Status", "Category", "Duedate"]} />
 
       {loadingTickets ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
-          Loading tickets...
-        </p>
+        <ListMessage>Loading tickets...</ListMessage>
       ) : errorTickets ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
-          Failed to load tickets
-        </p>
+        <ListMessage>Failed to load tickets</ListMessage>
       ) : tickets.length === 0 ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
+        <ListMessage>
           {"Looks like everything's pretty peaceful around here. Hell yeah!"}
-        </p>
+        </ListMessage>
       ) : (
         <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
           {tickets.map((ticket) => (
@@ -69,7 +60,7 @@ export default function TicketList({
                 className="h-4 w-auto shrink-0"
                 alt={ticket.status}
               />
-              <div className="grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2">
+              <div className={listGridClass}>
                 <p className="truncate text-sm text-black">{ticket.name}</p>
                 <p className="truncate text-sm text-black">
                   {ticketStatusText[ticket.status]}
