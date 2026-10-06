@@ -24,3 +24,15 @@ export async function apiFetch(
 
   return fetch(url, { ...init, headers });
 }
+
+export function apiSendJson(
+  path: string,
+  method: "POST" | "PUT",
+  body: object,
+): Promise<Response> {
+  return apiFetch(path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
