@@ -112,3 +112,11 @@ export async function isAdmin(): Promise<boolean> {
 
   return me ? isAdminRole(me.role) : false;
 }
+
+export type UserRole = "Lab Admin" | "Lab User";
+
+export type Member = { id: string; name: string; email: string };
+
+export function mapAccountToMember(account: Account): Member {
+  return { id: account.id, name: account.username, email: account.email };
+}

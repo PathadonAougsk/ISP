@@ -61,3 +61,7 @@ export function formatFullDateTime(iso: string | null) {
 
   return `${weekday} ${day} ${month} ${year}, ${time}`;
 }
+
+export function truncateLabel(text: string, maxLength = 20) {
+  return text.length > maxLength ? text.slice(0, maxLength).trim() + "…" : text;
+}
