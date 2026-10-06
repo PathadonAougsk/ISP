@@ -49,7 +49,7 @@ class TaskStatus(str, enum.Enum):
 class AccountRole(str, enum.Enum):
     LAB_OWNER = "Lab Owner"  # can only be set from the Supabase dashboard
     LAB_ADMIN = "Lab Admin"
-    LAB_USER = "Lab user"
+    LAB_USER = "Lab User"
 
 def _enum_values(e: type[enum.Enum]) -> list[str]:
     # Store the lowercase values ("in_progress"), not the member names ("IN_PROGRESS")

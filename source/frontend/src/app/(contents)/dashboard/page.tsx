@@ -1,123 +1,103 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { getAccount } from "@/lib/account";
-import { getCategories, toCategoryMap, type Category } from "@/components/category";
-import { getTasks, type Task } from "@/components/task";
-import { getTickets, type Ticket } from "@/components/ticket";
+import { useMemo, useState } from "react";
+import { useCurrentAccount } from "@/lib/current_account";
+import { toCategoryMap } from "@/lib/category";
+import type { Task } from "@/lib/task";
 import Announcement from "@/components/dashboard/announcement";
+import Missing from "@/components/dashboard/missing";
 import ActiveTask from "@/components/dashboard/active_task";
 import TaskOverview from "@/components/dashboard/task_overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskPopup from "@/components/dashboard/task_popup";
 import TicketPopup from "@/components/dashboard/ticket_popup";
-
-export type DueBucketKey = "thisWeek" | "nextWeek" | "later";
-
-export function getWeekBounds(date: Date) {
-  const day = date.getUTCDay();
-  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
-  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 6, 23, 59, 59, 999));
-  return { start, end };
-}
-
-export function getDueBucket(dueDateIso: string | null, now: Date): DueBucketKey {
-  if (dueDateIso === null) return "later";
-
-  const due = new Date(dueDateIso);
-  const { end: thisWeekEnd } = getWeekBounds(now);
-  const nextWeekEnd = new Date(Date.UTC(thisWeekEnd.getUTCFullYear(), thisWeekEnd.getUTCMonth(), thisWeekEnd.getUTCDate() + 7, 23, 59, 59, 999));
-
-  if (due <= thisWeekEnd) return "thisWeek";
-  if (due <= nextWeekEnd) return "nextWeek";
-  return "later";
-}
+import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
-  // true until tasks + categories + account names are all ready
-  const [loadingTasks, setLoadingTasks] = useState(true);
+  const { account: currentAccount } = useCurrentAccount();
 
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loadingTickets, setLoadingTickets] = useState(true);
+  const maxTask = 30;
+  const maxTicket = 30;
 
-  // item opened in the popup (null = popup closed)
+  const {
+    myTasks,
+    otherTasks,
+    categories,
+    tickets,
+    usernames,
+    loadingMyTasks,
+    loadingOtherTasks,
+    loadingCategories,
+    loadingTickets,
+    errorMyTasks,
+    errorOtherTasks,
+    errorCategories,
+    errorTickets,
+  } = useDashboardFetching(currentAccount, maxTask, maxTicket);
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<
+    (typeof tickets)[number] | null
+  >(null);
 
-  // id -> name lookup
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
-  // get tasks + categories
-  useEffect(() => {
-    let cancelled = false;
+  const isLabUser = currentAccount?.role === "Lab User";
 
-    async function load() {
-      try {
-        const [{ Tasks }, { Categories }] = await Promise.all([
-          getTasks({ status: "in_progress" }),
-          getCategories().catch(() => ({ Categories: [] as Category[] })),
-        ]);
+  const visibleOtherTasks = useMemo(() => {
+    if (loadingMyTasks) return [];
 
-        const uniqueAccountIds = [...new Set(Tasks.map((task) => task.created_by))];
-        const accountEntries = await Promise.all(
-          uniqueAccountIds.map(async (userId) => {
-            try {
-              const user = await getAccount(userId);
-              return [userId, user?.username ?? userId] as const;
-            } catch {
-              return [userId, userId] as const;
-            }
-          })
-        );
+    const myTaskIds = new Set(myTasks.map((task) => task.id));
 
-        if (cancelled) return;
-        setTasks(Tasks);
-        setCategories(Categories);
-        setUsernames(Object.fromEntries(accountEntries));
-      } catch {
-        if (!cancelled) setTasks([]);
-      } finally {
-        if (!cancelled) setLoadingTasks(false);
-      }
-    }
+    return otherTasks
+      .filter((task) => !myTaskIds.has(task.id))
+      .slice(0, Math.max(maxTask - myTasks.length, 0));
+  }, [loadingMyTasks, myTasks, otherTasks]);
 
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // get ticket
-  useEffect(() => {
-    getTickets({ onlyOwned: true })
-      .then(({ Tickets }) => setTickets(Tickets))
-      .catch(() => setTickets([]))
-      .finally(() => setLoadingTickets(false));
-  }, []);
+  const showLoadingOtherTasks =
+    !isLabUser &&
+    loadingOtherTasks &&
+    (loadingMyTasks || myTasks.length < maxTask);
 
   return (
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
-      <div className="flex w-[40%] min-w-100 max-w-300 shrink-0 flex-col gap-5">
+      <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-5">
         <Announcement />
-        <ActiveTask tasks={tasks} loadingTasks={loadingTasks} />
+        <Missing
+          myTasks={myTasks}
+          otherTasks={otherTasks}
+          tickets={tickets}
+          loadingMyTasks={loadingMyTasks || errorMyTasks}
+          loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
+          loadingTickets={loadingTickets || errorTickets}
+          isLabUser={isLabUser}
+        />
+        <ActiveTask
+          tasks={myTasks}
+          loadingTasks={loadingMyTasks || errorMyTasks}
+        />
         <TaskOverview
-          tasks={tasks}
-          loadingTasks={loadingTasks}
+          tasks={myTasks}
+          loadingTasks={loadingMyTasks || loadingCategories}
+          errorTasks={errorMyTasks}
+          errorCategories={errorCategories}
           categoryMap={categoryMap}
         />
       </div>
 
       <TaskTicketList
-        tasks={tasks}
-        loadingTasks={loadingTasks}
+        myTasks={myTasks}
+        otherTasks={visibleOtherTasks}
+        loadingMyTasks={loadingMyTasks}
+        loadingOtherTasks={showLoadingOtherTasks}
+        errorMyTasks={errorMyTasks}
+        errorOtherTasks={errorOtherTasks}
         tickets={tickets}
-        loadingTickets={loadingTickets || loadingTasks}
+        loadingTickets={loadingTickets || loadingCategories}
+        errorTickets={errorTickets}
         categoryMap={categoryMap}
         usernames={usernames}
+        currentAccount={currentAccount}
         onSelectTask={setSelectedTask}
         onSelectTicket={setSelectedTicket}
       />
@@ -127,6 +107,7 @@ export default function Dashboard() {
           task={selectedTask}
           categoryMap={categoryMap}
           usernames={usernames}
+          currentUserId={currentAccount?.id ?? null}
           onClose={() => setSelectedTask(null)}
         />
       )}
@@ -135,6 +116,7 @@ export default function Dashboard() {
         <TicketPopup
           ticket={selectedTicket}
           categoryMap={categoryMap}
+          usernames={usernames}
           onClose={() => setSelectedTicket(null)}
         />
       )}
