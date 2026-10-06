@@ -1,7 +1,6 @@
 "use client";
 
 import type { CategoryMap } from "@/lib/category";
-import type { Account } from "@/lib/account";
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
 import TaskList from "@/components/dashboard/task_list";
@@ -19,7 +18,7 @@ export default function TaskTicketList({
   errorTickets,
   categoryMap,
   usernames,
-  currentAccount,
+  isLabUser,
   onSelectTask,
   onSelectTicket,
 }: {
@@ -34,7 +33,7 @@ export default function TaskTicketList({
   errorTickets: boolean;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
-  currentAccount: Account | null;
+  isLabUser: boolean;
   onSelectTask: (task: Task) => void;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
@@ -50,7 +49,7 @@ export default function TaskTicketList({
           errorOtherTasks={errorOtherTasks}
           categoryMap={categoryMap}
           usernames={usernames}
-          currentAccount={currentAccount}
+          isLabUser={isLabUser}
           onSelectTask={onSelectTask}
         />
         <TicketList

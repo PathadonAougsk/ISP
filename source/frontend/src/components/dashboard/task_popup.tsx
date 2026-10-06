@@ -3,13 +3,13 @@
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import Icon from "@/components/icon";
-import { isMissing } from "@/components/dashboard/due_bucket";
 import {
   PopupCloseButton,
   PopupDescription,
   PopupEdited,
   PopupFrame,
   PopupMeta,
+  PopupMissingBadge,
   usePopupClose,
 } from "@/components/dashboard/popup";
 
@@ -55,11 +55,11 @@ export default function TaskPopup({
             <span>{usernames[task.created_by] ?? "-"}</span>
           </div>
 
-          {isMissing(task.due_date, new Date()) && (
-            <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
-              Missing
-            </div>
-          )}
+          <PopupMissingBadge
+            type="task"
+            status={task.status}
+            dueDate={task.due_date}
+          />
         </PopupMeta>
 
         <PopupEdited created={task.created} updated={task.updated} />
@@ -72,9 +72,7 @@ export default function TaskPopup({
           <PopupCloseButton onClose={handleClose} />
         </div>
 
-        <div
-          className={`flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)`}
-        >
+        <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
           <h1 className="text-base font-bold text-black">Responsible person</h1>
 
           <div className="min-h-0 flex-1 overflow-y-auto">

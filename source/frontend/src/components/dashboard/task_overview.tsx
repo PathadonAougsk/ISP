@@ -5,10 +5,12 @@ import type { Task } from "@/lib/task";
 import Icon from "@/components/icon";
 import {
   dueBucketMeta,
+  emptyBucketCounts,
   getDueBucket,
   getDueBucketLimits,
   type DueBucketKey,
 } from "@/components/dashboard/due_bucket";
+import { ListMessage } from "@/components/dashboard/list_parts";
 
 export default function TaskOverview({
   tasks,
@@ -28,13 +30,7 @@ export default function TaskOverview({
   const grouped = tasks.reduce<Record<number, Record<DueBucketKey, number>>>(
     (acc, task) => {
       const bucket = getDueBucket(task.due_date, limits);
-      if (!acc[task.category_id])
-        acc[task.category_id] = {
-          missing: 0,
-          thisWeek: 0,
-          nextWeek: 0,
-          later: 0,
-        };
+      if (!acc[task.category_id]) acc[task.category_id] = emptyBucketCounts();
       acc[task.category_id][bucket] += 1;
       return acc;
     },
@@ -53,17 +49,11 @@ export default function TaskOverview({
       </div>
 
       {loadingTasks ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
-          Loading tasks...
-        </p>
+        <ListMessage>Loading tasks...</ListMessage>
       ) : errorTasks ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
-          Failed to load tasks
-        </p>
+        <ListMessage>Failed to load tasks</ListMessage>
       ) : errorCategories ? (
-        <p className="py-6 text-center text-base font-medium text-gray-500">
-          Failed to load categories
-        </p>
+        <ListMessage>Failed to load categories</ListMessage>
       ) : tasks.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">
           All tasks are done! Time to enjoy a well-earned break.
@@ -71,8 +61,7 @@ export default function TaskOverview({
       ) : (
         categoryIds.map((id) => {
           const counts = grouped[id];
-          const total =
-            counts.missing + counts.thisWeek + counts.nextWeek + counts.later;
+          const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
           const visibleBuckets = dueBucketMeta.filter((b) => counts[b.key] > 0);
 
           return (
@@ -89,7 +78,7 @@ export default function TaskOverview({
                         <span
                           className={`h-4 w-4 shrink-0 rounded-full ${b.color}`}
                         />
-                        <span className={`text-base font-medium text-black`}>
+                        <span className="text-base font-medium text-black">
                           {counts[b.key]}
                         </span>
                       </div>

@@ -1,3 +1,5 @@
+import { localizeDateTime } from "@/lib/format";
+
 export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
 export const dueBucketColor: Record<DueBucketKey, string> = {
@@ -18,29 +20,13 @@ export const dueBucketMeta: {
   { key: "later", label: "Later", color: dueBucketColor.later },
 ];
 
-export function getWeekBounds(date: Date) {
-  const day = date.getUTCDay();
-  const start = new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate() - day,
-    ),
-  );
-  const end = new Date(
-    Date.UTC(
-      start.getUTCFullYear(),
-      start.getUTCMonth(),
-      start.getUTCDate() + 6,
-      23,
-      59,
-      59,
-      999,
-    ),
-  );
-  return { start, end };
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function emptyBucketCounts(): Record<DueBucketKey, number> {
+  return { missing: 0, thisWeek: 0, nextWeek: 0, later: 0 };
 }
 
+// now is real time, weekend use Thai clock
 export type DueBucketLimits = {
   now: Date;
   thisWeekEnd: Date;
@@ -49,28 +35,36 @@ export type DueBucketLimits = {
 
 // call this once per render, then reuse for every task
 export function getDueBucketLimits(now: Date): DueBucketLimits {
-  const { end: thisWeekEnd } = getWeekBounds(now);
-  const nextWeekEnd = new Date(
+  const local = localizeDateTime(now);
+  const thisWeekEnd = new Date(
     Date.UTC(
-      thisWeekEnd.getUTCFullYear(),
-      thisWeekEnd.getUTCMonth(),
-      thisWeekEnd.getUTCDate() + 7,
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate() - local.getUTCDay() + 6,
       23,
       59,
       59,
       999,
     ),
   );
+  const nextWeekEnd = new Date(thisWeekEnd.getTime() + 7 * DAY_MS);
 
   return { now, thisWeekEnd, nextWeekEnd };
 }
 
 // missing = due date already pass. no due date is never missing
-export function isMissing(dueDateIso: string | null, now: Date): boolean {
+function isMissing(dueDateIso: string | null, now: Date): boolean {
   return dueDateIso !== null && new Date(dueDateIso) <= now;
 }
 
-// only pending ticket can be missing
+// only in_progress task or pending ticket can missing
+export function isMissingTask(
+  task: { status: string; due_date: string | null },
+  now: Date,
+): boolean {
+  return task.status === "in_progress" && isMissing(task.due_date, now);
+}
+
 export function isMissingTicket(
   ticket: { status: string; due_date: string | null },
   now: Date,
@@ -83,10 +77,10 @@ export function getDueBucket(
   limits: DueBucketLimits,
 ): DueBucketKey {
   if (dueDateIso === null) return "later";
+  if (isMissing(dueDateIso, limits.now)) return "missing";
 
-  const due = new Date(dueDateIso);
+  const due = localizeDateTime(dueDateIso);
 
-  if (due <= limits.now) return "missing";
   if (due <= limits.thisWeekEnd) return "thisWeek";
   if (due <= limits.nextWeekEnd) return "nextWeek";
   return "later";
