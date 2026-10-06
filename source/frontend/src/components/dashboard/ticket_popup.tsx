@@ -1,51 +1,74 @@
 "use client";
 
-import Image from "next/image";
-import type { CategoryMap } from "@/components/category";
-import type { Ticket } from "@/components/ticket";
-import { ticketStatusIcon, ticketStatusText } from "@/components/dashboard/ticket_status";
-import { renderWithLinks } from "@/components/dashboard/_render_link";
-import { PopupEdited, PopupFrame, PopupMeta, usePopupClose } from "@/components/dashboard/popup";
+import type { CategoryMap } from "@/lib/category";
+import type { Ticket } from "@/lib/ticket";
+import Icon from "@/components/icon";
+import { isMissing } from "@/components/dashboard/due_bucket";
+import {
+  ticketStatusIcon,
+  ticketStatusText,
+} from "@/components/dashboard/ticket_status";
+import {
+  PopupCloseButton,
+  PopupDescription,
+  PopupEdited,
+  PopupFrame,
+  PopupMeta,
+  usePopupClose,
+} from "@/components/dashboard/popup";
 
 export default function TicketPopup({
-    ticket,
-    categoryMap,
-    onClose,
+  ticket,
+  categoryMap,
+  usernames,
+  onClose,
 }: {
-    ticket: Ticket;
-    categoryMap: CategoryMap;
-    onClose: () => void;
+  ticket: Ticket;
+  categoryMap: CategoryMap;
+  usernames: Record<string, string>;
+  onClose: () => void;
 }) {
-    const { isClosing, handleClose } = usePopupClose(onClose);
+  const { isClosing, handleClose } = usePopupClose(onClose);
 
-    return (
-        <PopupFrame isClosing={isClosing} onClose={handleClose} className="flex flex-col">
-            <div className="flex min-w-0 items-start gap-2">
-                <h1 className="min-w-0 flex-1 wrap-break-word text-3xl font-bold text-black">{ticket.name}</h1>
-                <button
-                    type="button"
-                    onClick={handleClose}
-                    className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
-                    aria-label="Close"
-                >
-                    <Image src="/close.svg" width={0} height={0} sizes="auto" className="h-auto w-5" alt="" draggable={false} />
-                </button>
-            </div>
+  return (
+    <PopupFrame
+      isClosing={isClosing}
+      onClose={handleClose}
+      className="flex flex-col"
+    >
+      <div className="flex min-w-0 items-start gap-2">
+        <h1 className="min-w-0 flex-1 wrap-break-word text-3xl font-bold text-black">
+          {ticket.name}
+        </h1>
+        <PopupCloseButton onClose={handleClose} />
+      </div>
 
-            <PopupMeta categoryName={categoryMap[ticket.category_id] ?? "-"} dueDate={ticket.due_date}>
-                <div className="flex items-center gap-2">
-                    {ticketStatusIcon[ticket.status] && (
-                        <Image src={ticketStatusIcon[ticket.status]} width={0} height={0} sizes="auto" className="h-4 w-auto" alt="" draggable={false} />
-                    )}
-                    <span>{ticketStatusText[ticket.status] ?? ticket.status}</span>
-                </div>
-            </PopupMeta>
+      <PopupMeta
+        id={ticket.id}
+        categoryName={categoryMap[ticket.category_id] ?? "-"}
+        dueDate={ticket.due_date}
+      >
+        <div className="flex items-center gap-2">
+          {ticketStatusIcon[ticket.status] && (
+            <Icon src={ticketStatusIcon[ticket.status]} />
+          )}
+          <span>{ticketStatusText[ticket.status] ?? ticket.status}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Icon src="/user.svg" />
+          <span>{usernames[ticket.created_by] ?? "-"}</span>
+        </div>
 
-            <PopupEdited created={ticket.created} updated={ticket.updated} />
+        {isMissing(ticket.due_date, new Date()) && (
+          <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+            Missing
+          </div>
+        )}
+      </PopupMeta>
 
-            <div className="mt-4 min-h-0 flex-1 overflow-y-auto whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
-                {ticket.description ? renderWithLinks(ticket.description) : <span className="text-gray-400">No description</span>}
-            </div>
-        </PopupFrame>
-    );
+      <PopupEdited created={ticket.created} updated={ticket.updated} />
+
+      <PopupDescription description={ticket.description} />
+    </PopupFrame>
+  );
 }

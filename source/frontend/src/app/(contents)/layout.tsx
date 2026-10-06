@@ -26,16 +26,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${notoSansThai.variable} ${anuphan.variable} h-full antialiased`}
     >
-      <body suppressHydrationWarning className="h-screen overflow-hidden flex flex-row">
+      <body
+        suppressHydrationWarning
+        className="h-screen overflow-hidden flex flex-row"
+      >
         <SettingsProvider>
           <Sidebar />
 
           <div className="flex flex-1 min-w-0 h-screen flex-col">
             <Topbar />
 
-            <main className="flex-1 min-h-0 overflow-y-auto">
-              {children}
-            </main>
+            <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
           </div>
         </SettingsProvider>
       </body>
