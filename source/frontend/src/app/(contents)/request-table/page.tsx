@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api";
 import { getMe, isAdminRole, type Account } from "@/lib/account";
-import { formatDueDate } from "@/lib/format";
+import { formatShortDate } from "@/lib/format";
 import { useState, useEffect } from "react";
 
 type BackendTicketStatus = "pending" | "accepted" | "rejected" | (string & {});
@@ -47,8 +47,8 @@ function mapBackendTicket(
     title: bt.name,
     status: mapTicketStatus(bt.status),
     dueDate: toDateOnly(bt.due_date),
-    createdDate: formatDueDate(bt.created),
-    lastUpdate: formatDueDate(bt.updated),
+    createdDate: formatShortDate(bt.created),
+    lastUpdate: formatShortDate(bt.updated),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     description: bt.description ?? "",
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
@@ -94,8 +94,8 @@ function mapBackendTask(
     assignedTo: bt.assignees.map((a) => a.username).join(", "),
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
     dueDate: toDateOnly(bt.due_date),
-    createdDate: formatDueDate(bt.created),
-    lastUpdate: formatDueDate(bt.updated),
+    createdDate: formatShortDate(bt.created),
+    lastUpdate: formatShortDate(bt.updated),
     status: mapTaskStatus(bt.status),
     categoryId: bt.category_id,
     assigneeIds: bt.assignees.map((a) => a.id),

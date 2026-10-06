@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
-import { formatDueDate } from "@/lib/format";
+import { formatShortDate } from "@/lib/format";
 import {
   dueBucketColor,
   getDueBucket,
@@ -69,7 +69,7 @@ export default function TaskList({
           <p className="truncate text-sm">
             {categoryMap[task.category_id] ?? "-"}
           </p>
-          <p className="text-sm">{formatDueDate(task.due_date)}</p>
+          <p className="text-sm">{formatShortDate(task.due_date)}</p>
         </div>
       </button>
     );

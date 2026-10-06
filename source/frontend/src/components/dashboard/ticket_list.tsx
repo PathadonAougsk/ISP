@@ -2,7 +2,7 @@
 
 import type { CategoryMap } from "@/lib/category";
 import type { Ticket } from "@/lib/ticket";
-import { formatDueDate } from "@/lib/format";
+import { formatShortDate } from "@/lib/format";
 import Icon from "@/components/icon";
 import { isMissingTicket } from "@/components/dashboard/due_bucket";
 import {
@@ -69,7 +69,7 @@ export default function TicketList({
                   {categoryMap[ticket.category_id] ?? "-"}
                 </p>
                 <p className="text-sm text-black">
-                  {formatDueDate(ticket.due_date)}
+                  {formatShortDate(ticket.due_date)}
                 </p>
               </div>
             </button>

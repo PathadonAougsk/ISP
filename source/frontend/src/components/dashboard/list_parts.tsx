@@ -3,7 +3,7 @@ import Icon from "@/components/icon";
 
 // same grid for header and row, so column line up
 export const listGridClass =
-  "grid flex-1 grid-cols-[2fr_1.4fr_1.4fr_minmax(160px,1.4fr)] items-center gap-2";
+  "grid flex-1 grid-cols-[2fr_1.5fr_1.5fr_minmax(120px,1fr)] items-center gap-2";
 
 // green header bar, one title per column
 export function ListHeader({ titles }: { titles: string[] }) {

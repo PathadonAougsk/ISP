@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { formatFullDateTime } from "@/lib/format";
+import { formatFullDate } from "@/lib/format";
 import Icon from "@/components/icon";
 import {
   isMissingTask,
@@ -116,7 +116,7 @@ export function PopupMeta({
       </div>
       <div className="flex items-center gap-2">
         <Icon src="/clock.svg" />
-        <span>{formatFullDateTime(dueDate)}</span>
+        <span>{formatFullDate(dueDate)}</span>
       </div>
       {children}
     </div>
@@ -161,7 +161,7 @@ export function PopupEdited({
     <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
       <span className="font-semibold italic">Edited</span>
       <Icon src="/clock.svg" />
-      <span>{formatFullDateTime(updated)}</span>
+      <span>{formatFullDate(updated)}</span>
     </div>
   );
 }
