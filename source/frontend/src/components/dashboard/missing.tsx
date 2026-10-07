@@ -39,7 +39,7 @@ export default function Missing({
       count: countTasks(myTasks),
       loading: loadingMyTasks,
     },
-    // lab user cant see other tasks
+    // lab user cant see others' tasks
     ...(isLabUser
       ? []
       : [

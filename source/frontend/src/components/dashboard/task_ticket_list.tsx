@@ -13,9 +13,13 @@ export default function TaskTicketList({
   loadingOtherTasks,
   errorMyTasks,
   errorOtherTasks,
-  tickets,
-  loadingTickets,
-  errorTickets,
+  myRejectedTickets,
+  myPendingTickets,
+  otherPendingTickets,
+  loadingMyTickets,
+  loadingOtherTickets,
+  errorMyTickets,
+  errorOtherTickets,
   categoryMap,
   usernames,
   isLabUser,
@@ -28,9 +32,13 @@ export default function TaskTicketList({
   loadingOtherTasks: boolean;
   errorMyTasks: boolean;
   errorOtherTasks: boolean;
-  tickets: Ticket[];
-  loadingTickets: boolean;
-  errorTickets: boolean;
+  myRejectedTickets: Ticket[];
+  myPendingTickets: Ticket[];
+  otherPendingTickets: Ticket[];
+  loadingMyTickets: boolean;
+  loadingOtherTickets: boolean;
+  errorMyTickets: boolean;
+  errorOtherTickets: boolean;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   isLabUser: boolean;
@@ -53,10 +61,15 @@ export default function TaskTicketList({
           onSelectTask={onSelectTask}
         />
         <TicketList
-          tickets={tickets}
-          loadingTickets={loadingTickets}
-          errorTickets={errorTickets}
+          myRejectedTickets={myRejectedTickets}
+          myPendingTickets={myPendingTickets}
+          otherPendingTickets={otherPendingTickets}
+          loadingMyTickets={loadingMyTickets}
+          loadingOtherTickets={loadingOtherTickets}
+          errorMyTickets={errorMyTickets}
+          errorOtherTickets={errorOtherTickets}
           categoryMap={categoryMap}
+          isLabUser={isLabUser}
           onSelectTicket={onSelectTicket}
         />
       </div>

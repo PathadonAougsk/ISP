@@ -24,16 +24,20 @@ export default function Dashboard() {
     myTasks,
     otherTasks,
     categories,
-    tickets,
+    myRejectedTickets,
+    myPendingTickets,
+    otherPendingTickets,
     usernames,
     loadingMyTasks,
     loadingOtherTasks,
     loadingCategories,
-    loadingTickets,
+    loadingMyTickets,
+    loadingOtherTickets,
     errorMyTasks,
     errorOtherTasks,
     errorCategories,
-    errorTickets,
+    errorMyTickets,
+    errorOtherTickets,
   } = useDashboardFetching(currentAccount, MAX_TASK, MAX_TICKET);
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -42,6 +46,12 @@ export default function Dashboard() {
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
   const isLabUser = currentAccount?.role === "Lab User";
+
+  // missing panel need a flat ticket list
+  const tickets = useMemo(
+    () => [...myRejectedTickets, ...myPendingTickets, ...otherPendingTickets],
+    [myRejectedTickets, myPendingTickets, otherPendingTickets],
+  );
 
   const othersOnly = useMemo(() => {
     const myTaskIds = new Set(myTasks.map((task) => task.id));
@@ -69,7 +79,12 @@ export default function Dashboard() {
           tickets={tickets}
           loadingMyTasks={loadingMyTasks || errorMyTasks}
           loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
-          loadingTickets={loadingTickets || errorTickets}
+          loadingTickets={
+            loadingMyTickets ||
+            loadingOtherTickets ||
+            errorMyTickets ||
+            errorOtherTickets
+          }
           isLabUser={isLabUser}
         />
         <ActiveTask
@@ -92,9 +107,13 @@ export default function Dashboard() {
         loadingOtherTasks={showLoadingOtherTasks}
         errorMyTasks={errorMyTasks}
         errorOtherTasks={errorOtherTasks}
-        tickets={tickets}
-        loadingTickets={loadingTickets || loadingCategories}
-        errorTickets={errorTickets}
+        myRejectedTickets={myRejectedTickets}
+        myPendingTickets={myPendingTickets}
+        otherPendingTickets={otherPendingTickets}
+        loadingMyTickets={loadingMyTickets || loadingCategories}
+        loadingOtherTickets={loadingOtherTickets}
+        errorMyTickets={errorMyTickets}
+        errorOtherTickets={errorOtherTickets}
         categoryMap={categoryMap}
         usernames={usernames}
         isLabUser={isLabUser}

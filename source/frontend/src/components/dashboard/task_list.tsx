@@ -55,14 +55,14 @@ export default function TaskList({
         key={task.id}
         type="button"
         onClick={() => onSelectTask(task)}
-        className={`group flex h-8 pl-3 pr-4 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] text-left ${
+        className={`flex h-8 pl-2.5 pr-3.5 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${
           overdue
-            ? "bg-(--primary-red) text-white hover:bg-(--primary-red-hover)"
-            : "bg-white text-black hover:bg-gray-100"
+            ? "border-(--primary-red) text-red-700"
+            : "border-transparent text-black"
         }`}
       >
         <span
-          className={`h-2 w-2 shrink-0 rounded-full ${overdue ? "bg-white" : dueBucketColor[getDueBucket(task.due_date, limits)]}`}
+          className={`h-2 w-2 shrink-0 rounded-full ${dueBucketColor[getDueBucket(task.due_date, limits)]}`}
         />
         <div className={listGridClass}>
           <p className="truncate text-sm">{task.name}</p>
