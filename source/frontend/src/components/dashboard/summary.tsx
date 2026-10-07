@@ -8,9 +8,9 @@ import {
   getDueBucket,
   getDueBucketLimits,
   type DueBucketKey,
-} from "@/components/dashboard/due_bucket";
+} from "@/components/dashboard/dashboard_status";
 
-export default function ActiveTask({
+export default function Summary({
   tasks,
   loadingTasks,
 }: {
@@ -22,15 +22,16 @@ export default function ActiveTask({
   const todayParts = getThaiDateParts(limits.now);
   const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
 
-  const dueToday = tasks.filter(
-    (task) =>
-      task.due_date !== null &&
-      new Date(task.due_date) > limits.now &&
-      (() => {
-        const dueParts = getThaiDateParts(task.due_date);
-        return `${dueParts.year}-${dueParts.month}-${dueParts.day}` === today;
-      })(),
-  ).length;
+  const isDueToday = (task: Task) => {
+    if (task.due_date === null || new Date(task.due_date) <= limits.now) {
+      return false;
+    }
+
+    const dueParts = getThaiDateParts(task.due_date);
+    return `${dueParts.year}-${dueParts.month}-${dueParts.day}` === today;
+  };
+
+  const dueToday = tasks.filter(isDueToday).length;
 
   const counts = tasks.reduce<Record<DueBucketKey, number>>((acc, task) => {
     const bucket = getDueBucket(task.due_date, limits);
@@ -48,7 +49,7 @@ export default function ActiveTask({
 
   const hasMissing = dueBuckets.some((bucket) => bucket.key === "missing");
 
-  const summary = [
+  const summaryItems = [
     { label: "Due Today", value: dueToday },
     { label: "Active Task", value: tasks.length },
   ];
@@ -56,7 +57,7 @@ export default function ActiveTask({
   return (
     <div className="flex w-full gap-5">
       <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[30px] bg-(--panel-bg) p-0">
-        {summary.map((item) => (
+        {summaryItems.map((item) => (
           <div
             key={item.label}
             className="flex flex-1 flex-col items-center justify-center gap-1"

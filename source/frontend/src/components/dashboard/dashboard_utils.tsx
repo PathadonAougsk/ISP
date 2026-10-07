@@ -12,8 +12,109 @@ import Icon from "@/components/icon";
 import {
   isMissingTask,
   isMissingTicket,
-} from "@/components/dashboard/due_bucket";
-import { renderWithLinks } from "@/components/dashboard/render_link";
+} from "@/components/dashboard/dashboard_status";
+
+// ==========================================================
+// Links
+// ==========================================================
+
+const urlRegex =
+  /(?<![\w.-])((?:https?:\/\/|www\.)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?::\d+)?(?:\/(?:[^\s]*[^\s.,!?;:])?)?)/g;
+
+// make plain text into text with clickable links
+export function renderWithLinks(text: string): ReactNode {
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) =>
+    index % 2 === 1 ? (
+      <a
+        key={index}
+        href={part.startsWith("http") ? part : `https://${part}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-800 italic underline"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
+// ==========================================================
+// List parts
+// ==========================================================
+
+// same grid for header and row, so column line up
+export const listGridClass =
+  "grid flex-1 grid-cols-[2fr_1.5fr_1.5fr_minmax(120px,1fr)] items-center gap-3";
+
+// green header bar, one title per column
+export function ListHeader({
+  titles,
+  hasOverflow = false,
+}: {
+  titles: string[];
+  hasOverflow?: boolean;
+}) {
+  return (
+    <div
+      className={`flex h-8 shrink-0 items-center gap-5 rounded-[20px] bg-(--primary-color-2) pl-2 ${
+        hasOverflow ? "pr-6" : "pr-4"
+      }`}
+    >
+      <Icon src="/header_donut_dark_green.svg" />
+      <div className={listGridClass}>
+        {titles.map((title) => (
+          <h1 key={title} className="truncate text-base font-bold text-white">
+            {title}
+          </h1>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// loading, error or empty text for a list
+export function ListMessage({ children }: { children: ReactNode }) {
+  return (
+    <p className="py-6 text-center text-base font-medium text-gray-500">
+      {children}
+    </p>
+  );
+}
+
+// overflown detection
+export function useListOverflow(dependencies: unknown[]) {
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = listRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const checkOverflow = () => {
+      setHasOverflow(element.scrollHeight > element.clientHeight);
+    };
+
+    checkOverflow();
+
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, dependencies);
+
+  return { listRef, hasOverflow };
+}
+
+// ==========================================================
+// Popup parts
+// ==========================================================
 
 type DateInput = string | null;
 
@@ -66,7 +167,7 @@ export function PopupFrame({
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className={`popup-overlay absolute inset-0 bg-black ${isClosing ? "popup-overlay-closing" : ""}`}
+        className={`popup-overlay absolute inset-0 ${isClosing ? "popup-overlay-closing" : ""}`}
         onClick={onClose}
       />
 
@@ -165,11 +266,11 @@ export function PopupEdited({
   );
 }
 
-export function PopupDuedate({ due_date }: { due_date: DateInput }) {
+export function PopupDuedate({ dueDate }: { dueDate: DateInput }) {
   return (
     <div className="mt-2 flex items-center gap-2 text-base font-semibold text-black">
       <span>Due</span>
-      <span>{formatFullDateTime(due_date)}</span>
+      <span>{formatFullDateTime(dueDate)}</span>
     </div>
   );
 }

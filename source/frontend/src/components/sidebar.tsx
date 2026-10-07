@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
@@ -18,14 +18,12 @@ function getItemClass(active = false) {
 
 function NavigationIcon({ name }: { name: string }) {
   return (
-    <Image
+    <Icon
       src={`./${name}.svg`}
-      width={0}
-      height={0}
-      sizes="auto"
+      width={20}
+      height={20}
       className="h-auto w-5 shrink-0"
       alt={name}
-      draggable={false}
     />
   );
 }

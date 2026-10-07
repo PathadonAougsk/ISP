@@ -5,7 +5,7 @@ import type { Ticket } from "@/lib/ticket";
 import {
   isMissingTask,
   isMissingTicket,
-} from "@/components/dashboard/due_bucket";
+} from "@/components/dashboard/dashboard_status";
 
 export default function Missing({
   myTasks,

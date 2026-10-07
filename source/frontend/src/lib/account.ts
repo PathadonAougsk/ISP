@@ -1,5 +1,8 @@
+"use client";
+
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -111,4 +114,27 @@ export async function isAdmin(): Promise<boolean> {
   const me = await getMe();
 
   return me ? isAdminRole(me.role) : false;
+}
+
+// Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
+export function useCurrentAccount(enabled: boolean = true) {
+  const [account, setAccount] = useState<Account | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    getMe()
+      .then((found) => {
+        setAccount(found ?? null);
+      })
+      .catch(() => {
+        setAccount(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [enabled]);
+
+  return { account, loading: enabled && loading };
 }

@@ -1,21 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCurrentAccount } from "@/lib/current_account";
+import { useCurrentAccount } from "@/lib/account";
 import { toCategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
 import Announcement from "@/components/dashboard/announcement";
 import Missing from "@/components/dashboard/missing";
-import ActiveTask from "@/components/dashboard/active_task";
-import TaskOverview from "@/components/dashboard/task_overview";
+import Summary from "@/components/dashboard/summary";
+import Overview from "@/components/dashboard/overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskPopup from "@/components/dashboard/task_popup";
 import TicketPopup from "@/components/dashboard/ticket_popup";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
-const MAX_TASK = 30;
-const MAX_TICKET = 30;
+const MAX_TASK = 20;
+const MAX_TICKET = 20;
 
 export default function Dashboard() {
   const { account: currentAccount } = useCurrentAccount();
@@ -87,11 +87,11 @@ export default function Dashboard() {
           }
           isLabUser={isLabUser}
         />
-        <ActiveTask
+        <Summary
           tasks={myTasks}
           loadingTasks={loadingMyTasks || errorMyTasks}
         />
-        <TaskOverview
+        <Overview
           tasks={myTasks}
           loadingTasks={loadingMyTasks || loadingCategories}
           errorTasks={errorMyTasks}

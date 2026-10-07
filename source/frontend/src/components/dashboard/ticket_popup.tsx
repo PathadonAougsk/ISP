@@ -6,7 +6,7 @@ import Icon from "@/components/icon";
 import {
   ticketStatusIcon,
   ticketStatusText,
-} from "@/components/dashboard/ticket_status";
+} from "@/components/dashboard/dashboard_status";
 import {
   PopupCloseButton,
   PopupDescription,
@@ -16,7 +16,7 @@ import {
   PopupMeta,
   PopupMissingBadge,
   usePopupClose,
-} from "@/components/dashboard/popup";
+} from "@/components/dashboard/dashboard_utils";
 
 export default function TicketPopup({
   ticket,
@@ -62,7 +62,7 @@ export default function TicketPopup({
       <PopupEdited created={ticket.created} updated={ticket.updated} />
 
       <div className="flex items-end gap-8">
-        <PopupDuedate due_date={ticket.due_date} />
+        <PopupDuedate dueDate={ticket.due_date} />
 
         <PopupMissingBadge
           type="ticket"

@@ -9,10 +9,10 @@ import {
   getDueBucket,
   getDueBucketLimits,
   type DueBucketKey,
-} from "@/components/dashboard/due_bucket";
-import { ListMessage } from "@/components/dashboard/list_parts";
+} from "@/components/dashboard/dashboard_status";
+import { ListMessage } from "@/components/dashboard/dashboard_utils";
 
-export default function TaskOverview({
+export default function Overview({
   tasks,
   loadingTasks,
   errorTasks,

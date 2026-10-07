@@ -12,7 +12,7 @@ import {
   PopupMeta,
   PopupMissingBadge,
   usePopupClose,
-} from "@/components/dashboard/popup";
+} from "@/components/dashboard/dashboard_utils";
 
 export default function TaskPopup({
   task,
@@ -60,7 +60,7 @@ export default function TaskPopup({
         <PopupEdited created={task.created} updated={task.updated} />
 
         <div className="flex items-end gap-8">
-          <PopupDuedate due_date={task.due_date} />
+          <PopupDuedate dueDate={task.due_date} />
 
           <PopupMissingBadge
             type="task"

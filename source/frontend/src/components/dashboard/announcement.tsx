@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { renderWithLinks } from "@/components/dashboard/render_link";
+import Icon from "@/components/icon";
+import { renderWithLinks } from "@/components/dashboard/dashboard_utils";
 
 export default function Announcement() {
   const description =
@@ -18,11 +18,11 @@ export default function Announcement() {
 
         <div className="mt-2 flex items-center gap-12 text-sm text-gray-600">
           <div className="flex items-center gap-2">
-            <Image src="/user.svg" alt="" width={14} height={16} />
+            <Icon src="/user.svg" alt="" className="h-4 w-auto" />
             <span>Pasin Mclaren</span>
           </div>
           <div className="flex items-center gap-2">
-            <Image src="/clock.svg" alt="" width={16} height={16} />
+            <Icon src="/clock.svg" alt="" className="h-4 w-auto" />
             <span>Friday 28 August 2026, 09:47</span>
           </div>
         </div>

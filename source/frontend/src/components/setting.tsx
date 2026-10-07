@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { type Account } from "@/lib/account";
-import { useCurrentAccount } from "@/lib/current_account";
+import { useCurrentAccount } from "@/lib/account";
 import Categories from "./category";
 
 function Icon({
