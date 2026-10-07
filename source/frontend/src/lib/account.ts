@@ -28,6 +28,9 @@ const ADMIN_ROLES: AccountRole[] = ["Lab Owner", "Lab Admin"];
 const ROLE_COOKIE = "account_role";
 const ROLE_COOKIE_MAX_AGE = 60 * 60; // an hour, so a role change is picked up soon enough
 
+let mePromise: Promise<Account | undefined> | null = null;
+let meSessionId: string | null = null;
+
 export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
@@ -82,27 +85,46 @@ export async function getMe(): Promise<Account | undefined> {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) return undefined;
-
-  const res = await apiFetch(`/account/${session.user.id}`);
-
-  if (res.ok) {
-    const { Account: account } = (await res.json()) as AccountResponse;
-    cacheRole(account.role);
-    return account;
+  if (!session) {
+    mePromise = null;
+    meSessionId = null;
+    return undefined;
   }
 
-  // A row that is not keyed to the auth id still has to be findable by email.
-  if (res.status === 404) {
-    const { Accounts } = await getAccounts();
-    const account = Accounts.find((user) => user.email === session.user.email);
-
-    if (account) cacheRole(account.role);
-
-    return account;
+  if (mePromise && meSessionId === session.user.id) {
+    return mePromise;
   }
 
-  throw new Error(`HTTP ${res.status}`);
+  meSessionId = session.user.id;
+  mePromise = (async () => {
+    const res = await apiFetch(`/account/${session.user.id}`);
+
+    if (res.ok) {
+      const { Account: account } = (await res.json()) as AccountResponse;
+      cacheRole(account.role);
+      return account;
+    }
+
+    // A row that is not keyed to the auth id still has to be findable by email.
+    if (res.status === 404) {
+      const { Accounts } = await getAccounts();
+      const account = Accounts.find(
+        (user) => user.email === session.user.email,
+      );
+
+      if (account) cacheRole(account.role);
+
+      return account;
+    }
+
+    throw new Error(`HTTP ${res.status}`);
+  })().catch((error) => {
+    mePromise = null;
+    meSessionId = null;
+    throw error;
+  });
+
+  return mePromise;
 }
 
 // Reads the cookie first, and only falls back to the network on a cold start.

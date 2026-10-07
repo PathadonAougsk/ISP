@@ -57,7 +57,7 @@ export async function getTasks(
   }
 
   const qs = query.toString();
-  const res = await apiFetch(`/task${qs ? `?${qs}` : ""}`);
+  const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
 
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
