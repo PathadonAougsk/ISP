@@ -11,6 +11,7 @@ import {
   PopupCloseButton,
   PopupDescription,
   PopupEdited,
+  PopupDuedate,
   PopupFrame,
   PopupMeta,
   PopupMissingBadge,
@@ -46,7 +47,7 @@ export default function TicketPopup({
       <PopupMeta
         id={ticket.id}
         categoryName={categoryMap[ticket.category_id] ?? "-"}
-        dueDate={ticket.due_date}
+        createdDate={ticket.created}
       >
         <div className="flex items-center gap-2">
           <Icon src={ticketStatusIcon[ticket.status]} />
@@ -56,15 +57,19 @@ export default function TicketPopup({
           <Icon src="/user.svg" />
           <span>{usernames[ticket.created_by] ?? "-"}</span>
         </div>
+      </PopupMeta>
+
+      <PopupEdited created={ticket.created} updated={ticket.updated} />
+
+      <div className="flex items-end gap-8">
+        <PopupDuedate due_date={ticket.due_date} />
 
         <PopupMissingBadge
           type="ticket"
           status={ticket.status}
           dueDate={ticket.due_date}
         />
-      </PopupMeta>
-
-      <PopupEdited created={ticket.created} updated={ticket.updated} />
+      </div>
 
       <PopupDescription description={ticket.description} />
     </PopupFrame>

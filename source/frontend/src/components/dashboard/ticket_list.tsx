@@ -9,6 +9,7 @@ import {
   ListHeader,
   ListMessage,
   listGridClass,
+  useListOverflow,
 } from "@/components/dashboard/list_parts";
 import {
   ticketStatusIcon,
@@ -29,10 +30,14 @@ export default function TicketList({
   onSelectTicket: (ticket: Ticket) => void;
 }) {
   const now = new Date();
+  const { listRef, hasOverflow } = useListOverflow([tickets]);
 
   return (
     <div className="flex min-h-0 flex-col gap-2">
-      <ListHeader titles={["Ticket Name", "Status", "Category", "Duedate"]} />
+      <ListHeader
+        titles={["Ticket Name", "Status", "Category", "Duedate"]}
+        hasOverflow={hasOverflow}
+      />
 
       {loadingTickets ? (
         <ListMessage>Loading tickets...</ListMessage>
@@ -43,13 +48,16 @@ export default function TicketList({
           {"Looks like everything's pretty peaceful around here. Hell yeah!"}
         </ListMessage>
       ) : (
-        <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+        <div
+          ref={listRef}
+          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
+        >
           {tickets.map((ticket) => (
             <button
               key={ticket.id}
               type="button"
               onClick={() => onSelectTicket(ticket)}
-              className="flex h-8 w-full shrink-0 cursor-pointer items-center gap-4 rounded-[20px] bg-white px-2 text-left hover:bg-gray-100"
+              className="flex h-8 pl-2 pr-4 w-full shrink-0 cursor-pointer items-center gap-5 rounded-[20px] bg-white text-left hover:bg-gray-100"
             >
               <Icon
                 src={

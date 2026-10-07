@@ -1,7 +1,7 @@
 "use client";
 
 import type { Task } from "@/lib/task";
-import { localizeDateTime } from "@/lib/format";
+import { getThaiDateParts } from "@/lib/format";
 import {
   dueBucketMeta,
   emptyBucketCounts,
@@ -19,12 +19,17 @@ export default function ActiveTask({
 }) {
   const limits = getDueBucketLimits(new Date());
   // compare day on Thai clock
-  const today = localizeDateTime(limits.now).toISOString().slice(0, 10);
+  const todayParts = getThaiDateParts(limits.now);
+  const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+
   const dueToday = tasks.filter(
     (task) =>
       task.due_date !== null &&
       new Date(task.due_date) > limits.now &&
-      localizeDateTime(task.due_date).toISOString().slice(0, 10) === today,
+      (() => {
+        const dueParts = getThaiDateParts(task.due_date);
+        return `${dueParts.year}-${dueParts.month}-${dueParts.day}` === today;
+      })(),
   ).length;
 
   const counts = tasks.reduce<Record<DueBucketKey, number>>((acc, task) => {

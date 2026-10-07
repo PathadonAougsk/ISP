@@ -1,4 +1,4 @@
-import { localizeDateTime } from "@/lib/format";
+import { getThaiDateParts } from "@/lib/format";
 
 export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
@@ -35,18 +35,20 @@ export type DueBucketLimits = {
 
 // call this once per render, then reuse for every task
 export function getDueBucketLimits(now: Date): DueBucketLimits {
-  const local = localizeDateTime(now);
+  const local = getThaiDateParts(now);
+
   const thisWeekEnd = new Date(
     Date.UTC(
-      local.getUTCFullYear(),
-      local.getUTCMonth(),
-      local.getUTCDate() - local.getUTCDay() + 6,
+      local.year,
+      local.month - 1,
+      local.day - local.weekday + 6,
       23,
       59,
       59,
       999,
     ),
   );
+
   const nextWeekEnd = new Date(thisWeekEnd.getTime() + 7 * DAY_MS);
 
   return { now, thisWeekEnd, nextWeekEnd };
@@ -79,9 +81,10 @@ export function getDueBucket(
   if (dueDateIso === null) return "later";
   if (isMissing(dueDateIso, limits.now)) return "missing";
 
-  const due = localizeDateTime(dueDateIso);
+  const due = getThaiDateParts(dueDateIso);
+  const dueCalendarDate = new Date(Date.UTC(due.year, due.month - 1, due.day));
 
-  if (due <= limits.thisWeekEnd) return "thisWeek";
-  if (due <= limits.nextWeekEnd) return "nextWeek";
+  if (dueCalendarDate <= limits.thisWeekEnd) return "thisWeek";
+  if (dueCalendarDate <= limits.nextWeekEnd) return "nextWeek";
   return "later";
 }

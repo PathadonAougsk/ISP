@@ -14,6 +14,7 @@ import {
   ListHeader,
   ListMessage,
   listGridClass,
+  useListOverflow,
 } from "@/components/dashboard/list_parts";
 
 export default function TaskList({
@@ -44,6 +45,8 @@ export default function TaskList({
   const hasMyTasks = !loadingMyTasks && myTasks.length > 0;
   const hasOtherTasks = otherTasks.length > 0;
 
+  const { listRef, hasOverflow } = useListOverflow([myTasks, otherTasks]);
+
   const renderTask = (task: Task) => {
     const overdue = isMissingTask(task, limits.now);
 
@@ -52,7 +55,7 @@ export default function TaskList({
         key={task.id}
         type="button"
         onClick={() => onSelectTask(task)}
-        className={`group flex h-8 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] px-3 text-left ${
+        className={`group flex h-8 pl-3 pr-4 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] text-left ${
           overdue
             ? "bg-(--primary-red) text-white hover:bg-(--primary-red-hover)"
             : "bg-white text-black hover:bg-gray-100"
@@ -77,7 +80,10 @@ export default function TaskList({
 
   return (
     <div className="flex min-h-0 flex-col gap-2">
-      <ListHeader titles={["Task Name", "Created by", "Category", "Duedate"]} />
+      <ListHeader
+        titles={["Task Name", "Created by", "Category", "Duedate"]}
+        hasOverflow={hasOverflow}
+      />
 
       {!hasMyTasks && !hasOtherTasks ? (
         <ListMessage>
@@ -88,7 +94,10 @@ export default function TaskList({
               : "Good job! You have completed all tasks."}
         </ListMessage>
       ) : (
-        <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+        <div
+          ref={listRef}
+          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
+        >
           {hasMyTasks && (
             <Fragment>
               {!isLabUser && (

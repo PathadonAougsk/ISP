@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { formatFullDate } from "@/lib/format";
+import { formatFullDateTime } from "@/lib/format";
 import Icon from "@/components/icon";
 import {
   isMissingTask,
@@ -73,7 +73,7 @@ export function PopupFrame({
       <div
         role="dialog"
         aria-modal="true"
-        className={`popup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] rounded-t-[30px] bg-white p-5 ${className} ${isClosing ? "popup-panel-closing" : ""}`}
+        className={`popup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] p-5 rounded-t-[30px] bg-white ${className} ${isClosing ? "popup-panel-closing" : ""}`}
       >
         {children}
       </div>
@@ -99,12 +99,12 @@ export function PopupCloseButton({ onClose }: { onClose: () => void }) {
 export function PopupMeta({
   id,
   categoryName,
-  dueDate,
+  createdDate,
   children,
 }: {
   id: number;
   categoryName: string;
-  dueDate: DateInput;
+  createdDate: DateInput;
   children?: ReactNode;
 }) {
   return (
@@ -116,7 +116,7 @@ export function PopupMeta({
       </div>
       <div className="flex items-center gap-2">
         <Icon src="/clock.svg" />
-        <span>{formatFullDate(dueDate)}</span>
+        <span>{formatFullDateTime(createdDate)}</span>
       </div>
       {children}
     </div>
@@ -160,8 +160,16 @@ export function PopupEdited({
   return (
     <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
       <span className="font-semibold italic">Edited</span>
-      <Icon src="/clock.svg" />
-      <span>{formatFullDate(updated)}</span>
+      <span>{formatFullDateTime(updated)}</span>
+    </div>
+  );
+}
+
+export function PopupDuedate({ due_date }: { due_date: DateInput }) {
+  return (
+    <div className="mt-2 flex items-center gap-2 text-base font-semibold text-black">
+      <span>Due</span>
+      <span>{formatFullDateTime(due_date)}</span>
     </div>
   );
 }
@@ -173,7 +181,7 @@ export function PopupDescription({
   description: string | null;
 }) {
   return (
-    <div className="mt-4 min-h-0 flex-1 overflow-y-auto whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
+    <div className="mt-4 min-h-0 pr-5 pb-25 flex-1 overflow-y-auto scrollbar-thin whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
       {description ? (
         renderWithLinks(description)
       ) : (

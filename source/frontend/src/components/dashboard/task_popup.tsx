@@ -7,6 +7,7 @@ import {
   PopupCloseButton,
   PopupDescription,
   PopupEdited,
+  PopupDuedate,
   PopupFrame,
   PopupMeta,
   PopupMissingBadge,
@@ -48,21 +49,25 @@ export default function TaskPopup({
         <PopupMeta
           id={task.id}
           categoryName={categoryMap[task.category_id] ?? "-"}
-          dueDate={task.due_date}
+          createdDate={task.created}
         >
           <div className="flex items-center gap-2">
             <Icon src="/user.svg" />
             <span>{usernames[task.created_by] ?? "-"}</span>
           </div>
+        </PopupMeta>
+
+        <PopupEdited created={task.created} updated={task.updated} />
+
+        <div className="flex items-end gap-8">
+          <PopupDuedate due_date={task.due_date} />
 
           <PopupMissingBadge
             type="task"
             status={task.status}
             dueDate={task.due_date}
           />
-        </PopupMeta>
-
-        <PopupEdited created={task.created} updated={task.updated} />
+        </div>
 
         <PopupDescription description={task.description} />
       </div>
@@ -75,7 +80,7 @@ export default function TaskPopup({
         <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
           <h1 className="text-base font-bold text-black">Responsible person</h1>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
             <div className="flex flex-col gap-2">
               {sortedAssignees.map((assignee) => (
                 <div key={assignee.id} className="flex items-center gap-2">
