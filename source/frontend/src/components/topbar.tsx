@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMe, type Account } from "@/lib/account";
+import Icon from "@/components/icon";
 
 export default function Topbar() {
   const pathname = usePathname().replace("/", "");
@@ -37,7 +37,7 @@ export default function Topbar() {
               <h1 className="font-bold">{account.role}</h1>
             </div>
 
-            <Image src="./profile.svg" width={36} height={36} alt="Profile" />
+            <Icon src="/profile.svg" className="h-9 w-9" alt="Profile" />
           </>
         )}
       </div>

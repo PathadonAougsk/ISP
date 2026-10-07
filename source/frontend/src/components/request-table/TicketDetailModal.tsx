@@ -160,7 +160,7 @@ export default function TicketDetailModal({
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
               {!canEditTicket ? (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                   {ticket.title}
                 </div>
               ) : (
@@ -179,7 +179,7 @@ export default function TicketDetailModal({
                   Category
                 </label>
                 {!canEditTicket ? (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                     {ticket.category}
                   </div>
                 ) : (
@@ -207,7 +207,7 @@ export default function TicketDetailModal({
                   Due Date
                 </label>
                 {!canEditTicket ? (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                     {ticket.dueDate || "—"}
                   </div>
                 ) : (
@@ -226,7 +226,7 @@ export default function TicketDetailModal({
                 Description
               </label>
               {!canEditTicket ? (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
+                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto wrap-break-word">
                   {ticket.description}
                 </div>
               ) : (
@@ -242,7 +242,7 @@ export default function TicketDetailModal({
               <label className="block text-sm font-medium mb-1">
                 Created By
               </label>
-              <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words">
+              <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word">
                 {ticket.createdBy}
               </div>
             </div>
@@ -282,7 +282,7 @@ export default function TicketDetailModal({
                       className="w-4 h-4"
                     />
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
                       <div>
                         <div className="text-sm font-medium leading-tight">
                           {member.name}

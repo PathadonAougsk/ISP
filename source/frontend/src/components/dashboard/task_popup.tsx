@@ -52,7 +52,7 @@ export default function TaskPopup({
           createdDate={task.created}
         >
           <div className="flex items-center gap-2">
-            <Icon src="/user.svg" />
+            <Icon src="/user.svg" alt="" className="h-4 w-auto" />
             <span>{usernames[task.created_by] ?? "-"}</span>
           </div>
         </PopupMeta>

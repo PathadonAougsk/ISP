@@ -54,7 +54,7 @@ export default function TicketPopup({
           <span>{ticketStatusText[ticket.status]}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Icon src="/user.svg" />
+          <Icon src="/user.svg" alt="" className="h-4 w-auto" />
           <span>{usernames[ticket.created_by] ?? "-"}</span>
         </div>
       </PopupMeta>

@@ -139,7 +139,7 @@ export default function TaskDetailModal({
                   className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                 />
               ) : (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                   {task.title}
                 </div>
               )}
@@ -168,14 +168,14 @@ export default function TaskDetailModal({
                     ))}
                   </select>
                 ) : (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                     {task.category}
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <label className="block text-sm font-medium mb-1">Status</label>
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                   {task.status}
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function TaskDetailModal({
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 ) : (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                     {task.dueDate || "—"}
                   </div>
                 )}
@@ -202,7 +202,7 @@ export default function TaskDetailModal({
               <label className="block text-sm font-medium mb-1">
                 Created By
               </label>
-              <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words">
+              <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word">
                 {task.createdBy}
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function TaskDetailModal({
                   className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
                 />
               ) : (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto break-words">
+                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto wrap-break-word">
                   {task.description}
                 </div>
               )}
@@ -229,7 +229,7 @@ export default function TaskDetailModal({
                 <label className="block text-sm font-medium mb-1">
                   Assigned
                 </label>
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm break-words max-h-20 overflow-y-auto">
+                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
                   {task.assignedTo || "—"}
                 </div>
               </div>
@@ -265,7 +265,7 @@ export default function TaskDetailModal({
                       className="w-4 h-4"
                     />
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
                       <div>
                         <div className="text-sm font-medium leading-tight">
                           {member.name}

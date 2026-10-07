@@ -64,7 +64,7 @@ export default function TicketTable({
           <select
             value={ticketCategoryFilter}
             onChange={(e) => setTicketCategoryFilter(e.target.value)}
-            className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
             {ticketCategories.map((category) => (
@@ -77,7 +77,7 @@ export default function TicketTable({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
             <option value="Pending">Pending</option>
@@ -110,7 +110,7 @@ export default function TicketTable({
               >
                 <td className="px-4 py-3">{ticket.id}</td>
                 <td
-                  className="px-4 py-3  max-w-[160px] truncate"
+                  className="px-4 py-3  max-w-40 truncate"
                   title={ticket.title}
                 >
                   {ticket.title}
@@ -118,7 +118,7 @@ export default function TicketTable({
                 <td className="px-4 py-3">{ticket.status}</td>
                 <td className="px-4 py-3">{ticket.category}</td>
                 <td
-                  className="px-4 py-3 max-w-[120px] truncate"
+                  className="px-4 py-3 max-w-30 truncate"
                   title={ticket.createdBy}
                 >
                   {ticket.createdBy}

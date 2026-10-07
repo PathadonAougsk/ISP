@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-import { useCurrentAccount } from "@/lib/current_account";
+import { useCurrentAccount } from "@/lib/account";
+import Icon from "@/components/icon";
 import AccountPanel from "./account";
 import Categories from "./category";
-import Icon from "./icon";
 import Sidebar from "./sidebar";
 import Member from "./member";
 
@@ -26,12 +26,12 @@ export default function Settings({
   onClose: () => void;
 }) {
   const [active, setActive] = useState("Account");
-  const {account, loading, isAdmin} = useCurrentAccount(open);
+  const { account, loading, isAdmin } = useCurrentAccount(open);
 
   const panels: Record<string, React.ReactNode> = {
     Account: <AccountPanel account={account} loading={loading} />,
     Category: <Categories isAdmin={isAdmin} />,
-    Member: <Member account={account} isAdmin={isAdmin} />
+    Member: <Member account={account} isAdmin={isAdmin} />,
   };
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function Settings({
               aria-label="Close settings"
               className="p-1 hover:bg-[#dcdcdc]"
             >
-              <Icon name="close" className="size-5" />
+              <Icon src="/close.svg" className="size-5" />
             </button>
           </header>
 

@@ -18,13 +18,7 @@ function getItemClass(active = false) {
 
 function NavigationIcon({ name }: { name: string }) {
   return (
-    <Icon
-      src={`./${name}.svg`}
-      width={20}
-      height={20}
-      className="h-auto w-5 shrink-0"
-      alt={name}
-    />
+    <Icon src={`/${name}.svg`} className="h-auto w-5 shrink-0" alt={name} />
   );
 }
 
