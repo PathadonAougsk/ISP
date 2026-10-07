@@ -1,5 +1,8 @@
+"use client";
+
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -111,9 +114,9 @@ export async function getAccount(userId: string): Promise<Account | undefined> {
 
 // The signed in user's own account row, straight from /account/{account_id}.
 // Cached - pass { force: true } to go back to the network.
-export async function getMe(
-  { force = false }: { force?: boolean } = {},
-): Promise<Account | undefined> {
+export async function getMe({
+  force = false,
+}: { force?: boolean } = {}): Promise<Account | undefined> {
   if (force) clearMeCache();
 
   if (meCache && Date.now() - meCache.at < ME_CACHE_TTL) {
@@ -147,7 +150,9 @@ async function fetchMe(): Promise<Account | undefined> {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) return undefined;
+  if (!session) {
+    return undefined;
+  }
 
   const res = await apiFetch(`/account/${session.user.id}`);
 
@@ -189,7 +194,6 @@ export function mapAccountToMember(account: Account): Member {
   return { id: account.id, name: account.username, email: account.email };
 }
 
-
 export type AccountPatch = {
   username?: string;
   quota?: number | null;
@@ -223,4 +227,27 @@ export async function deleteAccount(accountId: string): Promise<void> {
   await apiOrThrow(res, "Could not delete that account.");
 
   clearMeCache();
+}
+
+// Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
+export function useCurrentAccount(enabled: boolean = true) {
+  const [account, setAccount] = useState<Account | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    getMe()
+      .then((found) => {
+        setAccount(found ?? null);
+      })
+      .catch(() => {
+        setAccount(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [enabled]);
+
+  return { account, loading: enabled && loading };
 }

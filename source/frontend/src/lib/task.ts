@@ -1,6 +1,6 @@
 import { apiFetch, apiSendJson } from "@/lib/api";
 import type { Account } from "@/lib/account";
-import { formatDueDate} from "@/lib/format";
+import { formatDueDate } from "@/lib/format";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
 
@@ -75,7 +75,6 @@ export async function getTasks(
   if (limit !== undefined) query.set("limit", String(limit));
 
   const qs = query.toString();
-  // Trailing slash matches the FastAPI route and avoids a redirect
   const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
 
   if (!res.ok) {

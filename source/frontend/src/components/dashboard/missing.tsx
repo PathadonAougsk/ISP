@@ -2,7 +2,10 @@
 
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
-import { isMissing, isMissingTicket } from "@/components/dashboard/due_bucket";
+import {
+  isMissingTask,
+  isMissingTicket,
+} from "@/components/dashboard/dashboard_status";
 
 export default function Missing({
   myTasks,
@@ -24,11 +27,7 @@ export default function Missing({
   const now = new Date();
 
   const countTasks = (tasks: Task[]) =>
-    tasks.filter((task) => isMissing(task.due_date, now)).length;
-
-  const myTaskIds = new Set(myTasks.map((task) => task.id));
-  // remove dupe tasks
-  const othersOnly = otherTasks.filter((task) => !myTaskIds.has(task.id));
+    tasks.filter((task) => isMissingTask(task, now)).length;
 
   const missingTickets = tickets.filter((ticket) =>
     isMissingTicket(ticket, now),
@@ -40,13 +39,13 @@ export default function Missing({
       count: countTasks(myTasks),
       loading: loadingMyTasks,
     },
-    // lab user cant see other tasks
+    // lab user cant see others' tasks
     ...(isLabUser
       ? []
       : [
           {
-            label: "Other Missing Tasks",
-            count: countTasks(othersOnly),
+            label: "Others' Missing Tasks",
+            count: countTasks(otherTasks),
             loading: loadingOtherTasks || loadingMyTasks,
           },
         ]),
