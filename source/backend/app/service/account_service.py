@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -9,7 +10,7 @@ from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.dependencies import supabase
-from app.model import Account, AccountRole
+from app.model import Account, AccountRole, AuditLog
 
 bearer_scheme = HTTPBearer(auto_error=False, description="Supabase access token")
 
@@ -54,14 +55,44 @@ async def get_current_account(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     return account
 
+async def require_admin(
+    me: Annotated[Account, Depends(get_current_account)],
+) -> Account:
+    """Gate for the admin only endpoints. Returns the caller so handlers can use it."""
+    if not is_admin(me):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only a Lab Owner or Lab Admin can do this",
+        )
+    return me
 
-async def create_account(session: AsyncSession, id: str, email: str, username: str) -> Account:
-    stmt = (
-        insert(Account)
-        .values(id=id, email=email, username=username)
-    )
-    account = await session.scalar(stmt)
+
+async def get_account_or_404(session: AsyncSession, account_id: uuid.UUID) -> Account:
+    account = await session.get(Account, account_id)
     if account is None:
-        account = await session.get(Account, id)
-    await session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Account with id {account_id} not found",
+        )
     return account
+
+
+def audit_account(
+    session: AsyncSession,
+    account_id: uuid.UUID,
+    column: str,
+    old_value: object,
+    new_value: object,
+    by_whom: uuid.UUID,
+) -> None:
+    """One audit_log row per changed column, matching the task and ticket routers."""
+    session.add(
+        AuditLog(
+            from_table="account",
+            row_id=str(account_id),
+            column_name=column,
+            old_value=None if old_value is None else str(old_value),
+            new_value=None if new_value is None else str(new_value),
+            by_whom=by_whom,
+        )
+    )

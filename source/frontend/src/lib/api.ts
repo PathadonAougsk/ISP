@@ -36,3 +36,21 @@ export function apiSendJson(
     body: JSON.stringify(body),
   });
 }
+
+// FastAPI puts the useful message in `detail`, and the member rules lean on it
+// ("A Lab Owner cannot be deactivated"), so surface that rather than the status.
+export async function apiDetail(res: Response, fallback: string) {
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === "string") return body.detail;
+  } catch {
+    // no JSON body, fall through to the fallback
+  }
+  return fallback;
+}
+
+// Throws with the server's `detail` so callers can show it as is.
+export async function apiOrThrow(res: Response, fallback: string) {
+  if (!res.ok) throw new Error(await apiDetail(res, fallback));
+  return res;
+}
