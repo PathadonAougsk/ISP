@@ -38,7 +38,8 @@ async def retrieve_tasks(
     categories: int | None = None,
     assignsTo: uuid.UUID | None = None,
     status: TaskStatus | None = None,
-    limit: int = 20
+    limit: int = 20,
+    offset: int= 0 # Where will the results start? 0 means at the beginning.
 ):
     tasks = select(Task).options(selectinload(Task.assignees))
     # Then, we filter each attribute one by one.
@@ -63,6 +64,8 @@ async def retrieve_tasks(
 
     # Cap how many tasks come back, if asked for.
     tasks = tasks.limit(limit)
+    if (offset > 0):
+        tasks = tasks.offset(offset)
 
     tasks = (await session.scalars(tasks)).all()
     # Asking for a specific task that does not exist is a 404.
@@ -80,7 +83,7 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
         description=body.description,
         status=body.status,
         category_id=body.category_id,
-        due_date=body.due_date,
+        due_date=body.due_date.replace(tzinfo=timezone.utc),
         created_by=auth_user.id,
     )
 
@@ -162,7 +165,7 @@ async def update_task(
         dt1 = task.due_date.replace(tzinfo=timezone.utc)
         dt2 = body.due_date.replace(tzinfo=timezone.utc)
         audit_list.append(update_helper("due_date",dt1, dt2))
-        task.due_date = body.due_date
+        task.due_date = dt2
 
     if body.assignees is not None:
         audit_list.append(update_helper("assignees",task.assignees, body.assignees))
