@@ -1,63 +1,73 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCurrentAccount } from "@/lib/current_account";
+import { useCurrentAccount } from "@/lib/account";
 import { toCategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
+import type { Ticket } from "@/lib/ticket";
 import Announcement from "@/components/dashboard/announcement";
 import Missing from "@/components/dashboard/missing";
-import ActiveTask from "@/components/dashboard/active_task";
-import TaskOverview from "@/components/dashboard/task_overview";
+import Summary from "@/components/dashboard/summary";
+import Overview from "@/components/dashboard/overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskPopup from "@/components/dashboard/task_popup";
 import TicketPopup from "@/components/dashboard/ticket_popup";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
+const MAX_TASK = 20;
+const MAX_TICKET = 20;
+
 export default function Dashboard() {
   const { account: currentAccount } = useCurrentAccount();
-
-  const maxTask = 30;
-  const maxTicket = 30;
 
   const {
     myTasks,
     otherTasks,
     categories,
-    tickets,
+    myRejectedTickets,
+    myPendingTickets,
+    otherPendingTickets,
     usernames,
     loadingMyTasks,
     loadingOtherTasks,
     loadingCategories,
-    loadingTickets,
+    loadingMyTickets,
+    loadingOtherTickets,
     errorMyTasks,
     errorOtherTasks,
     errorCategories,
-    errorTickets,
-  } = useDashboardFetching(currentAccount, maxTask, maxTicket);
+    errorMyTickets,
+    errorOtherTickets,
+  } = useDashboardFetching(currentAccount, MAX_TASK, MAX_TICKET);
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<
-    (typeof tickets)[number] | null
-  >(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
   const isLabUser = currentAccount?.role === "Lab User";
 
+  // missing panel need a flat ticket list
+  const tickets = useMemo(
+    () => [...myRejectedTickets, ...myPendingTickets, ...otherPendingTickets],
+    [myRejectedTickets, myPendingTickets, otherPendingTickets],
+  );
+
+  const othersOnly = useMemo(() => {
+    const myTaskIds = new Set(myTasks.map((task) => task.id));
+
+    // remove dupe tasks
+    return otherTasks.filter((task) => !myTaskIds.has(task.id));
+  }, [myTasks, otherTasks]);
+
   const visibleOtherTasks = useMemo(() => {
     if (loadingMyTasks) return [];
 
-    const myTaskIds = new Set(myTasks.map((task) => task.id));
-
-    return otherTasks
-      .filter((task) => !myTaskIds.has(task.id))
-      .slice(0, Math.max(maxTask - myTasks.length, 0));
-  }, [loadingMyTasks, myTasks, otherTasks]);
+    return othersOnly.slice(0, Math.max(MAX_TASK - myTasks.length, 0));
+  }, [loadingMyTasks, myTasks.length, othersOnly]);
 
   const showLoadingOtherTasks =
-    !isLabUser &&
-    loadingOtherTasks &&
-    (loadingMyTasks || myTasks.length < maxTask);
+    loadingOtherTasks && (loadingMyTasks || myTasks.length < MAX_TASK);
 
   return (
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
@@ -65,18 +75,23 @@ export default function Dashboard() {
         <Announcement />
         <Missing
           myTasks={myTasks}
-          otherTasks={otherTasks}
+          otherTasks={othersOnly}
           tickets={tickets}
           loadingMyTasks={loadingMyTasks || errorMyTasks}
           loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
-          loadingTickets={loadingTickets || errorTickets}
+          loadingTickets={
+            loadingMyTickets ||
+            loadingOtherTickets ||
+            errorMyTickets ||
+            errorOtherTickets
+          }
           isLabUser={isLabUser}
         />
-        <ActiveTask
+        <Summary
           tasks={myTasks}
           loadingTasks={loadingMyTasks || errorMyTasks}
         />
-        <TaskOverview
+        <Overview
           tasks={myTasks}
           loadingTasks={loadingMyTasks || loadingCategories}
           errorTasks={errorMyTasks}
@@ -92,12 +107,16 @@ export default function Dashboard() {
         loadingOtherTasks={showLoadingOtherTasks}
         errorMyTasks={errorMyTasks}
         errorOtherTasks={errorOtherTasks}
-        tickets={tickets}
-        loadingTickets={loadingTickets || loadingCategories}
-        errorTickets={errorTickets}
+        myRejectedTickets={myRejectedTickets}
+        myPendingTickets={myPendingTickets}
+        otherPendingTickets={otherPendingTickets}
+        loadingMyTickets={loadingMyTickets || loadingCategories}
+        loadingOtherTickets={loadingOtherTickets}
+        errorMyTickets={errorMyTickets}
+        errorOtherTickets={errorOtherTickets}
         categoryMap={categoryMap}
         usernames={usernames}
-        currentAccount={currentAccount}
+        isLabUser={isLabUser}
         onSelectTask={setSelectedTask}
         onSelectTicket={setSelectedTicket}
       />

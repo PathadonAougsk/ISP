@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
-import Settings from "./setting";
+import Settings from "./settings";
 
 type SettingsContextValue = {
   openSettings: () => void;

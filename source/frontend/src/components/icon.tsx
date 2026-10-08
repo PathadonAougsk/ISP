@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+// plain img so any ratio work. size come from className only
 export default function Icon({
   src,
   className = "h-4 w-auto",
@@ -10,14 +9,7 @@ export default function Icon({
   alt?: string;
 }) {
   return (
-    <Image
-      src={src}
-      width={0}
-      height={0}
-      sizes="auto"
-      className={className}
-      alt={alt}
-      draggable={false}
-    />
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className={className} draggable={false} />
   );
 }

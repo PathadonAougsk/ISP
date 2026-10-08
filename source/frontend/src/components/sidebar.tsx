@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
@@ -18,15 +18,7 @@ function getItemClass(active = false) {
 
 function NavigationIcon({ name }: { name: string }) {
   return (
-    <Image
-      src={`./${name}.svg`}
-      width={0}
-      height={0}
-      sizes="auto"
-      className="h-auto w-5 shrink-0"
-      alt={name}
-      draggable={false}
-    />
+    <Icon src={`/${name}.svg`} className="h-auto w-5 shrink-0" alt={name} />
   );
 }
 
@@ -53,8 +45,12 @@ function NavigationItem({
     <Link
       href={`/${name}`}
       onClick={(event) => {
-        if (active) event.preventDefault();
         onClick?.();
+
+        if (active) {
+          event.preventDefault();
+          window.location.reload();
+        }
       }}
       className={getItemClass(active)}
     >
@@ -75,16 +71,17 @@ export default function Sidebar() {
     if (expanded) setHasExpanded(true);
   }, [expanded]);
 
-  // Active tab: reverse the state. Other tab: go to that page and collapse.
-  const handleNavigationClick = (name: string) =>
-    setExpanded(currentPath === name ? !expanded : false);
+  // Collapse sidebar after selecting a navigation item.
+  const handleNavigationClick = () => {
+    setExpanded(false);
+  };
 
   return (
     <div className="sticky top-0 left-0 z-50 flex h-screen w-15 shrink-0 flex-col justify-between bg-(--primary-color-2)">
       {expanded && (
         <div
           className="popup-overlay fixed inset-0 z-40 bg-black"
-          onClick={() => setExpanded(false)}
+          onClick={handleNavigationClick}
         />
       )}
 
@@ -106,7 +103,7 @@ export default function Sidebar() {
               name={name}
               active={currentPath === name}
               expanded={expanded}
-              onClick={() => handleNavigationClick(name)}
+              onClick={handleNavigationClick}
             />
           ))}
         </div>
@@ -118,7 +115,7 @@ export default function Sidebar() {
               name={name}
               active={currentPath === name}
               expanded={expanded}
-              onClick={() => handleNavigationClick(name)}
+              onClick={handleNavigationClick}
             />
           ))}
 

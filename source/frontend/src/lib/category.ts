@@ -1,4 +1,39 @@
+"use client";
 import { apiFetch } from "@/lib/api";
+import { useEffect, useState } from "react";
+
+export function useCategories() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getCategories()
+      .then(({ Categories }) => {
+        if (!cancelled) {
+          setCategories(Categories);
+          setCategoriesError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setCategoriesError(
+            err instanceof Error ? err.message : "Failed to load categories",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setCategoriesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { categories, categoriesLoading, categoriesError };
+}
 
 export type Category = {
   id: number;

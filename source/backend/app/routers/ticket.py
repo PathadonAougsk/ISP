@@ -1,7 +1,7 @@
 from typing import Annotated
 import datetime as dt
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select, case, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +10,13 @@ from app.database import getSession
 from app.model import Ticket, Account, Category, AccountRole, TicketStatus, AuditLog
 from app.service import account_service
 
+
 class TicketCreate(BaseModel):
     name: str
     description: str | None = None
     category_id: int
     due_date: dt.datetime | None = None
+
 
 class TicketUpdate(BaseModel):
     name: str | None = None
@@ -22,6 +24,14 @@ class TicketUpdate(BaseModel):
     status: TicketStatus | None = None
     category_id: int | None = None
     due_date: dt.datetime | None = None
+
+
+def to_utc(date):
+    if date is None:
+        return None
+
+    return date.astimezone(dt.timezone.utc)
+
 
 ticketRouter = APIRouter(prefix="/ticket", dependencies=[Depends(account_service.get_current_auth_user)])
 
@@ -33,7 +43,8 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
                            category_id: int | None = None,
                            due_before: dt.datetime | None = None,
                            onlyOwned: bool = False,
-                           limit: int | None = 20
+                           offset: int = Query(default=0, ge=0),
+                           limit: int = Query(default=0, ge=0)
 ):
     query = select(Ticket)
 
@@ -47,7 +58,7 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
         query = query.where(Ticket.category_id == category_id)
 
     if due_before:
-        query = query.where(Ticket.due_date <= due_before)
+        query = query.where(Ticket.due_date <= to_utc(due_before))
 
     if me.role == AccountRole.LAB_USER or onlyOwned:
         query = query.where(Ticket.created_by == me.id)
@@ -68,6 +79,8 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
             Ticket.due_date,
             status_order
         )
+
+    query = query.offset(offset)
 
     if limit:
         query = query.limit(limit)
@@ -113,7 +126,7 @@ async def create_ticket(data: TicketCreate,
         created_by = me.id,
         completed_by = None,
         completed_at = None,
-        due_date = data.due_date
+        due_date = to_utc(data.due_date)
     )
 
     session.add(ticket)
@@ -175,7 +188,7 @@ async def update_ticket(ticket_id: int,
         ticket.category_id = data.category_id
 
     if data.due_date is not None:
-        ticket.due_date = data.due_date
+        ticket.due_date = to_utc(data.due_date)
 
     await session.commit()
     await session.refresh(ticket)

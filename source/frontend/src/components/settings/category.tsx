@@ -9,7 +9,7 @@ import {
 } from "@/lib/category";
 import { useCallback, useEffect, useState } from "react";
 
-export default function Categories() {
+export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +18,7 @@ export default function Categories() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
 
+  // Caching. The request GET /Categories
   const refresh = useCallback(
     () =>
       getCategories()
@@ -39,7 +40,10 @@ export default function Categories() {
     refresh();
   }, [refresh]);
 
+  // Try-Except helper -> Special thank to Wassawin.
   async function run(action: () => Promise<void>, message: string) {
+    if (!isAdmin) return;
+
     try {
       await action();
       await refresh();
@@ -50,6 +54,8 @@ export default function Categories() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (!isAdmin) return;
+
     const name = newName.trim();
     if (!name) return;
 
@@ -60,7 +66,7 @@ export default function Categories() {
   async function handleRename(id: number) {
     const name = editingName.trim();
     setEditingId(null);
-    if (!name) return;
+    if (!isAdmin || !name) return;
 
     await run(
       () => updateCategory(id, name),
@@ -84,21 +90,27 @@ export default function Categories() {
         </p>
       </div>
 
-      <form onSubmit={handleCreate} className="flex items-center gap-3">
-        <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="New category name"
-          className="h-10 flex-1 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
-        />
-        <button
-          type="submit"
-          className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
-          disabled={!newName.trim()}
-        >
-          Add
-        </button>
-      </form>
+      {isAdmin ? (
+        <form onSubmit={handleCreate} className="flex items-center gap-3">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="New category name"
+            className="h-10 flex-1 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
+          />
+          <button
+            type="submit"
+            className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+            disabled={!newName.trim()}
+          >
+            Add
+          </button>
+        </form>
+      ) : (
+        <p className="text-[#8a8a8a]">
+          Only a Lab Owner or Lab Admin can add, rename or delete categories.
+        </p>
+      )}
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg">All Categories</p>
@@ -134,7 +146,7 @@ export default function Categories() {
             >
               <span className="w-15 text-[#8a8a8a]">{category.id}</span>
 
-              {editingId === category.id ? (
+              {isAdmin && editingId === category.id ? (
                 <input
                   autoFocus
                   value={editingName}
@@ -150,28 +162,32 @@ export default function Categories() {
                 <span className="flex-1">{category.name}</span>
               )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(category.id);
-                  setEditingName(category.name);
-                }}
-                className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  run(
-                    () => deleteCategory(category.id),
-                    `Could not delete "${category.name}".`,
-                  )
-                }
-                className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
-              >
-                Delete
-              </button>
+              {isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingId(category.id);
+                      setEditingName(category.name);
+                    }}
+                    className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      run(
+                        () => deleteCategory(category.id),
+                        `Could not delete "${category.name}".`,
+                      )
+                    }
+                    className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
             </div>
           ))
         )}
