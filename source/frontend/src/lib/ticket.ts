@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type UserRole } from "@/lib/account";
 import { getCategories } from "@/lib/category";
-import { formatShortDateTime } from "@/lib/format";
+import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached } from "@/lib/cache";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
@@ -56,6 +56,7 @@ export type TicketRow = {
   title: string;
   status: "Pending" | "Approved" | "Rejected";
   dueDate: string;
+  dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
   lastUpdate: string;
   category: string;
@@ -135,6 +136,7 @@ export function mapBackendTicket(
     title: bt.name,
     status: mapTicketStatus(bt.status),
     dueDate: formatShortDateTime(bt.due_date),
+    dueDateValue: toDateInputValue(bt.due_date),
     createdDate: formatShortDateTime(bt.created),
     lastUpdate: formatShortDateTime(bt.updated),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,

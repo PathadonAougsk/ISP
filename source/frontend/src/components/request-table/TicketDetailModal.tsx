@@ -28,7 +28,7 @@ export default function TicketDetailModal({
   const [editTicketDescription, setEditTicketDescription] = useState(
     ticket.description,
   );
-  const [editTicketDueDate, setEditTicketDueDate] = useState(ticket.dueDate);
+  const [editTicketDueDate, setEditTicketDueDate] = useState(ticket.dueDateValue);
   const [editTicketCategoryId, setEditTicketCategoryId] = useState<number | "">(
     ticket.categoryId,
   );
@@ -63,7 +63,7 @@ export default function TicketDetailModal({
       ? editTicketDescription
       : ticket.description;
     const categoryId = canEditTicket ? editTicketCategoryId : ticket.categoryId;
-    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDate;
+    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDateValue;
 
     if (!title || categoryId === "") {
       setTaskSubmitError("Title and category are required.");

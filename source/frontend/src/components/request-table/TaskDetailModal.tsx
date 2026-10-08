@@ -28,7 +28,7 @@ export default function TaskDetailModal({
   const [editTaskDescription, setEditTaskDescription] = useState(
     task.description,
   );
-  const [editTaskDueDate, setEditTaskDueDate] = useState(task.dueDate);
+  const [editTaskDueDate, setEditTaskDueDate] = useState(task.dueDateValue);
   const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>(
     task.assigneeIds,
   );
@@ -58,7 +58,7 @@ export default function TaskDetailModal({
         description: task.description || null,
         status: "completed",
         category_id: task.categoryId,
-        due_date: task.dueDate || null,
+        due_date: task.dueDateValue || null,
       });
       onSaved();
       onClose();
@@ -80,7 +80,7 @@ export default function TaskDetailModal({
         description: task.description || null,
         status: "in_progress",
         category_id: task.categoryId,
-        due_date: task.dueDate || null,
+        due_date: task.dueDateValue || null,
       });
       onSaved();
       onClose();

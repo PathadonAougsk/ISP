@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
-import { formatShortDateTime } from "@/lib/format";
+import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached } from "@/lib/cache";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
@@ -60,6 +60,7 @@ export type TaskRow = {
   assignedTo: string;
   createdBy: string;
   dueDate: string;
+  dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
   lastUpdate: string;
   status: "Completed" | "In_progress";
@@ -131,6 +132,7 @@ export function mapBackendTask(
     assignedTo: bt.assignees.map((a) => a.username).join(", "),
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
     dueDate: formatShortDateTime(bt.due_date),
+    dueDateValue: toDateInputValue(bt.due_date),
     createdDate: formatShortDateTime(bt.created),
     lastUpdate: formatShortDateTime(bt.updated),
     status: mapTaskStatus(bt.status),
