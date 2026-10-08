@@ -65,3 +65,9 @@ export function formatFullDateTime(iso: string | null) {
 export function truncateLabel(text: string, maxLength = 20) {
   return text.length > maxLength ? text.slice(0, maxLength).trim() + "…" : text;
 }
+
+// maskEmail("someone@example.com") -> "*******@example.com"
+export function maskEmail(value: string) {
+  const at = value.indexOf("@");
+  return at > 0 ? "*".repeat(at) + value.slice(at) : "*".repeat(value.length);
+}

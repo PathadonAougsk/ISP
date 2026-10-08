@@ -3,8 +3,26 @@
 import { getMe, isAdminRole, type Account, type UserRole } from "@/lib/account";
 import { useEffect, useState } from "react";
 
+export type CurrentAccount =
+  | {
+      signedIn: false;
+      loading: boolean;
+      account: null;
+      userRole: "Lab User";
+      currentUserId: "";
+      isAdmin: false;
+    }
+  | {
+      signedIn: true;
+      loading: false;
+      account: Account;
+      userRole: UserRole;
+      currentUserId: string;
+      isAdmin: boolean;
+    };
+
 // Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
-export function useCurrentAccount(enabled: boolean = true) {
+export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
   const [account, setAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,10 +46,27 @@ export function useCurrentAccount(enabled: boolean = true) {
     };
   }, [enabled]);
 
-  // "Lab Owner" and "Lab Admin" both count as admin; no account falls back to Lab User
-  const userRole: UserRole =
-    account && isAdminRole(account.role) ? "Lab Admin" : "Lab User";
-  const currentUserId = account?.id ?? "";
+  // No account yet - still loading, disabled, or signed out. Fails closed on isAdmin.
+  if (!account) {
+    return {
+      signedIn: false,
+      loading: enabled && loading,
+      account: null,
+      userRole: "Lab User",
+      currentUserId: "",
+      isAdmin: false,
+    };
+  }
 
-  return { account, loading: enabled && loading, userRole, currentUserId };
+  // "Lab Owner" and "Lab Admin" both count as admin
+  const isAdmin = isAdminRole(account.role);
+
+  return {
+    signedIn: true,
+    loading: false,
+    account,
+    userRole: isAdmin ? "Lab Admin" : "Lab User",
+    currentUserId: account.id,
+    isAdmin,
+  };
 }

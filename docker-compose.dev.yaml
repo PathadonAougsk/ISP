@@ -16,9 +16,10 @@ services:
     depends_on:
       - fastapi
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000', { redirect: 'manual' }).then(r => process.exit(r.status < 400 ? 0 : 1), () => process.exit(1))"]
       interval: 5s
       retries: 10
+      start_period: 30s
   fastapi:
     build:
       context: ./source/backend
