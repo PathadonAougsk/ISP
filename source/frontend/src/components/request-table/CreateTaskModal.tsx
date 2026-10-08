@@ -178,7 +178,7 @@ export default function CreateTaskModal({
                       className="w-4 h-4"
                     />
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
                       <div>
                         <div className="text-sm font-medium leading-tight">
                           {member.name}

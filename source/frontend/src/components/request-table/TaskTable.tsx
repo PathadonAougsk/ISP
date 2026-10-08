@@ -76,7 +76,7 @@ export default function TaskTable({
           <select
             value={taskCategoryFilter}
             onChange={(e) => setTaskCategoryFilter(e.target.value)}
-            className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
             {taskCategories.map((category) => (
@@ -89,7 +89,7 @@ export default function TaskTable({
           <select
             value={taskStatusFilter}
             onChange={(e) => setTaskStatusFilter(e.target.value)}
-            className="h-9 max-w-[160px] truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
             <option value="In_progress">In progress</option>
@@ -123,32 +123,32 @@ export default function TaskTable({
               >
                 <td className="px-4 py-3">{task.id}</td>
                 <td
-                  className="px-4 py-3 max-w-[160px] truncate"
+                  className="px-4 py-3 max-w-40 truncate"
                   title={task.title}
                 >
                   {task.title}
                 </td>
                 <td
-                  className="px-4 py-3 max-w-[200px] truncate"
+                  className="px-4 py-3 max-w-50 truncate"
                   title={task.description}
                 >
                   {task.description}
                 </td>
                 <td
-                  className="px-4 py-3 max-w-[100px] truncate"
+                  className="px-4 py-3 max-w-25 truncate"
                   title={task.category}
                 >
                   {task.category}
                 </td>
                 <td
-                  className="px-4 py-3 max-w-[140px] truncate"
+                  className="px-4 py-3 max-w-35 truncate"
                   title={task.assignedTo}
                 >
                   {task.assignedTo}
                 </td>
                 <td className="px-4 py-3">{task.status}</td>
                 <td
-                  className="px-4 py-3 max-w-[120px] truncate"
+                  className="px-4 py-3 max-w-30 truncate"
                   title={task.createdBy}
                 >
                   {task.createdBy}

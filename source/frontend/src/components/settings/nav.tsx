@@ -1,6 +1,6 @@
 "use client";
 
-import Icon from "./icon";
+import Icon from "@/components/icon";
 
 export type NavItem = {
   label: string;
@@ -10,7 +10,7 @@ export type NavItem = {
 export const accountNav: NavItem[] = [
   { label: "Account", icon: "account" },
   { label: "Category", icon: "category" },
-  { label: "Member", icon: "team" }
+  { label: "Member", icon: "team" },
 ];
 
 export default function Nav({
@@ -33,7 +33,7 @@ export default function Nav({
             active === item.label ? "bg-[#d4d4d4]" : "hover:bg-[#e0e0e0]"
           }`}
         >
-          <Icon name={item.icon} className="size-5 shrink-0" />
+          <Icon src={`/${item.icon}.svg`} className="size-5 shrink-0" />
           <span>{item.label}</span>
         </button>
       ))}

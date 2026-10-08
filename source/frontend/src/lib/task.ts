@@ -1,6 +1,10 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { apiFetch, apiSendJson } from "@/lib/api";
-import type { Account } from "@/lib/account";
-import { formatDueDate} from "@/lib/format";
+import { getAccounts, type Account } from "@/lib/account";
+import { getCategories } from "@/lib/category";
+import { formatShortDateTime } from "@/lib/format";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
 
@@ -75,7 +79,6 @@ export async function getTasks(
   if (limit !== undefined) query.set("limit", String(limit));
 
   const qs = query.toString();
-  // Trailing slash matches the FastAPI route and avoids a redirect
   const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
 
   if (!res.ok) {
@@ -124,11 +127,63 @@ export function mapBackendTask(
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     assignedTo: bt.assignees.map((a) => a.username).join(", "),
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
-    dueDate: formatDueDate(bt.due_date),
-    createdDate: formatDueDate(bt.created),
-    lastUpdate: formatDueDate(bt.updated),
+    dueDate: formatShortDateTime(bt.due_date),
+    createdDate: formatShortDateTime(bt.created),
+    lastUpdate: formatShortDateTime(bt.updated),
     status: mapTaskStatus(bt.status),
     categoryId: bt.category_id,
     assigneeIds: bt.assignees.map((a) => a.id),
   };
+}
+
+export function useTasks() {
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [tasksReloadKey, setTasksReloadKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTasks() {
+      try {
+        // Categories and accounts only add labels, so a failure there is tolerated
+        const [taskBody, catBody, accBody] = await Promise.all([
+          getTasks({
+            limit: 50,
+          }),
+          getCategories().catch(() => null),
+          getAccounts().catch(() => null),
+        ]);
+
+        const categoryById = new Map<number, string>(
+          (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
+        );
+        const accountById = new Map<string, string>(
+          (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
+        );
+
+        if (!cancelled) {
+          setTasks(
+            taskBody.Tasks.map((t) =>
+              mapBackendTask(t, categoryById, accountById),
+            ),
+          );
+          setTasksError(null);
+        }
+      } catch (err) {
+        if (!cancelled)
+          setTasksError(err instanceof Error ? err.message : "Failed to load tasks");
+      } finally {
+        if (!cancelled) setTasksLoading(false);
+      }
+    }
+
+    loadTasks();
+    return () => {
+      cancelled = true;
+    };
+  }, [tasksReloadKey]);
+
+  return { tasks, tasksLoading, tasksError, setTasksReloadKey };
 }

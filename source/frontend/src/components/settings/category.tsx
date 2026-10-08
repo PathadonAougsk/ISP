@@ -9,7 +9,7 @@ import {
 } from "@/lib/category";
 import { useCallback, useEffect, useState } from "react";
 
-export default function Categories({isAdmin} : {isAdmin : boolean}) {
+export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
