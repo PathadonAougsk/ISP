@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { postTicket } from "@/lib/ticket";
 import type { Category } from "@/lib/category";
+import DateInput from "@/components/request-table/DateInput";
 
 export default function CreateTicketModal({
   categories,
@@ -97,10 +98,9 @@ export default function CreateTicketModal({
 
             <div>
               <label className="block text-sm font-medium mb-1">Due Date</label>
-              <input
-                type="date"
+              <DateInput
                 value={newTicketDueDate}
-                onChange={(e) => setNewTicketDueDate(e.target.value)}
+                onChange={setNewTicketDueDate}
                 className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
               />
             </div>

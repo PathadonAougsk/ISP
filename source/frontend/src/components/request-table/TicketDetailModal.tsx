@@ -4,6 +4,7 @@ import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member, UserRole } from "@/lib/account";
+import DateInput from "@/components/request-table/DateInput";
 
 export default function TicketDetailModal({
   ticket,
@@ -211,10 +212,9 @@ export default function TicketDetailModal({
                     {ticket.dueDate || "—"}
                   </div>
                 ) : (
-                  <input
-                    type="date"
+                  <DateInput
                     value={editTicketDueDate}
-                    onChange={(e) => setEditTicketDueDate(e.target.value)}
+                    onChange={setEditTicketDueDate}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 )}
