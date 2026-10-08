@@ -18,7 +18,8 @@ const MAX_TASK = 20;
 const MAX_TICKET = 20;
 
 export default function Dashboard() {
-  const { account: currentAccount } = useCurrentAccount();
+  const { account: currentAccount, loading: accountLoading } =
+    useCurrentAccount();
 
   const {
     myTasks,
@@ -38,7 +39,12 @@ export default function Dashboard() {
     errorCategories,
     errorMyTickets,
     errorOtherTickets,
-  } = useDashboardFetching(currentAccount, MAX_TASK, MAX_TICKET);
+  } = useDashboardFetching(
+    currentAccount,
+    accountLoading,
+    MAX_TASK,
+    MAX_TICKET,
+  );
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);

@@ -50,15 +50,19 @@ function compareByDueDate<T extends { id: number; due_date: string | null }>(
 
 export function useDashboardFetching(
   currentAccount: Account | null,
+  accountLoading: boolean,
   maxTask: number,
   maxTicket: number,
 ) {
   const accountId = currentAccount?.id;
   const accountRole = currentAccount?.role;
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [errorCategories, setErrorCategories] = useState(false);
+
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [otherTasks, setOtherTasks] = useState<Task[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [myRejectedTickets, setMyRejectedTickets] = useState<Ticket[]>([]);
   const [myPendingTickets, setMyPendingTickets] = useState<Ticket[]>([]);
   const [otherPendingTickets, setOtherPendingTickets] = useState<Ticket[]>([]);
@@ -66,15 +70,35 @@ export function useDashboardFetching(
 
   const [loadingMyTasks, setLoadingMyTasks] = useState(true);
   const [loadingOtherTasks, setLoadingOtherTasks] = useState(true);
-  const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingMyTickets, setLoadingMyTickets] = useState(true);
   const [loadingOtherTickets, setLoadingOtherTickets] = useState(true);
 
   const [errorMyTasks, setErrorMyTasks] = useState(false);
   const [errorOtherTasks, setErrorOtherTasks] = useState(false);
-  const [errorCategories, setErrorCategories] = useState(false);
   const [errorMyTickets, setErrorMyTickets] = useState(false);
   const [errorOtherTickets, setErrorOtherTickets] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // null mean request failed
+    loadCategories().then((loaded) => {
+      if (cancelled) return;
+
+      if (loaded) {
+        setCategories(loaded);
+        setErrorCategories(false);
+      } else {
+        setErrorCategories(true);
+      }
+
+      setLoadingCategories(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (accountId === undefined) return;
@@ -143,29 +167,13 @@ export function useDashboardFetching(
       );
     }
 
+    setErrorOtherTasks(false);
     loadAllTasks(accountId);
 
     return () => {
       cancelled = true;
     };
   }, [accountId, accountRole, maxTask]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    loadCategories().then((result) => {
-      if (cancelled) return;
-
-      if (result === null) setErrorCategories(true);
-      else setCategories(result);
-
-      setLoadingCategories(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (accountId === undefined) return;
@@ -252,6 +260,7 @@ export function useDashboardFetching(
       }
     }
 
+    setErrorOtherTickets(false);
     loadTickets(accountId);
 
     return () => {
@@ -282,6 +291,7 @@ export function useDashboardFetching(
           account.username,
         ]),
       );
+
       const nextUsernames: Record<string, string> = {};
 
       uniqueIds.forEach((userId) => {
@@ -302,6 +312,20 @@ export function useDashboardFetching(
     otherPendingTickets,
   ]);
 
+  useEffect(() => {
+    if (accountLoading || currentAccount !== null) return;
+
+    setLoadingMyTasks(false);
+    setLoadingOtherTasks(false);
+    setLoadingMyTickets(false);
+    setLoadingOtherTickets(false);
+
+    setErrorMyTasks(true);
+    setErrorOtherTasks(true);
+    setErrorMyTickets(true);
+    setErrorOtherTickets(true);
+  }, [accountLoading, currentAccount]);
+
   return {
     myTasks,
     otherTasks,
@@ -311,10 +335,10 @@ export function useDashboardFetching(
     otherPendingTickets,
     usernames,
     loadingMyTasks,
-    loadingOtherTasks: loadingOtherTasks && accountRole !== "Lab User", // lab users never waiting for others' tasks
+    loadingOtherTasks: loadingOtherTasks && accountRole !== "Lab User",
     loadingCategories,
     loadingMyTickets,
-    loadingOtherTickets: loadingOtherTickets && accountRole !== "Lab User", // lab users never waiting for others' tickets
+    loadingOtherTickets: loadingOtherTickets && accountRole !== "Lab User",
     errorMyTasks,
     errorOtherTasks,
     errorCategories,
