@@ -10,7 +10,7 @@ export type NavItem = {
 export const accountNav: NavItem[] = [
   { label: "Account", icon: "account" },
   { label: "Category", icon: "category" },
-  { label: "Member", icon: "team" }
+  { label: "Member", icon: "team" },
 ];
 
 export default function Nav({

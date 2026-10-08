@@ -104,7 +104,8 @@ export default function Member({
 
   // Just surface UI to preventing french revolution.
   const canEdit = (member: Account) =>
-    (member.id !== account?.id && account?.role == "Lab Owner") || member.role == "Lab User";
+    (member.id !== account?.id && account?.role == "Lab Owner") ||
+    member.role == "Lab User";
 
   // An admin sees real addresses; everyone else only ever sees their own.
   const emailOf = (member: Account) =>
@@ -118,9 +119,7 @@ export default function Member({
 
       <div className="flex flex-col gap-1.5">
         <p>People In Your Lab</p>
-        <p className="text-[#8a8a8a]">
-          Everyone is here!
-        </p>
+        <p className="text-[#8a8a8a]">Everyone is here!</p>
       </div>
 
       <div className="flex items-center justify-between gap-3">
@@ -192,7 +191,9 @@ export default function Member({
                 <span className="w-25 shrink-0">{member.role}</span>
               )}
 
-              <span className="w-15 shrink-0 text-right">{member.quota ?? "-"}</span>
+              <span className="w-15 shrink-0 text-right">
+                {member.quota ?? "-"}
+              </span>
 
               {isAdmin && canEdit(member) ? (
                 <button
