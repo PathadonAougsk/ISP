@@ -5,6 +5,7 @@ import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime } from "@/lib/format";
+import { cached } from "@/lib/cache";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
 
@@ -66,7 +67,7 @@ export type TaskRow = {
   assigneeIds: string[];
 };
 
-export async function getTasks(
+export async function fetchTasks(
   params: GetTasksParams = {},
 ): Promise<TasksResponse> {
   const { id, categories, assignsTo, status, limit } = params;
@@ -87,6 +88,8 @@ export async function getTasks(
 
   return res.json();
 }
+
+export const getTasks = cached(fetchTasks, 0);
 
 export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   const res = await apiSendJson("/task/", "POST", body);

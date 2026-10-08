@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type UserRole } from "@/lib/account";
 import { getCategories } from "@/lib/category";
-import { formatShortDateTime} from "@/lib/format";
+import { formatShortDateTime } from "@/lib/format";
+import { cached } from "@/lib/cache";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -65,7 +66,7 @@ export type TicketRow = {
   createdById: string;
 };
 
-export async function getTickets(
+export async function fetchTickets(
   params: GetTicketsParams = {},
 ): Promise<TicketsResponse> {
   const { ticket_id, status, category_id, due_before, onlyOwned, limit } =
@@ -84,6 +85,8 @@ export async function getTickets(
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export const getTickets = cached(fetchTickets, 0);
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
