@@ -88,7 +88,7 @@ export default function CreateTaskModal({
     <SlideupFrame isClosing={isClosing} onClose={handleClose}>
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between pb-3">
-          <h1 className="text-lg font-semibold">Create new tasks</h1>
+          <h1 className="text-lg font-semibold">Create new task</h1>
           <SlideupCloseButton onClose={handleClose} />
         </div>
 

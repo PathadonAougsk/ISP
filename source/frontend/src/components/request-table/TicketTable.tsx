@@ -138,7 +138,7 @@ export default function TicketTable({
                 <td className="px-4 py-3">{ticket.lastUpdate}</td>
               </tr>
             ))}
-            {loading && (
+            {loading && tickets.length === 0 && (
               <tr>
                 <td
                   colSpan={8}
