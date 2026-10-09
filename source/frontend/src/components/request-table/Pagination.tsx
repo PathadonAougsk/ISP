@@ -1,4 +1,5 @@
 "use client";
+import { useRef } from "react";
 
 export default function Pagination({
   page,
@@ -11,7 +12,27 @@ export default function Pagination({
   loading: boolean;
   onChange: (page: number) => void;
 }) {
-  const last = page + (hasNext ? 1 : 0);
+  // remember last shown button + busy state
+  const st = useRef({ page, last: page, busy: false, seen: false });
+  const s = st.current;
+
+  // page changed, hasNext still stale so wait
+  if (page !== s.page) {
+    s.page = page;
+    s.busy = true;
+    s.seen = false;
+  }
+  // busy end after one full loading cycle
+  if (loading) s.seen = true;
+  if (s.busy && s.seen && !loading) s.busy = false;
+
+  // waiting: keep old buttons, no guess next
+  const wait = loading || s.busy;
+  const last = wait
+    ? Math.max(page, s.last)
+    : page + (hasNext ? 1 : 0);
+  if (!wait) s.last = last;
+  
   const first = Math.max(1, last - 6);
   const numbers = Array.from({ length: last - first + 1 }, (_, i) => first + i);
 
