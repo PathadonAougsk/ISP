@@ -78,12 +78,16 @@ async def retrieve_tasks(
 @taskRouter.post("/", tags=["Task"])
 async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
     # Create new task based on the body.
+    conv_duedate = None
+    if body.due_date != None:
+        conv_duedate = body.due_date.astimezone(dt.timezone.utc)
+
     task = Task(
         name=body.name,
         description=body.description,
         status=body.status,
         category_id=body.category_id,
-        due_date=body.due_date.replace(tzinfo=timezone.utc),
+        due_date=conv_duedate,
         created_by=auth_user.id,
     )
 
@@ -162,8 +166,10 @@ async def update_task(
 
     if body.due_date is not None:
         # TIME ZONE PROBLEM!!!! THIS IS A TEMPORARY FIX!!!
-        dt1 = task.due_date.replace(tzinfo=timezone.utc)
-        dt2 = body.due_date.replace(tzinfo=timezone.utc)
+        dt1 = None
+        if (task.due_date != None):
+            dt1 = task.due_date.astimezone(dt.timezone.utc)
+        dt2 = body.due_date.astimezone(dt.timezone.utc)
         audit_list.append(update_helper("due_date",dt1, dt2))
         task.due_date = dt2
 
@@ -171,10 +177,6 @@ async def update_task(
         audit_list.append(update_helper("assignees",task.assignees, body.assignees))
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
-
-    if body.status is not None:
-        audit_list.append(update_helper("status",task.status, body.status))
-        task.status = body.status
 
     for i in audit_list:
         if i != 0:
