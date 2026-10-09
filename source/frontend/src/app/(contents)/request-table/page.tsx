@@ -64,16 +64,20 @@ export default function RequestTable() {
   const { currentUserId } = useCurrentAccount();
 
   const tabClass = (t: Tab) =>
-    `px-5 py-2 text-sm font-semibold border-b-2 -mb-px ${
-      tab === t
-        ? "border-(--primary-color-2) text-gray-900"
-        : "border-transparent text-gray-400 hover:text-gray-700"
+    `relative z-10 px-8 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
+      tab === t ? "text-gray-900" : "text-white"
     }`;
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <div className="p-6 space-y-6">
-        <div className="flex border-b border-gray-200">
+        <div className="relative grid grid-cols-2 w-fit rounded-full bg-(--primary-color-2) p-1">
+          {/* sliding white pill, move when tab change */}
+          <div
+            className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-white transition-transform duration-200 ease-out ${
+              tab === "task" ? "translate-x-full" : ""
+            }`}
+          />
           <button
             className={tabClass("ticket")}
             onClick={() => setTab("ticket")}
