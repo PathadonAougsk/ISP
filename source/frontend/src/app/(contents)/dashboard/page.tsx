@@ -93,17 +93,20 @@ export default function Dashboard() {
           }
           isLabUser={isLabUser}
         />
-        <Summary
-          tasks={myTasks}
-          loadingTasks={loadingMyTasks || errorMyTasks}
-        />
-        <Overview
-          tasks={myTasks}
-          loadingTasks={loadingMyTasks || loadingCategories}
-          errorTasks={errorMyTasks}
-          errorCategories={errorCategories}
-          categoryMap={categoryMap}
-        />
+        <div className="flex min-h-25 flex-1 flex-col gap-5 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
+          <Summary
+            tasks={myTasks}
+            loadingTasks={loadingMyTasks || errorMyTasks}
+          />
+
+          <Overview
+            tasks={myTasks}
+            loadingTasks={loadingMyTasks || loadingCategories}
+            errorTasks={errorMyTasks}
+            errorCategories={errorCategories}
+            categoryMap={categoryMap}
+          />
+        </div>
       </div>
 
       <TaskTicketList

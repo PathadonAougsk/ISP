@@ -56,7 +56,7 @@ export default function Summary({
 
   return (
     <div className="flex w-full gap-5">
-      <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[30px] bg-(--panel-bg) p-0">
+      <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[20px] bg-white p-0">
         {summaryItems.map((item) => (
           <div
             key={item.label}

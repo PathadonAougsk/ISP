@@ -42,7 +42,7 @@ export default function Overview({
     .sort((a, b) => a - b);
 
   return (
-    <div className="flex min-h-25 flex-1 flex-col gap-3 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
+    <div className="flex flex-1 flex-col gap-2">
       <div className="flex h-8 items-center gap-2 rounded-[20px] bg-(--primary-color-2) px-2">
         <Icon src="/header_donut_dark_green.svg" />
         <h1 className="text-base font-bold text-white">Task Overview</h1>
