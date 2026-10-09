@@ -80,7 +80,7 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
     # Create new task based on the body.
     conv_duedate = None
     if body.due_date != None:
-        conv_duedate = body.due_date.astimezone(dt.timezone.utc)
+        conv_duedate = body.due_date.astimezone(timezone.utc)
 
     task = Task(
         name=body.name,
@@ -168,8 +168,8 @@ async def update_task(
         # TIME ZONE PROBLEM!!!! THIS IS A TEMPORARY FIX!!!
         dt1 = None
         if (task.due_date != None):
-            dt1 = task.due_date.astimezone(dt.timezone.utc)
-        dt2 = body.due_date.astimezone(dt.timezone.utc)
+            dt1 = task.due_date.astimezone(timezone.utc)
+        dt2 = body.due_date.astimezone(timezone.utc)
         audit_list.append(update_helper("due_date",dt1, dt2))
         task.due_date = dt2
 
