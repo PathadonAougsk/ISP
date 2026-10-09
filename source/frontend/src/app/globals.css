@@ -42,9 +42,9 @@ button {
 }
 
 /* ==========================================================
-   Popup animations
+   Slideup animations
    ========================================================== */
-@keyframes popup-fade {
+@keyframes slideup-fade {
   from {
     background-color: rgb(0 0 0 / 0);
     backdrop-filter: blur(0);
@@ -55,7 +55,7 @@ button {
   }
 }
 
-@keyframes popup-fade-out {
+@keyframes slideup-fade-out {
   from {
     background-color: rgb(0 0 0 / 0.5);
     backdrop-filter: blur(2px);
@@ -66,7 +66,7 @@ button {
   }
 }
 
-@keyframes popup-slide-up {
+@keyframes slideup-slide-up {
   from {
     transform: translateY(100%);
   }
@@ -75,7 +75,7 @@ button {
   }
 }
 
-@keyframes popup-slide-down {
+@keyframes slideup-slide-down {
   from {
     transform: translateY(0);
   }
@@ -84,22 +84,22 @@ button {
   }
 }
 
-.popup-overlay {
+.slideup-overlay {
   background-color: rgb(0 0 0 / 0.5);
   backdrop-filter: blur(2px);
-  animation: popup-fade 125ms ease-out;
+  animation: slideup-fade 125ms ease-out;
 }
 
-.popup-overlay-closing {
-  animation: popup-fade-out 125ms ease-in forwards;
+.slideup-overlay-closing {
+  animation: slideup-fade-out 125ms ease-in forwards;
 }
 
-.popup-panel {
-  animation: popup-slide-up 125ms ease-out;
+.slideup-panel {
+  animation: slideup-slide-up 125ms ease-out;
 }
 
-.popup-panel-closing {
-  animation: popup-slide-down 125ms ease-in forwards;
+.slideup-panel-closing {
+  animation: slideup-slide-down 125ms ease-in forwards;
 }
 
 /* ==========================================================

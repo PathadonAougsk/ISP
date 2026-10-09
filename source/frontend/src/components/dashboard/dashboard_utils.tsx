@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { formatFullDateTime } from "@/lib/format";
 import Icon from "@/components/icon";
 import {
@@ -113,91 +107,13 @@ export function useListOverflow(dependencies: unknown[]) {
 }
 
 // ==========================================================
-// Popup parts
+// Slideup parts
 // ==========================================================
 
 type DateInput = string | null;
 
-// must match the popup animation time in globals.css
-const POPUP_CLOSE_DELAY_MS = 125;
-
-// close with a short delay so the closing animation can play
-export function usePopupClose(onClose: () => void) {
-  const [isClosing, setIsClosing] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleClose = useCallback(() => {
-    if (timerRef.current !== null) return;
-    setIsClosing(true);
-    timerRef.current = setTimeout(onClose, POPUP_CLOSE_DELAY_MS);
-  }, [onClose]);
-
-  // close with the Escape key
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") handleClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
-
-  // stop the timer if the popup is removed early
-  useEffect(() => {
-    return () => {
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  return { isClosing, handleClose };
-}
-
-// dark overlay + white panel. className is for layout that differs per popup
-export function PopupFrame({
-  isClosing,
-  onClose,
-  className = "",
-  children,
-}: {
-  isClosing: boolean;
-  onClose: () => void;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`popup-overlay absolute inset-0 ${isClosing ? "popup-overlay-closing" : ""}`}
-        onClick={onClose}
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={`popup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] p-5 rounded-t-[30px] bg-white ${className} ${isClosing ? "popup-panel-closing" : ""}`}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// round close (X) button
-export function PopupCloseButton({ onClose }: { onClose: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClose}
-      className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
-      aria-label="Close"
-    >
-      <Icon src="/close.svg" className="h-auto w-5" />
-    </button>
-  );
-}
-
 // id + category + due date row. children are extra items added at the end
-export function PopupMeta({
+export function SlideupMeta({
   id,
   categoryName,
   createdDate,
@@ -225,7 +141,7 @@ export function PopupMeta({
 }
 
 // red badge. show only when task in_progress or ticket pending is past due
-export function PopupMissingBadge({
+export function SlideupMissingBadge({
   type,
   status,
   dueDate,
@@ -249,7 +165,7 @@ export function PopupMissingBadge({
 }
 
 // shows nothing when the item was never edited
-export function PopupEdited({
+export function SlideupEdited({
   created,
   updated,
 }: {
@@ -266,17 +182,25 @@ export function PopupEdited({
   );
 }
 
-export function PopupDuedate({ dueDate }: { dueDate: DateInput }) {
+export function SlideupDuedate({ dueDate }: { dueDate: DateInput }) {
+  const formattedDate = formatFullDateTime(dueDate);
+
   return (
     <div className="mt-2 flex items-center gap-2 text-base font-semibold text-black">
-      <span>Due</span>
-      <span>{formatFullDateTime(dueDate)}</span>
+      {formattedDate === "No due date" ? (
+        <span>{formatFullDateTime(dueDate)}</span>
+      ) : (
+        <>
+          <span>Due</span>
+          <span>{formattedDate}</span>
+        </>
+      )}
     </div>
   );
 }
 
 // scrollable description with clickable links
-export function PopupDescription({
+export function SlideupDescription({
   description,
 }: {
   description: string | null;

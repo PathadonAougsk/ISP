@@ -10,15 +10,16 @@ import Missing from "@/components/dashboard/missing";
 import Summary from "@/components/dashboard/summary";
 import Overview from "@/components/dashboard/overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
-import TaskPopup from "@/components/dashboard/task_popup";
-import TicketPopup from "@/components/dashboard/ticket_popup";
+import TaskSlideup from "@/components/dashboard/task_slideup";
+import TicketSlideup from "@/components/dashboard/ticket_slideup";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
 const MAX_TASK = 20;
 const MAX_TICKET = 20;
 
 export default function Dashboard() {
-  const { account: currentAccount } = useCurrentAccount();
+  const { account: currentAccount, loading: accountLoading } =
+    useCurrentAccount();
 
   const {
     myTasks,
@@ -38,7 +39,12 @@ export default function Dashboard() {
     errorCategories,
     errorMyTickets,
     errorOtherTickets,
-  } = useDashboardFetching(currentAccount, MAX_TASK, MAX_TICKET);
+  } = useDashboardFetching(
+    currentAccount,
+    accountLoading,
+    MAX_TASK,
+    MAX_TICKET,
+  );
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -87,17 +93,20 @@ export default function Dashboard() {
           }
           isLabUser={isLabUser}
         />
-        <Summary
-          tasks={myTasks}
-          loadingTasks={loadingMyTasks || errorMyTasks}
-        />
-        <Overview
-          tasks={myTasks}
-          loadingTasks={loadingMyTasks || loadingCategories}
-          errorTasks={errorMyTasks}
-          errorCategories={errorCategories}
-          categoryMap={categoryMap}
-        />
+        <div className="flex min-h-25 flex-1 flex-col gap-5 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
+          <Summary
+            tasks={myTasks}
+            loadingTasks={loadingMyTasks || errorMyTasks}
+          />
+
+          <Overview
+            tasks={myTasks}
+            loadingTasks={loadingMyTasks || loadingCategories}
+            errorTasks={errorMyTasks}
+            errorCategories={errorCategories}
+            categoryMap={categoryMap}
+          />
+        </div>
       </div>
 
       <TaskTicketList
@@ -122,7 +131,7 @@ export default function Dashboard() {
       />
 
       {selectedTask && (
-        <TaskPopup
+        <TaskSlideup
           task={selectedTask}
           categoryMap={categoryMap}
           usernames={usernames}
@@ -132,7 +141,7 @@ export default function Dashboard() {
       )}
 
       {selectedTicket && (
-        <TicketPopup
+        <TicketSlideup
           ticket={selectedTicket}
           categoryMap={categoryMap}
           usernames={usernames}
