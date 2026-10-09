@@ -4,6 +4,11 @@ import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
 import DateInput from "@/components/request-table/DateInput";
+import {
+  SlideupFrame,
+  SlideupCloseButton,
+  useSlideupClose,
+} from "@/components/modal_slideup";
 
 export default function CreateTaskModal({
   categories,
@@ -20,6 +25,7 @@ export default function CreateTaskModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { isClosing, handleClose } = useSlideupClose(onClose);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
@@ -75,17 +81,18 @@ export default function CreateTaskModal({
     setNewTaskDueDate("");
     setNewTaskCategoryId("");
     setTaskSubmitError(null);
-    onClose();
+    handleClose();
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
-        <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
-          Create new tasks
+    <SlideupFrame isClosing={isClosing} onClose={handleClose}>
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex items-center justify-between pb-3">
+          <h1 className="text-lg font-semibold">Create new tasks</h1>
+          <SlideupCloseButton onClose={handleClose} />
         </div>
 
-        <div className="flex gap-6 p-6 flex-1">
+        <div className="flex gap-6 p-6 flex-1 min-h-0 overflow-y-auto">
           {/* Left column: form fields */}
           <div className="flex-1 space-y-4">
             <div>
@@ -217,6 +224,6 @@ export default function CreateTaskModal({
           </button>
         </div>
       </div>
-    </div>
+    </SlideupFrame>
   );
 }
