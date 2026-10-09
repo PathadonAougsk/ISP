@@ -70,7 +70,7 @@ export async function createCategory(name: string): Promise<void> {
     throw new Error(`HTTP ${res.status}`);
   }
 
-  getCategories.clear(); 
+  getCategories.clear();
 }
 
 export async function updateCategory(id: number, name: string): Promise<void> {
@@ -84,7 +84,7 @@ export async function updateCategory(id: number, name: string): Promise<void> {
     throw new Error(`HTTP ${res.status}`);
   }
 
-  getCategories.clear(); 
+  getCategories.clear();
 }
 
 export async function deleteCategory(id: number): Promise<void> {
@@ -94,7 +94,7 @@ export async function deleteCategory(id: number): Promise<void> {
     throw new Error(`HTTP ${res.status}`);
   }
 
-  getCategories.clear(); 
+  getCategories.clear();
 }
 
 // id -> name lookup, e.g. { 1: "Report 1", 2: "Report 2" }

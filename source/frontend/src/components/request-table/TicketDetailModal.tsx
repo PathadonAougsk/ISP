@@ -29,7 +29,9 @@ export default function TicketDetailModal({
   const [editTicketDescription, setEditTicketDescription] = useState(
     ticket.description,
   );
-  const [editTicketDueDate, setEditTicketDueDate] = useState(ticket.dueDateValue);
+  const [editTicketDueDate, setEditTicketDueDate] = useState(
+    ticket.dueDateValue,
+  );
   const [editTicketCategoryId, setEditTicketCategoryId] = useState<number | "">(
     ticket.categoryId,
   );

@@ -6,6 +6,7 @@ import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached } from "@/lib/cache";
+import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
 
@@ -39,6 +40,7 @@ export type GetTasksParams = {
   assignsTo?: string;
   status?: TaskStatus;
   limit?: number;
+  offset?: number;
 };
 
 // Body for POST /task/ and PUT /task/{id} (mirrors TaskRequest in the backend)
@@ -71,7 +73,7 @@ export type TaskRow = {
 export async function fetchTasks(
   params: GetTasksParams = {},
 ): Promise<TasksResponse> {
-  const { id, categories, assignsTo, status, limit } = params;
+  const { id, categories, assignsTo, status, limit, offset } = params;
   const query = new URLSearchParams();
 
   if (id !== undefined) query.set("id", String(id));
@@ -79,6 +81,7 @@ export async function fetchTasks(
   if (assignsTo !== undefined) query.set("assignsTo", assignsTo);
   if (status !== undefined) query.set("status", status);
   if (limit !== undefined) query.set("limit", String(limit));
+  if (offset !== undefined) query.set("offset", String(offset));
 
   const qs = query.toString();
   const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
@@ -141,22 +144,26 @@ export function mapBackendTask(
   };
 }
 
-export function useTasks() {
+export type TaskFilters = { status?: TaskStatus; categoryId?: number };
+
+export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [tasksHasNext, setTasksHasNext] = useState(false);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [tasksReloadKey, setTasksReloadKey] = useState(0);
 
+  const { status, categoryId } = filters;
+
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     async function loadTasks() {
+      setTasksLoading(true);
       try {
-        // Categories and accounts only add labels, so a failure there is tolerated
         const [taskBody, catBody, accBody] = await Promise.all([
-          getTasks({
-            limit: 50,
-          }),
+          getTasks({ status, categories: categoryId, ...pageParams(page) }),
           getCategories().catch(() => null),
           getAccounts().catch(() => null),
         ]);
@@ -169,16 +176,18 @@ export function useTasks() {
         );
 
         if (!cancelled) {
+          const { rows, hasNext } = splitPage(taskBody.Tasks);
           setTasks(
-            taskBody.Tasks.map((t) =>
-              mapBackendTask(t, categoryById, accountById),
-            ),
+            rows.map((t) => mapBackendTask(t, categoryById, accountById)),
           );
+          setTasksHasNext(hasNext);
           setTasksError(null);
         }
       } catch (err) {
         if (!cancelled)
-          setTasksError(err instanceof Error ? err.message : "Failed to load tasks");
+          setTasksError(
+            err instanceof Error ? err.message : "Failed to load tasks",
+          );
       } finally {
         if (!cancelled) setTasksLoading(false);
       }
@@ -188,7 +197,7 @@ export function useTasks() {
     return () => {
       cancelled = true;
     };
-  }, [tasksReloadKey]);
+  }, [enabled, page, status, categoryId, tasksReloadKey]);
 
-  return { tasks, tasksLoading, tasksError, setTasksReloadKey };
+  return { tasks, tasksHasNext, tasksLoading, tasksError, setTasksReloadKey };
 }

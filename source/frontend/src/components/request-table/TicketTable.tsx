@@ -1,49 +1,53 @@
 "use client";
 import { useState } from "react";
+import type { TicketRow, TicketStatus } from "@/lib/ticket";
+import type { Category } from "@/lib/category";
+import Pagination from "@/components/request-table/Pagination";
 import { truncateLabel } from "@/lib/format";
-import type { TicketRow } from "@/lib/ticket";
 
 export default function TicketTable({
   tickets,
   loading,
   error,
+  categories,
+  status,
+  onStatusChange,
+  categoryId,
+  onCategoryChange,
+  page,
+  hasNext,
+  onPageChange,
   onSelect,
   onCreate,
 }: {
   tickets: TicketRow[];
   loading: boolean;
   error: string | null;
+  categories: Category[];
+  status: TicketStatus | "All";
+  onStatusChange: (status: TicketStatus | "All") => void;
+  categoryId: number | "All";
+  onCategoryChange: (id: number | "All") => void;
+  page: number;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
   onSelect: (ticket: TicketRow) => void;
   onCreate: () => void;
 }) {
+  // Search only looks at the rows on the current page
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [ticketCategoryFilter, setTicketCategoryFilter] = useState("All");
 
-  const filteredTickets = tickets
-    .filter(
-      (ticket) =>
-        ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.id.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
-    .filter((ticket) =>
-      statusFilter === "All" ? true : ticket.status === statusFilter,
-    )
-    .filter((ticket) =>
-      ticketCategoryFilter === "All"
-        ? true
-        : ticket.category === ticketCategoryFilter,
-    );
-
-  const ticketCategories = Array.from(
-    new Set(tickets.map((t) => t.category).filter(Boolean)),
+  const filteredTickets = tickets.filter(
+    (ticket) =>
+      ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.id.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
-          My Tickets
+          Tickets
           <button
             onClick={onCreate}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
@@ -55,34 +59,40 @@ export default function TicketTable({
         <div className="h-9 flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search this page"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
 
           <select
-            value={ticketCategoryFilter}
-            onChange={(e) => setTicketCategoryFilter(e.target.value)}
+            value={categoryId}
+            onChange={(e) =>
+              onCategoryChange(
+                e.target.value === "All" ? "All" : Number(e.target.value),
+              )
+            }
             className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
-            {ticketCategories.map((category) => (
-              <option key={category} value={category} title={category}>
-                {truncateLabel(category)}
+            {categories.map((c) => (
+              <option key={c.id} value={c.id} title={c.name}>
+                {truncateLabel(c.name)}
               </option>
             ))}
           </select>
 
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={status}
+            onChange={(e) =>
+              onStatusChange(e.target.value as TicketStatus | "All")
+            }
             className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Approved</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
@@ -161,6 +171,12 @@ export default function TicketTable({
           </tbody>
         </table>
       </div>
+      <Pagination
+        page={page}
+        hasNext={hasNext}
+        loading={loading}
+        onChange={onPageChange}
+      />
     </div>
   );
 }

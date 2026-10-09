@@ -98,7 +98,7 @@ export async function createMyAccount(username: string): Promise<Account> {
   const { Account: account } = (await res.json()) as AccountResponse;
   cacheRole(account.role);
   primeMeCache(account);
-  getAccounts.clear(); 
+  getAccounts.clear();
 
   return account;
 }
@@ -181,7 +181,7 @@ export type AccountPatch = {
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
   clearMeCache();
-  getAccounts.clear(); 
+  getAccounts.clear();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.
