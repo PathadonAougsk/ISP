@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type UserRole } from "@/lib/account";
 import { getCategories } from "@/lib/category";
-import { formatShortDateTime} from "@/lib/format";
+import { formatShortDateTime, toDateInputValue } from "@/lib/format";
+import { cached } from "@/lib/cache";
+import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -34,6 +36,7 @@ export type GetTicketsParams = {
   due_before?: string;
   onlyOwned?: boolean;
   limit?: number;
+  offset?: number;
 };
 
 // Body for POST /ticket/ (TicketCreate in the backend)
@@ -55,6 +58,7 @@ export type TicketRow = {
   title: string;
   status: "Pending" | "Approved" | "Rejected";
   dueDate: string;
+  dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
   lastUpdate: string;
   category: string;
@@ -65,11 +69,18 @@ export type TicketRow = {
   createdById: string;
 };
 
-export async function getTickets(
+export async function fetchTickets(
   params: GetTicketsParams = {},
 ): Promise<TicketsResponse> {
-  const { ticket_id, status, category_id, due_before, onlyOwned, limit } =
-    params;
+  const {
+    ticket_id,
+    status,
+    category_id,
+    due_before,
+    onlyOwned,
+    limit,
+    offset,
+  } = params;
   const query = new URLSearchParams();
 
   if (ticket_id !== undefined) query.set("ticket_id", String(ticket_id));
@@ -78,12 +89,15 @@ export async function getTickets(
   if (due_before !== undefined) query.set("due_before", due_before);
   if (onlyOwned !== undefined) query.set("onlyOwned", String(onlyOwned));
   if (limit !== undefined) query.set("limit", String(limit));
+  if (offset !== undefined) query.set("offset", String(offset));
 
   const qs = query.toString();
   const res = await apiFetch(`/ticket/${qs ? `?${qs}` : ""}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export const getTickets = cached(fetchTickets, 0);
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
@@ -116,9 +130,12 @@ export async function putTicket(
 
 function mapTicketStatus(status: TicketStatus): TicketRow["status"] {
   switch (status) {
-    case "accepted": return "Approved";
-    case "rejected": return "Rejected";
-    default: return "Pending";
+    case "accepted":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    default:
+      return "Pending";
   }
 }
 
@@ -132,36 +149,51 @@ export function mapBackendTicket(
     title: bt.name,
     status: mapTicketStatus(bt.status),
     dueDate: formatShortDateTime(bt.due_date),
+    dueDateValue: toDateInputValue(bt.due_date),
     createdDate: formatShortDateTime(bt.created),
     lastUpdate: formatShortDateTime(bt.updated),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     description: bt.description ?? "",
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
-    assignedTo: bt.assigned_id ? (accountById.get(bt.assigned_id) ?? bt.assigned_id) : "",
+    assignedTo: bt.assigned_id
+      ? (accountById.get(bt.assigned_id) ?? bt.assigned_id)
+      : "",
     categoryId: bt.category_id,
     createdById: bt.created_by,
   };
 }
 
-export function useTickets(userRole: UserRole, meLoading: boolean) {
+export type TicketFilters = { status?: TicketStatus; categoryId?: number };
+
+export function useTickets(
+  userRole: UserRole,
+  meLoading: boolean,
+  page: number,
+  filters: TicketFilters,
+  enabled: boolean,
+) {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [ticketsHasNext, setTicketsHasNext] = useState(false);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
   const [ticketsReloadKey, setTicketsReloadKey] = useState(0);
 
+  const { status, categoryId } = filters;
+
   useEffect(() => {
-    if (meLoading) return;
+    if (meLoading || !enabled) return;
     let cancelled = false;
 
     async function loadTickets() {
+      setTicketsLoading(true);
       try {
-        // limit: 0 means "no limit" on the backend
         const [ticketBody, catBody, accBody] = await Promise.all([
-          getTickets(
-            userRole === "Lab Admin"
-              ? { limit: 50 }
-              : { onlyOwned: true, limit: 0 },
-          ),
+          getTickets({
+            ...(userRole === "Lab Admin" ? {} : { onlyOwned: true }),
+            status,
+            category_id: categoryId,
+            ...pageParams(page),
+          }),
           getCategories().catch(() => null),
           getAccounts().catch(() => null),
         ]);
@@ -174,16 +206,18 @@ export function useTickets(userRole: UserRole, meLoading: boolean) {
         );
 
         if (!cancelled) {
+          const { rows, hasNext } = splitPage(ticketBody.Tickets);
           setTickets(
-            ticketBody.Tickets.map((t) =>
-              mapBackendTicket(t, categoryById, accountById),
-            ),
+            rows.map((t) => mapBackendTicket(t, categoryById, accountById)),
           );
+          setTicketsHasNext(hasNext);
           setTicketsError(null);
         }
       } catch (err) {
         if (!cancelled)
-          setTicketsError(err instanceof Error ? err.message : "Failed to load tickets");
+          setTicketsError(
+            err instanceof Error ? err.message : "Failed to load tickets",
+          );
       } finally {
         if (!cancelled) setTicketsLoading(false);
       }
@@ -193,7 +227,21 @@ export function useTickets(userRole: UserRole, meLoading: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [userRole, meLoading, ticketsReloadKey]);
+  }, [
+    userRole,
+    meLoading,
+    enabled,
+    page,
+    status,
+    categoryId,
+    ticketsReloadKey,
+  ]);
 
-  return { tickets, ticketsLoading, ticketsError, setTicketsReloadKey };
+  return {
+    tickets,
+    ticketsHasNext,
+    ticketsLoading,
+    ticketsError,
+    setTicketsReloadKey,
+  };
 }

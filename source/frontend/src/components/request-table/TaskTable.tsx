@@ -1,15 +1,25 @@
 "use client";
 import { useState } from "react";
-import { truncateLabel } from "@/lib/format";
 import type { TaskRow } from "@/lib/task";
+import type { TaskStatus } from "@/lib/task";
+import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
+import Pagination from "@/components/request-table/Pagination";
+import { truncateLabel } from "@/lib/format";
 
 export default function TaskTable({
   tasks,
   loading,
   error,
   userRole,
-  currentUserId,
+  categories,
+  status,
+  onStatusChange,
+  categoryId,
+  onCategoryChange,
+  page,
+  hasNext,
+  onPageChange,
   onSelect,
   onCreate,
 }: {
@@ -17,43 +27,32 @@ export default function TaskTable({
   loading: boolean;
   error: string | null;
   userRole: UserRole;
-  currentUserId: string;
+  categories: Category[];
+  status: TaskStatus | "All";
+  onStatusChange: (status: TaskStatus | "All") => void;
+  categoryId: number | "All";
+  onCategoryChange: (id: number | "All") => void;
+  page: number;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
   onSelect: (task: TaskRow) => void;
   onCreate: () => void;
 }) {
+  // Search only looks at the rows on the current page
   const [taskSearchTerm, setTaskSearchTerm] = useState("");
-  const [taskCategoryFilter, setTaskCategoryFilter] = useState("All");
-  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
 
-  const taskCategories = Array.from(
-    new Set(tasks.map((t) => t.category).filter(Boolean)),
+  // The backend already limits a Lab User to their own tasks, so no extra filter here
+  const filteredTasks = tasks.filter(
+    (task) =>
+      task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
+      task.id.toLowerCase().includes(taskSearchTerm.toLowerCase()),
   );
-
-  const filteredTasks = tasks
-    .filter(
-      (task) =>
-        task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
-        task.id.toLowerCase().includes(taskSearchTerm.toLowerCase()),
-    )
-    .filter((task) =>
-      taskCategoryFilter === "All"
-        ? true
-        : task.category === taskCategoryFilter,
-    )
-    .filter((task) =>
-      taskStatusFilter === "All" ? true : task.status === taskStatusFilter,
-    )
-    .filter((task) =>
-      userRole === "Lab Admin"
-        ? true
-        : task.assigneeIds.includes(currentUserId),
-    );
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
-          My Task
+          Tasks
           {userRole === "Lab Admin" && (
             <button
               onClick={onCreate}
@@ -67,33 +66,39 @@ export default function TaskTable({
         <div className="h-9 flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search this page"
             value={taskSearchTerm}
             onChange={(e) => setTaskSearchTerm(e.target.value)}
             className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
 
           <select
-            value={taskCategoryFilter}
-            onChange={(e) => setTaskCategoryFilter(e.target.value)}
+            value={categoryId}
+            onChange={(e) =>
+              onCategoryChange(
+                e.target.value === "All" ? "All" : Number(e.target.value),
+              )
+            }
             className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
-            {taskCategories.map((category) => (
-              <option key={category} value={category} title={category}>
-                {truncateLabel(category)}
+            {categories.map((c) => (
+              <option key={c.id} value={c.id} title={c.name}>
+                {truncateLabel(c.name)}
               </option>
             ))}
           </select>
 
           <select
-            value={taskStatusFilter}
-            onChange={(e) => setTaskStatusFilter(e.target.value)}
+            value={status}
+            onChange={(e) =>
+              onStatusChange(e.target.value as TaskStatus | "All")
+            }
             className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <option value="All">All</option>
-            <option value="In_progress">In progress</option>
-            <option value="Completed">Completed</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
           </select>
         </div>
       </div>
@@ -122,10 +127,7 @@ export default function TaskTable({
                 className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
               >
                 <td className="px-4 py-3">{task.id}</td>
-                <td
-                  className="px-4 py-3 max-w-40 truncate"
-                  title={task.title}
-                >
+                <td className="px-4 py-3 max-w-40 truncate" title={task.title}>
                   {task.title}
                 </td>
                 <td
@@ -191,6 +193,12 @@ export default function TaskTable({
           </tbody>
         </table>
       </div>
+      <Pagination
+        page={page}
+        hasNext={hasNext}
+        loading={loading}
+        onChange={onPageChange}
+      />
     </div>
   );
 }

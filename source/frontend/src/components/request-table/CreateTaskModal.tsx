@@ -3,6 +3,7 @@ import { useState } from "react";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
+import DateInput from "@/components/request-table/DateInput";
 
 export default function CreateTaskModal({
   categories,
@@ -119,10 +120,9 @@ export default function CreateTaskModal({
 
             <div>
               <label className="block text-sm font-medium mb-1">Due Date</label>
-              <input
-                type="date"
+              <DateInput
                 value={newTaskDueDate}
-                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                onChange={setNewTaskDueDate}
                 className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
               />
             </div>

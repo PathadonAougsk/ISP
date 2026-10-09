@@ -3,6 +3,7 @@ import { useState } from "react";
 import { putTask, type TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member, UserRole } from "@/lib/account";
+import DateInput from "@/components/request-table/DateInput";
 
 export default function TaskDetailModal({
   task,
@@ -28,7 +29,7 @@ export default function TaskDetailModal({
   const [editTaskDescription, setEditTaskDescription] = useState(
     task.description,
   );
-  const [editTaskDueDate, setEditTaskDueDate] = useState(task.dueDate);
+  const [editTaskDueDate, setEditTaskDueDate] = useState(task.dueDateValue);
   const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>(
     task.assigneeIds,
   );
@@ -58,7 +59,7 @@ export default function TaskDetailModal({
         description: task.description || null,
         status: "completed",
         category_id: task.categoryId,
-        due_date: task.dueDate || null,
+        due_date: task.dueDateValue || null,
       });
       onSaved();
       onClose();
@@ -80,7 +81,7 @@ export default function TaskDetailModal({
         description: task.description || null,
         status: "in_progress",
         category_id: task.categoryId,
-        due_date: task.dueDate || null,
+        due_date: task.dueDateValue || null,
       });
       onSaved();
       onClose();
@@ -184,10 +185,9 @@ export default function TaskDetailModal({
                   Due Date
                 </label>
                 {userRole === "Lab Admin" ? (
-                  <input
-                    type="date"
+                  <DateInput
                     value={editTaskDueDate}
-                    onChange={(e) => setEditTaskDueDate(e.target.value)}
+                    onChange={setEditTaskDueDate}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 ) : (

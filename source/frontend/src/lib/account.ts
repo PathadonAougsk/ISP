@@ -3,6 +3,7 @@
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
+import { cached } from "@/lib/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -71,21 +72,22 @@ export function cacheRole(role: AccountRole) {
 
 export function clearCachedRole() {
   clearMeCache();
+  getAccounts.clear();
 
   if (typeof document === "undefined") return;
 
   document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
-export async function getAccounts(): Promise<AccountsResponse> {
+const ACCOUNTS_CACHE_TTL = 60 * 1000;
+
+async function fetchAccounts(): Promise<AccountsResponse> {
   const res = await apiFetch("/account/");
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
 
 // Creates the caller's own row. An invited member has an auth user but no
 // account row until they pick a username, so this is step one of setup.
@@ -96,6 +98,7 @@ export async function createMyAccount(username: string): Promise<Account> {
   const { Account: account } = (await res.json()) as AccountResponse;
   cacheRole(account.role);
   primeMeCache(account);
+  getAccounts.clear();
 
   return account;
 }
@@ -178,6 +181,7 @@ export type AccountPatch = {
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
   clearMeCache();
+  getAccounts.clear();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.

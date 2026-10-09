@@ -154,3 +154,14 @@ export function maskEmail(value: string) {
   const at = value.indexOf("@");
   return at > 0 ? "*".repeat(at) + value.slice(at) : "*".repeat(value.length);
 }
+
+// toDateInputValue("2026-08-27T17:00:00Z") -> "2026-08-28" (Bangkok date), "" if null
+export function toDateInputValue(iso: string | null) {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}

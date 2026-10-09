@@ -58,14 +58,14 @@ export function SlideupFrame({
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className={`slideup-overlay absolute inset-0 ${isClosing ? "slideup-overlay-closing" : ""}`}
+        className={`blur-fade-in absolute inset-0 ${isClosing ? "blur-fade-out" : ""}`}
         onClick={onClose}
       />
 
       <div
         role="dialog"
         aria-modal="true"
-        className={`slideup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] p-5 rounded-t-[30px] bg-white ${className} ${isClosing ? "slideup-panel-closing" : ""}`}
+        className={`slideup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] p-5 rounded-t-[30px] bg-white ${className} ${isClosing ? "slidedown-panel" : ""}`}
       >
         {children}
       </div>

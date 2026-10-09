@@ -80,7 +80,7 @@ export default function Sidebar() {
     <div className="sticky top-0 left-0 z-50 flex h-screen w-15 shrink-0 flex-col justify-between bg-(--primary-color-2)">
       {expanded && (
         <div
-          className="slideup-overlay fixed inset-0 z-40 bg-black"
+          className="blur-fade-in fixed inset-0 z-40 bg-black"
           onClick={handleNavigationClick}
         />
       )}

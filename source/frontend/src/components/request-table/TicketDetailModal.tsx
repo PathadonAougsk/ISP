@@ -4,6 +4,7 @@ import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member, UserRole } from "@/lib/account";
+import DateInput from "@/components/request-table/DateInput";
 
 export default function TicketDetailModal({
   ticket,
@@ -28,7 +29,9 @@ export default function TicketDetailModal({
   const [editTicketDescription, setEditTicketDescription] = useState(
     ticket.description,
   );
-  const [editTicketDueDate, setEditTicketDueDate] = useState(ticket.dueDate);
+  const [editTicketDueDate, setEditTicketDueDate] = useState(
+    ticket.dueDateValue,
+  );
   const [editTicketCategoryId, setEditTicketCategoryId] = useState<number | "">(
     ticket.categoryId,
   );
@@ -63,7 +66,7 @@ export default function TicketDetailModal({
       ? editTicketDescription
       : ticket.description;
     const categoryId = canEditTicket ? editTicketCategoryId : ticket.categoryId;
-    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDate;
+    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDateValue;
 
     if (!title || categoryId === "") {
       setTaskSubmitError("Title and category are required.");
@@ -211,10 +214,9 @@ export default function TicketDetailModal({
                     {ticket.dueDate || "—"}
                   </div>
                 ) : (
-                  <input
-                    type="date"
+                  <DateInput
                     value={editTicketDueDate}
-                    onChange={(e) => setEditTicketDueDate(e.target.value)}
+                    onChange={setEditTicketDueDate}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 )}
