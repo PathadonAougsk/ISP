@@ -197,19 +197,17 @@ export function useDashboardFetching(
         rejectedCount = rejected.length;
         setMyRejectedTickets([...rejected].sort(compareByDueDate));
 
-        // skip load pending if already full
-        if (rejectedCount < maxTicket) {
-          const { Tickets: pending } = await getTickets({
-            status: "pending",
-            onlyOwned: true,
-            limit: maxTicket - rejectedCount,
-          });
+        // always load pending (for ticket overview)
+        const { Tickets: pending } = await getTickets({
+          status: "pending",
+          onlyOwned: true,
+          limit: maxTicket,
+        });
 
-          if (cancelled) return;
+        if (cancelled) return;
 
-          myPending = [...pending].sort(compareByDueDate);
-          setMyPendingTickets(myPending);
-        }
+        myPending = [...pending].sort(compareByDueDate);
+        setMyPendingTickets(myPending);
 
         setErrorMyTickets(false);
       } catch {

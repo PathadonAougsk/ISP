@@ -6,10 +6,10 @@ import { renderWithLinks } from "@/components/dashboard/dashboard_utils";
 
 export default function Announcement() {
   const description =
-    "Please be informed that all classes today are canceled due to an unexpected situation. Students should not attend and may use this time for rest or personal activities.\n\ngoogle.com and www.google.com\n\nhttps://youtu.be/dQw4w9WgXcQ";
+    "All classes today are canceled due to an unexpected situation. Students should stay home and use the time for rest or personal activities.\n\ngoogle.com and www.google.com\n\nhttps://youtu.be/dQw4w9WgXcQ";
 
   return (
-    <div className="h-90 w-full overflow-hidden rounded-[30px] bg-(--panel-bg)">
+    <div className="min-h-25 max-h-75 w-full overflow-hidden rounded-[30px] bg-(--panel-bg)">
       <div className="flex h-full flex-col p-5 pb-0">
         <h1 className="text-3xl font-bold text-black line-clamp-2">
           Test Topic Announcement 001 and show Line wrapping Test Topic
@@ -27,7 +27,7 @@ export default function Announcement() {
           </div>
         </div>
 
-        <div className="mt-2 text-base font-normal text-gray-700 line-clamp-7 whitespace-pre-line">
+        <div className="mt-2 min-h-0 flex-1 overflow-hidden text-base font-normal text-gray-700 whitespace-pre-line">
           {renderWithLinks(description)}
         </div>
 

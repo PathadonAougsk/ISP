@@ -1,6 +1,5 @@
 "use client";
 
-import type { Task } from "@/lib/task";
 import { getThaiDateParts } from "@/lib/format";
 import {
   dueBucketMeta,
@@ -9,20 +8,28 @@ import {
   getDueBucketLimits,
   type DueBucketKey,
 } from "@/components/dashboard/dashboard_status";
+import type { DashboardView } from "@/components/dashboard/view_toggle";
+
+// task and ticket both have due date
+type DueItem = { due_date: string | null };
 
 export default function Summary({
   tasks,
   loadingTasks,
+  view,
+  rejectedCount,
 }: {
-  tasks: Task[];
+  tasks: DueItem[];
   loadingTasks: boolean;
+  view: DashboardView;
+  rejectedCount: number;
 }) {
   const limits = getDueBucketLimits(new Date());
   // compare day on Thai clock
   const todayParts = getThaiDateParts(limits.now);
   const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
 
-  const isDueToday = (task: Task) => {
+  const isDueToday = (task: DueItem) => {
     if (task.due_date === null || new Date(task.due_date) <= limits.now) {
       return false;
     }
@@ -49,10 +56,17 @@ export default function Summary({
 
   const hasMissing = dueBuckets.some((bucket) => bucket.key === "missing");
 
-  const summaryItems = [
-    { label: "Due Today", value: dueToday },
-    { label: "Active Task", value: tasks.length },
-  ];
+  const isTicket = view === "ticket";
+
+  const summaryItems = isTicket
+    ? [
+        { label: "Rejected", value: rejectedCount },
+        { label: "Pending", value: tasks.length },
+      ]
+    : [
+        { label: "Due Today", value: dueToday },
+        { label: "Active Task", value: tasks.length },
+      ];
 
   return (
     <div className="flex w-full gap-5">
@@ -76,7 +90,7 @@ export default function Summary({
 
       <div className="flex w-fit shrink-0 flex-col pr-5">
         <div className="flex items-start text-base font-bold text-black">
-          <p>Due Tasks</p>
+          <p>{isTicket ? "Due Tickets" : "Due Tasks"}</p>
         </div>
 
         <div className="flex flex-1">

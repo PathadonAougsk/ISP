@@ -12,6 +12,9 @@ import Overview from "@/components/dashboard/overview";
 import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskSlideup from "@/components/dashboard/task_slideup";
 import TicketSlideup from "@/components/dashboard/ticket_slideup";
+import ViewToggle, {
+  type DashboardView,
+} from "@/components/dashboard/view_toggle";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
 const MAX_TASK = 20;
@@ -48,10 +51,17 @@ export default function Dashboard() {
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [view, setView] = useState<DashboardView>("task");
 
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
   const isLabUser = currentAccount?.role === "Lab User";
+
+  // summary and overview read from the selected view
+  const isTicketView = view === "ticket";
+  const viewItems = isTicketView ? myPendingTickets : myTasks;
+  const loadingViewItems = isTicketView ? loadingMyTickets : loadingMyTasks;
+  const errorViewItems = isTicketView ? errorMyTickets : errorMyTasks;
 
   // missing panel need a flat ticket list
   const tickets = useMemo(
@@ -77,8 +87,30 @@ export default function Dashboard() {
 
   return (
     <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
-      <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-5">
+      <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-3">
         <Announcement />
+
+        <div className="flex h-160 shrink-0 flex-col gap-4 overflow-hidden rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
+          <ViewToggle value={view} onChange={setView} />
+          <Summary
+            tasks={viewItems}
+            loadingTasks={loadingViewItems || errorViewItems}
+            view={view}
+            rejectedCount={myRejectedTickets.length}
+          />
+
+          <Overview
+            tasks={viewItems}
+            loadingTasks={loadingViewItems || loadingCategories}
+            errorTasks={errorViewItems}
+            errorCategories={errorCategories}
+            categoryMap={categoryMap}
+            view={view}
+          />
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
         <Missing
           myTasks={myTasks}
           otherTasks={othersOnly}
@@ -93,42 +125,28 @@ export default function Dashboard() {
           }
           isLabUser={isLabUser}
         />
-        <div className="flex min-h-25 flex-1 flex-col gap-5 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
-          <Summary
-            tasks={myTasks}
-            loadingTasks={loadingMyTasks || errorMyTasks}
-          />
 
-          <Overview
-            tasks={myTasks}
-            loadingTasks={loadingMyTasks || loadingCategories}
-            errorTasks={errorMyTasks}
-            errorCategories={errorCategories}
-            categoryMap={categoryMap}
-          />
-        </div>
+        <TaskTicketList
+          myTasks={myTasks}
+          otherTasks={visibleOtherTasks}
+          loadingMyTasks={loadingMyTasks}
+          loadingOtherTasks={showLoadingOtherTasks}
+          errorMyTasks={errorMyTasks}
+          errorOtherTasks={errorOtherTasks}
+          myRejectedTickets={myRejectedTickets}
+          myPendingTickets={myPendingTickets}
+          otherPendingTickets={otherPendingTickets}
+          loadingMyTickets={loadingMyTickets || loadingCategories}
+          loadingOtherTickets={loadingOtherTickets}
+          errorMyTickets={errorMyTickets}
+          errorOtherTickets={errorOtherTickets}
+          categoryMap={categoryMap}
+          usernames={usernames}
+          isLabUser={isLabUser}
+          onSelectTask={setSelectedTask}
+          onSelectTicket={setSelectedTicket}
+        />
       </div>
-
-      <TaskTicketList
-        myTasks={myTasks}
-        otherTasks={visibleOtherTasks}
-        loadingMyTasks={loadingMyTasks}
-        loadingOtherTasks={showLoadingOtherTasks}
-        errorMyTasks={errorMyTasks}
-        errorOtherTasks={errorOtherTasks}
-        myRejectedTickets={myRejectedTickets}
-        myPendingTickets={myPendingTickets}
-        otherPendingTickets={otherPendingTickets}
-        loadingMyTickets={loadingMyTickets || loadingCategories}
-        loadingOtherTickets={loadingOtherTickets}
-        errorMyTickets={errorMyTickets}
-        errorOtherTickets={errorOtherTickets}
-        categoryMap={categoryMap}
-        usernames={usernames}
-        isLabUser={isLabUser}
-        onSelectTask={setSelectedTask}
-        onSelectTicket={setSelectedTicket}
-      />
 
       {selectedTask && (
         <TaskSlideup
