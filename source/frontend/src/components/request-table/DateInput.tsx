@@ -80,7 +80,7 @@ export default function DateInput({
         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800"
         aria-label="Open calendar"
       >
-        📅
+        <img src="/calendar.svg" alt="" className="w-5 h-5" />
       </button>
 
       {/* Hidden native picker, only used for the calendar popup */}
