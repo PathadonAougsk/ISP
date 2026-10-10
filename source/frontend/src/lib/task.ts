@@ -93,7 +93,10 @@ export async function fetchTasks(
   return res.json();
 }
 
-export const getTasks = cached(fetchTasks, 0);
+const TASKS_CACHE_TTL = 60 * 1000;
+
+// each page + filter is its own cache entry, so going back is instant
+export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL);
 
 export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   const res = await apiSendJson("/task/", "POST", body);
@@ -101,6 +104,9 @@ export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
+
+  // data changed, so drop cached lists
+  getTasks.clear();
 
   return res.json();
 }
@@ -114,6 +120,9 @@ export async function putTask(
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
+
+  // data changed, so drop cached lists
+  getTasks.clear();
 
   return res.json();
 }
