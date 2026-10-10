@@ -45,6 +45,10 @@ export default function TicketDetailModal({
     userRole === "Lab Admin" ||
     (ticket.createdById === currentUserId && ticket.status === "Pending");
 
+  // admin cant judge own ticket
+  const isOwnTicket = ticket.createdById === currentUserId;
+  const canJudge = userRole === "Lab Admin" && !isOwnTicket;
+
   function toggleAssign(memberId: string) {
     setAssignedMemberIds((prev) =>
       prev.includes(memberId)
@@ -61,6 +65,10 @@ export default function TicketDetailModal({
 
   async function handleDecision(newStatus: TicketRow["status"]) {
     if (ticket.status === newStatus) return;
+    if (isOwnTicket) {
+      setTaskSubmitError("You can't approve or reject your own ticket.");
+      return;
+    }
 
     // Use the edited form values when the user can edit, otherwise the saved ones
     const title = canEditTicket ? editTicketTitle.trim() : ticket.title;
@@ -252,7 +260,7 @@ export default function TicketDetailModal({
             </div>
           </div>
 
-          {userRole === "Lab Admin" && ticket.status !== "Approved" && (
+          {canJudge && ticket.status !== "Approved" && (
             <div className="w-64 border-l border-gray-200 pl-4">
               <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                 <span>Members — {members.length}</span>
@@ -333,7 +341,7 @@ export default function TicketDetailModal({
             </button>
           )}
 
-          {userRole === "Lab Admin" && (
+          {canJudge && (
             <>
               <button
                 onClick={() => handleDecision("Rejected")}
