@@ -3,13 +3,13 @@ import { useState } from "react";
 import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
-import type { Member, UserRole } from "@/lib/account";
+import { outranks, type AccountRole, type Member } from "@/lib/account";
 import DateInput from "@/components/request-table/DateInput";
 import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function TicketDetailModal({
   ticket,
-  userRole,
+  currentRole,
   currentUserId,
   members,
   categories,
@@ -18,7 +18,7 @@ export default function TicketDetailModal({
   onTaskCreated,
 }: {
   ticket: TicketRow;
-  userRole: UserRole;
+  currentRole: AccountRole;
   currentUserId: string;
   members: Member[];
   categories: Category[];
@@ -44,9 +44,9 @@ export default function TicketDetailModal({
   const canEditTicket =
     ticket.createdById === currentUserId && ticket.status === "Pending";
 
-  // admin cant judge own ticket
-  const isOwnTicket = ticket.createdById === currentUserId;
-  const canJudge = userRole === "Lab Admin" && !isOwnTicket;
+  // only role higher than creator can judge. creator not found = nobody
+  const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
+  const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
 
   function toggleAssign(memberId: string) {
     setAssignedMemberIds((prev) =>
@@ -64,8 +64,8 @@ export default function TicketDetailModal({
 
   async function handleDecision(newStatus: TicketRow["status"]) {
     if (ticket.status === newStatus) return;
-    if (isOwnTicket) {
-      setTaskSubmitError("You can't approve or reject your own ticket.");
+    if (!canJudge) {
+      setTaskSubmitError("You can't approve or reject this ticket.");
       return;
     }
 

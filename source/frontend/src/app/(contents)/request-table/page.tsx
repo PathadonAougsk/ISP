@@ -142,7 +142,7 @@ export default function RequestTable() {
         <TicketDetailModal
           key={selectedTicket.id}
           ticket={selectedTicket}
-          userRole={userRole}
+          currentRole={account?.role ?? "Lab User"}
           currentUserId={currentUserId}
           members={members}
           categories={categories}
