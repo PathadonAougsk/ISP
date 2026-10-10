@@ -51,6 +51,18 @@ export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
+// higher number = higher role
+const ROLE_RANK: Record<AccountRole, number> = {
+  "Lab User": 0,
+  "Lab Admin": 1,
+  "Lab Owner": 2,
+};
+
+// true only when actor role is strictly higher than target role
+export function outranks(actor: AccountRole, target: AccountRole): boolean {
+  return ROLE_RANK[actor] > ROLE_RANK[target];
+}
+
 // The cached role is a UI hint only - anyone can edit their own cookies, so dont trust it too much.
 export function readCachedRole(): AccountRole | null {
   if (typeof document === "undefined") return null;
@@ -164,10 +176,20 @@ export async function isAdmin(): Promise<boolean> {
 
 export type UserRole = "Lab Admin" | "Lab User";
 
-export type Member = { id: string; name: string; email: string };
+export type Member = {
+  id: string;
+  name: string;
+  email: string;
+  role: AccountRole;
+};
 
 export function mapAccountToMember(account: Account): Member {
-  return { id: account.id, name: account.username, email: account.email };
+  return {
+    id: account.id,
+    name: account.username,
+    email: account.email,
+    role: account.role,
+  };
 }
 
 export type AccountPatch = {

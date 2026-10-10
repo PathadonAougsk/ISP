@@ -3,17 +3,13 @@ import { useState } from "react";
 import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
-import type { Member, UserRole } from "@/lib/account";
+import { outranks, type AccountRole, type Member } from "@/lib/account";
 import DateInput from "@/components/request-table/DateInput";
-import {
-  SlideupFrame,
-  SlideupCloseButton,
-  useSlideupClose,
-} from "@/components/modal_slideup";
+import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function TicketDetailModal({
   ticket,
-  userRole,
+  currentRole,
   currentUserId,
   members,
   categories,
@@ -22,7 +18,7 @@ export default function TicketDetailModal({
   onTaskCreated,
 }: {
   ticket: TicketRow;
-  userRole: UserRole;
+  currentRole: AccountRole;
   currentUserId: string;
   members: Member[];
   categories: Category[];
@@ -46,8 +42,11 @@ export default function TicketDetailModal({
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null);
 
   const canEditTicket =
-    userRole === "Lab Admin" ||
-    (ticket.createdById === currentUserId && ticket.status === "Pending");
+    ticket.createdById === currentUserId && ticket.status === "Pending";
+
+  // only role higher than creator can judge. creator not found = nobody
+  const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
+  const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
 
   function toggleAssign(memberId: string) {
     setAssignedMemberIds((prev) =>
@@ -65,6 +64,10 @@ export default function TicketDetailModal({
 
   async function handleDecision(newStatus: TicketRow["status"]) {
     if (ticket.status === newStatus) return;
+    if (!canJudge) {
+      setTaskSubmitError("You can't approve or reject this ticket.");
+      return;
+    }
 
     // Use the edited form values when the user can edit, otherwise the saved ones
     const title = canEditTicket ? editTicketTitle.trim() : ticket.title;
@@ -162,10 +165,9 @@ export default function TicketDetailModal({
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between pb-3">
           <h1 className="text-lg font-semibold">Judge ticket</h1>
-          <SlideupCloseButton onClose={handleClose} />
         </div>
 
-        <div className="flex gap-6 p-6 flex-1 min-h-0 overflow-y-auto">
+        <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           <div className="flex-1 space-y-4 min-w-0">
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
@@ -257,7 +259,7 @@ export default function TicketDetailModal({
             </div>
           </div>
 
-          {userRole === "Lab Admin" && ticket.status !== "Approved" && (
+          {canJudge && ticket.status !== "Approved" && (
             <div className="w-64 border-l border-gray-200 pl-4">
               <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                 <span>Members — {members.length}</span>
@@ -338,7 +340,7 @@ export default function TicketDetailModal({
             </button>
           )}
 
-          {userRole === "Lab Admin" && (
+          {canJudge && (
             <>
               <button
                 onClick={() => handleDecision("Rejected")}

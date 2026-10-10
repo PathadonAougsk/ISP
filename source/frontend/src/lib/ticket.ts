@@ -97,7 +97,10 @@ export async function fetchTickets(
   return res.json();
 }
 
-export const getTickets = cached(fetchTickets, 0);
+const TICKETS_CACHE_TTL = 60 * 1000;
+
+// each page + filter is its own cache entry, so going back is instant
+export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL);
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
@@ -114,6 +117,9 @@ export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
+  // data changed, so drop cached lists
+  getTickets.clear();
+
   return res.json();
 }
 
@@ -124,6 +130,9 @@ export async function putTicket(
   const res = await apiSendJson(`/ticket/${id}`, "PUT", body);
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  // data changed, so drop cached lists
+  getTickets.clear();
 
   return res.json();
 }

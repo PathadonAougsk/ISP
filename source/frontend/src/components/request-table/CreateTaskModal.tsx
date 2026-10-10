@@ -4,11 +4,7 @@ import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
 import DateInput from "@/components/request-table/DateInput";
-import {
-  SlideupFrame,
-  SlideupCloseButton,
-  useSlideupClose,
-} from "@/components/modal_slideup";
+import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function CreateTaskModal({
   categories,
@@ -89,10 +85,9 @@ export default function CreateTaskModal({
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between pb-3">
           <h1 className="text-lg font-semibold">Create new task</h1>
-          <SlideupCloseButton onClose={handleClose} />
         </div>
 
-        <div className="flex gap-6 p-6 flex-1 min-h-0 overflow-y-auto">
+        <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           {/* Left column: form fields */}
           <div className="flex-1 space-y-4">
             <div>

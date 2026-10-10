@@ -19,6 +19,7 @@ export default function TicketTable({
   onPageChange,
   onSelect,
   onCreate,
+  canCreate,
 }: {
   tickets: TicketRow[];
   loading: boolean;
@@ -33,6 +34,7 @@ export default function TicketTable({
   onPageChange: (page: number) => void;
   onSelect: (ticket: TicketRow) => void;
   onCreate: () => void;
+  canCreate: boolean;
 }) {
   // Search only looks at the rows on the current page
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,12 +50,14 @@ export default function TicketTable({
       <div className="flex items-center justify-between mb-3">
         <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
           Tickets
-          <button
-            onClick={onCreate}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
-          >
-            +
-          </button>
+          {canCreate && (
+            <button
+              onClick={onCreate}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
+            >
+              +
+            </button>
+          )}
         </h2>
 
         <div className="h-9 flex items-center gap-2">

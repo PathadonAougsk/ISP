@@ -3,11 +3,7 @@ import { useState } from "react";
 import { postTicket } from "@/lib/ticket";
 import type { Category } from "@/lib/category";
 import DateInput from "@/components/request-table/DateInput";
-import {
-  SlideupFrame,
-  SlideupCloseButton,
-  useSlideupClose,
-} from "@/components/modal_slideup";
+import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function CreateTicketModal({
   categories,
@@ -68,10 +64,9 @@ export default function CreateTicketModal({
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between pb-3">
           <h1 className="text-lg font-semibold">Create new ticket</h1>
-          <SlideupCloseButton onClose={handleClose} />
         </div>
 
-        <div className="flex gap-6 p-6 flex-1 min-h-0 overflow-y-auto">
+        <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           <div className="flex-1 space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>

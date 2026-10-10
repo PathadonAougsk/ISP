@@ -32,7 +32,7 @@ export default function RequestTable() {
   const [taskStatus, setTaskStatus] = useState<TaskStatus | "All">("All");
   const [taskCategoryId, setTaskCategoryId] = useState<number | "All">("All");
 
-  const { loading: meLoading, userRole } = useCurrentAccount();
+  const { loading: meLoading, userRole, account } = useCurrentAccount();
   const {
     tickets,
     ticketsHasNext,
@@ -110,6 +110,7 @@ export default function RequestTable() {
             onPageChange={setTicketPage}
             onSelect={setSelectedTicket}
             onCreate={() => setIsCreatingTicket(true)}
+            canCreate={account !== null && account.role !== "Lab Owner"}
           />
         ) : (
           <TaskTable
@@ -141,7 +142,7 @@ export default function RequestTable() {
         <TicketDetailModal
           key={selectedTicket.id}
           ticket={selectedTicket}
-          userRole={userRole}
+          currentRole={account?.role ?? "Lab User"}
           currentUserId={currentUserId}
           members={members}
           categories={categories}
