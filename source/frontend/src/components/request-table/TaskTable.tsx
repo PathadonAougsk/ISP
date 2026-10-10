@@ -160,7 +160,7 @@ export default function TaskTable({
                 <td className="px-4 py-3">{task.lastUpdate}</td>
               </tr>
             ))}
-            {loading && (
+            {loading && tasks.length === 0 && (
               <tr>
                 <td
                   colSpan={10}
