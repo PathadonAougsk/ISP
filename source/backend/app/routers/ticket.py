@@ -43,6 +43,7 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
                            category_id: int | None = None,
                            due_before: dt.datetime | None = None,
                            onlyOwned: bool = False,
+                           notOwned: bool = False,
                            offset: int = Query(default=0, ge=0),
                            limit: int = Query(default=0, ge=0)
 ):
@@ -60,8 +61,18 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
     if due_before:
         query = query.where(Ticket.due_date <= to_utc(due_before))
 
-    if me.role == AccountRole.LAB_USER or onlyOwned:
+    if onlyOwned and notOwned:
+        raise HTTPException(
+            status_code=400,
+            detail="onlyOwned and notOwned cannot both be true"
+        )
+
+    if me.role == AccountRole.LAB_USER:
         query = query.where(Ticket.created_by == me.id)
+    elif onlyOwned:
+        query = query.where(Ticket.created_by == me.id)
+    elif notOwned:
+        query = query.where(Ticket.created_by != me.id)
 
     status_order = case(
         (Ticket.status == TicketStatus.PENDING, 1),
@@ -69,7 +80,7 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
         (Ticket.status == TicketStatus.ACCEPTED, 3)
     )
 
-    if me.role == AccountRole.LAB_ADMIN:
+    if me.role == AccountRole.LAB_ADMIN or me.role == AccountRole.LAB_OWNER:
         query = query.order_by(
             status_order,
             Ticket.due_date
