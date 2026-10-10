@@ -42,7 +42,7 @@ export function renderWithLinks(text: string): ReactNode {
 
 // same grid for header and row, so column line up
 export const listGridClass =
-  "grid flex-1 grid-cols-[2fr_1.5fr_1.5fr_minmax(120px,1fr)] items-center gap-3";
+  "grid flex-1 grid-cols-[2fr_1.25fr_1.25fr_minmax(120px,1fr)] items-center gap-3";
 
 // green header bar, one title per column
 export function ListHeader({
