@@ -32,6 +32,14 @@ function autoSlash(raw: string) {
   return out;
 }
 
+// today in local time as yyyy-MM-dd
+function todayIso() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${mm}-${dd}`;
+}
+
 export default function DateInput({
   value,
   onChange,
@@ -43,6 +51,7 @@ export default function DateInput({
 }) {
   const [draft, setDraft] = useState(toDisplay(value));
   const pickerRef = useRef<HTMLInputElement>(null);
+  const today = todayIso();
 
   // Follow the value when it changes from outside (e.g. the calendar picker)
   useEffect(() => {
@@ -58,7 +67,8 @@ export default function DateInput({
       return;
     }
     const iso = toIso(formatted);
-    if (iso) onChange(iso);
+    // past date not allowed, so skip it (iso string compare is ok)
+    if (iso && iso >= today) onChange(iso);
   }
 
   return (
@@ -88,6 +98,7 @@ export default function DateInput({
         ref={pickerRef}
         type="date"
         value={value}
+        min={today}
         onChange={(e) => onChange(e.target.value)}
         tabIndex={-1}
         aria-hidden
