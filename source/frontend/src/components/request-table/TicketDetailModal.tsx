@@ -42,8 +42,7 @@ export default function TicketDetailModal({
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null);
 
   const canEditTicket =
-    userRole === "Lab Admin" ||
-    (ticket.createdById === currentUserId && ticket.status === "Pending");
+    ticket.createdById === currentUserId && ticket.status === "Pending";
 
   // admin cant judge own ticket
   const isOwnTicket = ticket.createdById === currentUserId;
