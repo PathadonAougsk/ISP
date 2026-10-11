@@ -92,7 +92,12 @@ export function useListOverflow(dependencies: unknown[]) {
     }
 
     const checkOverflow = () => {
-      setHasOverflow(element.scrollHeight > element.clientHeight);
+      const hasVerticalOverflow = element.scrollHeight > element.clientHeight;
+
+      const scrollbarWidth =
+        element.offsetWidth - element.clientWidth - element.clientLeft * 2;
+
+      setHasOverflow(hasVerticalOverflow && scrollbarWidth > 0);
     };
 
     checkOverflow();

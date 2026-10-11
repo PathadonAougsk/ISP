@@ -27,7 +27,7 @@ export default function Announcement() {
           </div>
         </div>
 
-        <div className="mt-2 min-h-0 flex-1 overflow-hidden text-base font-normal text-gray-700 whitespace-pre-line">
+        <div className="mt-2 min-h-0 mb-3 flex-1 overflow-hidden text-base font-normal text-gray-700 whitespace-pre-line line-clamp-4">
           {renderWithLinks(description)}
         </div>
 

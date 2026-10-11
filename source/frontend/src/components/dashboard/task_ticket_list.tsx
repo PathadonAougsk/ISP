@@ -143,6 +143,7 @@ function TaskList({
 function TicketList({
   myRejectedTickets,
   myPendingTickets,
+  otherRejectedTickets,
   otherPendingTickets,
   loadingMyTickets,
   loadingOtherTickets,
@@ -154,6 +155,7 @@ function TicketList({
 }: {
   myRejectedTickets: Ticket[];
   myPendingTickets: Ticket[];
+  otherRejectedTickets: Ticket[];
   otherPendingTickets: Ticket[];
   loadingMyTickets: boolean;
   loadingOtherTickets: boolean;
@@ -168,11 +170,13 @@ function TicketList({
   const hasMyRejected = !loadingMyTickets && myRejectedTickets.length > 0;
   const hasMyPending = !loadingMyTickets && myPendingTickets.length > 0;
   // others wait for my tickets, so the list never jump around
+  const hasOtherRejected = !loadingMyTickets && otherRejectedTickets.length > 0;
   const hasOtherTickets = !loadingMyTickets && otherPendingTickets.length > 0;
 
   const { listRef, hasOverflow } = useListOverflow([
     myRejectedTickets,
     myPendingTickets,
+    otherRejectedTickets,
     otherPendingTickets,
   ]);
 
@@ -214,7 +218,10 @@ function TicketList({
         hasOverflow={hasOverflow}
       />
 
-      {!hasMyRejected && !hasMyPending && !hasOtherTickets ? (
+      {!hasMyRejected &&
+      !hasMyPending &&
+      !hasOtherRejected &&
+      !hasOtherTickets ? (
         <ListMessage>
           {errorMyTickets || errorOtherTickets
             ? "Failed to load tickets"
@@ -242,6 +249,15 @@ function TicketList({
                 My pending tickets
               </h1>
               {myPendingTickets.map(renderTicket)}
+            </Fragment>
+          )}
+
+          {hasOtherRejected && (
+            <Fragment>
+              <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
+                {"Others' rejected tickets"}
+              </h1>
+              {otherRejectedTickets.map(renderTicket)}
             </Fragment>
           )}
 
@@ -282,6 +298,7 @@ export default function TaskTicketList({
   errorOtherTasks,
   myRejectedTickets,
   myPendingTickets,
+  otherRejectedTickets,
   otherPendingTickets,
   loadingMyTickets,
   loadingOtherTickets,
@@ -301,6 +318,7 @@ export default function TaskTicketList({
   errorOtherTasks: boolean;
   myRejectedTickets: Ticket[];
   myPendingTickets: Ticket[];
+  otherRejectedTickets: Ticket[];
   otherPendingTickets: Ticket[];
   loadingMyTickets: boolean;
   loadingOtherTickets: boolean;
@@ -330,6 +348,7 @@ export default function TaskTicketList({
         <TicketList
           myRejectedTickets={myRejectedTickets}
           myPendingTickets={myPendingTickets}
+          otherRejectedTickets={otherRejectedTickets}
           otherPendingTickets={otherPendingTickets}
           loadingMyTickets={loadingMyTickets}
           loadingOtherTickets={loadingOtherTickets}

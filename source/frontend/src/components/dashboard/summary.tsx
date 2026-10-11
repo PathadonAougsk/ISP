@@ -90,7 +90,7 @@ export default function Summary({
 
       <div className="flex w-fit shrink-0 flex-col pr-5">
         <div className="flex items-start text-base font-bold text-black">
-          <p>{isTicket ? "Due Tickets" : "Due Tasks"}</p>
+          <p>{isTicket ? "Pending Tickets" : "Due Tasks"}</p>
         </div>
 
         <div className="flex flex-1">

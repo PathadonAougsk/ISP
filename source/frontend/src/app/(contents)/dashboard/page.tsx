@@ -13,6 +13,8 @@ import TaskTicketList from "@/components/dashboard/task_ticket_list";
 import TaskSlideup from "@/components/dashboard/task_slideup";
 import TicketSlideup from "@/components/dashboard/ticket_slideup";
 import ViewToggle, {
+  ScopeToggle,
+  type DashboardScope,
   type DashboardView,
 } from "@/components/dashboard/view_toggle";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
@@ -30,6 +32,7 @@ export default function Dashboard() {
     categories,
     myRejectedTickets,
     myPendingTickets,
+    otherRejectedTickets,
     otherPendingTickets,
     usernames,
     loadingMyTasks,
@@ -52,16 +55,17 @@ export default function Dashboard() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [view, setView] = useState<DashboardView>("task");
+  const [scope, setScope] = useState<DashboardScope>("mine");
 
   const categoryMap = useMemo(() => toCategoryMap(categories), [categories]);
 
   const isLabUser = currentAccount?.role === "Lab User";
 
-  // summary and overview read from the selected view
+  // scope toggle is hidden for lab user
+  const showScope = currentAccount !== null && !isLabUser;
+  const isAllScope = showScope && scope === "all";
+
   const isTicketView = view === "ticket";
-  const viewItems = isTicketView ? myPendingTickets : myTasks;
-  const loadingViewItems = isTicketView ? loadingMyTickets : loadingMyTasks;
-  const errorViewItems = isTicketView ? errorMyTickets : errorMyTasks;
 
   // missing panel need a flat ticket list
   const tickets = useMemo(
@@ -85,18 +89,39 @@ export default function Dashboard() {
   const showLoadingOtherTasks =
     loadingOtherTasks && (loadingMyTasks || myTasks.length < MAX_TASK);
 
+  // summary and overview read from the selected view and scope
+  const myItems = isTicketView ? myPendingTickets : myTasks;
+  const otherItems = isTicketView ? otherPendingTickets : visibleOtherTasks;
+  const viewItems = isAllScope ? [...myItems, ...otherItems] : myItems;
+
+  const loadingViewItems = isTicketView
+    ? loadingMyTickets || (isAllScope && loadingOtherTickets)
+    : loadingMyTasks || (isAllScope && showLoadingOtherTasks);
+  const errorViewItems = isTicketView
+    ? errorMyTickets || (isAllScope && errorOtherTickets)
+    : errorMyTasks || (isAllScope && errorOtherTasks);
+
   return (
-    <main className="flex min-h-full w-full gap-5 overflow-x-auto bg-(--background) px-5 pt-5">
-      <div className="flex w-[40%] min-w-120 max-w-300 shrink-0 flex-col gap-3">
+    <main className="flex min-h-full w-full min-w-0 flex-col gap-5 overflow-x-auto bg-(--background) px-5 pt-5 max-[600px]:min-w-150 min-[1000px]:flex-row">
+      <div className="flex w-full shrink-0 flex-col gap-3 min-[1000px]:w-[40%] min-[1000px]:min-w-120 min-[1000px]:max-w-300">
         <Announcement />
 
-        <div className="flex h-160 shrink-0 flex-col gap-4 overflow-hidden rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
-          <ViewToggle value={view} onChange={setView} />
+        <div className="flex h-160 shrink-0 flex-col gap-4 overflow-hidden rounded-[30px] bg-(--panel-bg) p-3 pb-6 min-[1000px]:rounded-t-[30px] min-[1000px]:rounded-b-none min-[1000px]:pb-3">
+          <div className="flex flex-wrap justify-between">
+            <ViewToggle value={view} onChange={setView} />
+            {showScope && (
+              <ScopeToggle value={scope} onChange={setScope} view={view} />
+            )}
+          </div>
           <Summary
             tasks={viewItems}
             loadingTasks={loadingViewItems || errorViewItems}
             view={view}
-            rejectedCount={myRejectedTickets.length}
+            rejectedCount={
+              isAllScope
+                ? myRejectedTickets.length + otherRejectedTickets.length
+                : myRejectedTickets.length
+            }
           />
 
           <Overview
@@ -110,42 +135,50 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <Missing
-          myTasks={myTasks}
-          otherTasks={othersOnly}
-          tickets={tickets}
-          loadingMyTasks={loadingMyTasks || errorMyTasks}
-          loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
-          loadingTickets={
-            loadingMyTickets ||
-            loadingOtherTickets ||
-            errorMyTickets ||
-            errorOtherTickets
-          }
-          isLabUser={isLabUser}
-        />
+      {/* contents: under 1000px the children become part of main */}
+      <div className="contents min-[1000px]:flex min-[1000px]:min-w-0 min-[1000px]:flex-1 min-[1000px]:flex-col min-[1000px]:gap-3">
+        {/* empty:hidden so no gap when Missing render nothing */}
+        <div className="order-first empty:hidden min-[1000px]:order-0">
+          <Missing
+            myTasks={myTasks}
+            otherTasks={othersOnly}
+            tickets={tickets}
+            loadingMyTasks={loadingMyTasks || errorMyTasks}
+            loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
+            loadingTickets={
+              loadingMyTickets ||
+              loadingOtherTickets ||
+              errorMyTickets ||
+              errorOtherTickets
+            }
+            isLabUser={isLabUser}
+          />
+        </div>
 
-        <TaskTicketList
-          myTasks={myTasks}
-          otherTasks={visibleOtherTasks}
-          loadingMyTasks={loadingMyTasks}
-          loadingOtherTasks={showLoadingOtherTasks}
-          errorMyTasks={errorMyTasks}
-          errorOtherTasks={errorOtherTasks}
-          myRejectedTickets={myRejectedTickets}
-          myPendingTickets={myPendingTickets}
-          otherPendingTickets={otherPendingTickets}
-          loadingMyTickets={loadingMyTickets || loadingCategories}
-          loadingOtherTickets={loadingOtherTickets}
-          errorMyTickets={errorMyTickets}
-          errorOtherTickets={errorOtherTickets}
-          categoryMap={categoryMap}
-          usernames={usernames}
-          isLabUser={isLabUser}
-          onSelectTask={setSelectedTask}
-          onSelectTicket={setSelectedTicket}
-        />
+        {/* list need own height when stacked */}
+        <div className="order-last flex h-200 min-w-0 flex-col min-[1000px]:order-0 min-[1000px]:h-auto min-[1000px]:min-h-0 min-[1000px]:flex-1">
+          <TaskTicketList
+            myTasks={myTasks}
+            otherTasks={visibleOtherTasks}
+            loadingMyTasks={loadingMyTasks}
+            loadingOtherTasks={showLoadingOtherTasks}
+            errorMyTasks={errorMyTasks}
+            errorOtherTasks={errorOtherTasks}
+            myRejectedTickets={myRejectedTickets}
+            myPendingTickets={myPendingTickets}
+            otherRejectedTickets={otherRejectedTickets}
+            otherPendingTickets={otherPendingTickets}
+            loadingMyTickets={loadingMyTickets || loadingCategories}
+            loadingOtherTickets={loadingOtherTickets}
+            errorMyTickets={errorMyTickets}
+            errorOtherTickets={errorOtherTickets}
+            categoryMap={categoryMap}
+            usernames={usernames}
+            isLabUser={isLabUser}
+            onSelectTask={setSelectedTask}
+            onSelectTicket={setSelectedTicket}
+          />
+        </div>
       </div>
 
       {selectedTask && (

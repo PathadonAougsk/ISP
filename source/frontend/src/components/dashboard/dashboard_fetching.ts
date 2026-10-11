@@ -65,6 +65,9 @@ export function useDashboardFetching(
   const [otherTasks, setOtherTasks] = useState<Task[]>([]);
   const [myRejectedTickets, setMyRejectedTickets] = useState<Ticket[]>([]);
   const [myPendingTickets, setMyPendingTickets] = useState<Ticket[]>([]);
+  const [otherRejectedTickets, setOtherRejectedTickets] = useState<Ticket[]>(
+    [],
+  );
   const [otherPendingTickets, setOtherPendingTickets] = useState<Ticket[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
 
@@ -180,8 +183,8 @@ export function useDashboardFetching(
 
     let cancelled = false;
 
-    // my rejected -> my pending -> others' pending
-    async function loadTickets(userId: string) {
+    // my rejected -> my pending -> others' rejected -> others' pending
+    async function loadTickets() {
       let rejectedCount = 0;
       let myPending: Ticket[] = [];
 
@@ -234,23 +237,44 @@ export function useDashboardFetching(
       }
 
       try {
-        // load others' ticket and remove the dupe
-        const { Tickets } = await getTickets({
-          status: "pending",
+        // others' rejected first, room already > 0 here
+        const { Tickets: otherRejected } = await getTickets({
+          status: "rejected",
+          notOwned: true,
           limit: maxTicket - rejectedCount,
         });
 
         if (cancelled) return;
 
-        setOtherPendingTickets(
-          Tickets.filter((ticket) => ticket.created_by !== userId)
-            .sort(compareByDueDate)
-            .slice(0, room),
-        );
+        const rejectedShown = [...otherRejected]
+          .sort(compareByDueDate)
+          .slice(0, room);
+        setOtherRejectedTickets(rejectedShown);
+
+        const pendingRoom = room - rejectedShown.length;
+
+        // others' rejected fill the room, skip the request
+        if (pendingRoom > 0) {
+          const { Tickets: otherPending } = await getTickets({
+            status: "pending",
+            notOwned: true,
+            limit: maxTicket - myPending.length,
+          });
+
+          if (cancelled) return;
+
+          setOtherPendingTickets(
+            [...otherPending].sort(compareByDueDate).slice(0, pendingRoom),
+          );
+        } else {
+          setOtherPendingTickets([]);
+        }
+
         setErrorOtherTickets(false);
       } catch {
         if (cancelled) return;
 
+        setOtherRejectedTickets([]);
         setOtherPendingTickets([]);
         setErrorOtherTickets(true);
       } finally {
@@ -259,7 +283,7 @@ export function useDashboardFetching(
     }
 
     setErrorOtherTickets(false);
-    loadTickets(accountId);
+    loadTickets();
 
     return () => {
       cancelled = true;
@@ -272,6 +296,7 @@ export function useDashboardFetching(
       ...otherTasks.map((task) => task.created_by),
       ...myRejectedTickets.map((ticket) => ticket.created_by),
       ...myPendingTickets.map((ticket) => ticket.created_by),
+      ...otherRejectedTickets.map((ticket) => ticket.created_by),
       ...otherPendingTickets.map((ticket) => ticket.created_by),
     ];
 
@@ -307,6 +332,7 @@ export function useDashboardFetching(
     otherTasks,
     myRejectedTickets,
     myPendingTickets,
+    otherRejectedTickets,
     otherPendingTickets,
   ]);
 
@@ -330,6 +356,7 @@ export function useDashboardFetching(
     categories,
     myRejectedTickets,
     myPendingTickets,
+    otherRejectedTickets,
     otherPendingTickets,
     usernames,
     loadingMyTasks,
