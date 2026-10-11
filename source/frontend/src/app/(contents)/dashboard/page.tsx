@@ -19,8 +19,8 @@ import ViewToggle, {
 } from "@/components/dashboard/view_toggle";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
-const MAX_TASK = 20;
-const MAX_TICKET = 20;
+const MAX_TASK = 50;
+const MAX_TICKET = 50;
 
 export default function Dashboard() {
   const { account: currentAccount, loading: accountLoading } =
@@ -51,7 +51,7 @@ export default function Dashboard() {
     MAX_TASK,
     MAX_TICKET,
   );
-
+  3;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [view, setView] = useState<DashboardView>("task");
@@ -66,12 +66,6 @@ export default function Dashboard() {
   const isAllScope = showScope && scope === "all";
 
   const isTicketView = view === "ticket";
-
-  // missing panel need a flat ticket list
-  const tickets = useMemo(
-    () => [...myRejectedTickets, ...myPendingTickets, ...otherPendingTickets],
-    [myRejectedTickets, myPendingTickets, otherPendingTickets],
-  );
 
   const othersOnly = useMemo(() => {
     const myTaskIds = new Set(myTasks.map((task) => task.id));
@@ -141,17 +135,11 @@ export default function Dashboard() {
         <div className="order-first empty:hidden min-[1000px]:order-0">
           <Missing
             myTasks={myTasks}
-            otherTasks={othersOnly}
-            tickets={tickets}
+            myPendingTickets={myPendingTickets}
+            myRejectedTickets={myRejectedTickets}
             loadingMyTasks={loadingMyTasks || errorMyTasks}
-            loadingOtherTasks={loadingOtherTasks || errorOtherTasks}
-            loadingTickets={
-              loadingMyTickets ||
-              loadingOtherTickets ||
-              errorMyTickets ||
-              errorOtherTickets
-            }
-            isLabUser={isLabUser}
+            loadingMyPendingTickets={loadingMyTickets || errorMyTickets}
+            loadingMyRejectedTickets={loadingMyTickets || errorMyTickets}
           />
         </div>
 

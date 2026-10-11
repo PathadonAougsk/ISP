@@ -9,65 +9,65 @@ import {
 
 export default function Missing({
   myTasks,
-  otherTasks,
-  tickets,
+  myPendingTickets,
+  myRejectedTickets,
   loadingMyTasks,
-  loadingOtherTasks,
-  loadingTickets,
-  isLabUser,
+  loadingMyPendingTickets,
+  loadingMyRejectedTickets,
 }: {
   myTasks: Task[];
-  otherTasks: Task[];
-  tickets: Ticket[];
+  myPendingTickets: Ticket[];
+  myRejectedTickets: Ticket[];
   loadingMyTasks: boolean;
-  loadingOtherTasks: boolean;
-  loadingTickets: boolean;
-  isLabUser: boolean;
+  loadingMyPendingTickets: boolean;
+  loadingMyRejectedTickets: boolean;
 }) {
   const now = new Date();
 
-  const countTasks = (tasks: Task[]) =>
-    tasks.filter((task) => isMissingTask(task, now)).length;
+  const overdueTasks = myTasks.filter((task) =>
+    isMissingTask(task, now),
+  ).length;
 
-  const missingTickets = tickets.filter((ticket) =>
+  const pastDueTickets = myPendingTickets.filter((ticket) =>
     isMissingTicket(ticket, now),
   ).length;
 
+  const rejectedTickets = myRejectedTickets.length;
+
   const sections = [
     {
-      label: "My Missing Tasks",
-      count: countTasks(myTasks),
+      label: "Overdue Tasks",
+      count: overdueTasks,
       loading: loadingMyTasks,
     },
-    // lab user cant see others' tasks
-    ...(isLabUser
-      ? []
-      : [
-          {
-            label: "Others' Missing Tasks",
-            count: countTasks(otherTasks),
-            loading: loadingOtherTasks || loadingMyTasks,
-          },
-        ]),
     {
-      label: "Missing Tickets",
-      count: missingTickets,
-      loading: loadingTickets,
+      label: "Past Due Tickets",
+      count: pastDueTickets,
+      loading: loadingMyPendingTickets,
+    },
+    {
+      label: "Rejected Tickets",
+      count: rejectedTickets,
+      loading: loadingMyRejectedTickets,
     },
   ];
 
-  // if nothing is missing, hide whole squircle
-  if (sections.every((section) => section.loading || section.count === 0))
+  const visibleSections = sections.filter(
+    (section) => section.loading || section.count > 0,
+  );
+
+  if (visibleSections.length === 0) {
     return null;
+  }
 
   return (
     <div className="flex w-full divide-x divide-white rounded-[30px] bg-(--primary-red)">
-      {sections.map((section) => (
+      {visibleSections.map((section) => (
         <div
           key={section.label}
           className="flex flex-1 flex-col items-center justify-center gap-1 px-2 py-3"
         >
-          <h1 className="text-center text-base font-bold text-white">
+          <h1 className="text-center text-lg font-bold text-white">
             {section.label}
           </h1>
           <h1 className="text-5xl font-extrabold text-white">
