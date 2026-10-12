@@ -107,6 +107,28 @@ export function useDashboardFetching(
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // null mean request failed
+    loadCategories().then((loaded) => {
+      if (cancelled) return;
+
+      if (loaded) {
+        setCategories(loaded);
+        setErrorCategories(false);
+      } else {
+        setErrorCategories(true);
+      }
+
+      setLoadingCategories(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (accountId === undefined) return;
 
     let cancelled = false;

@@ -52,7 +52,7 @@ export default function Dashboard() {
     MAX_TASK,
     MAX_TICKET,
   );
-  3;
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [view, setView] = useState<DashboardView>("task");
