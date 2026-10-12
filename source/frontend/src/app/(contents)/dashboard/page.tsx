@@ -45,6 +45,7 @@ export default function Dashboard() {
     errorCategories,
     errorMyTickets,
     errorOtherTickets,
+    reloadTasks,
   } = useDashboardFetching(
     currentAccount,
     accountLoading,
@@ -176,6 +177,7 @@ export default function Dashboard() {
           usernames={usernames}
           currentUserId={currentAccount?.id ?? null}
           onClose={() => setSelectedTask(null)}
+          onUpdated={reloadTasks}
         />
       )}
 

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { CategoryMap } from "@/lib/category";
-import type { Task } from "@/lib/task";
+import { putTask, type Task } from "@/lib/task";
 import Icon from "@/components/icon";
 import {
   SlideupDescription,
@@ -22,14 +23,65 @@ export default function TaskSlideup({
   usernames,
   currentUserId,
   onClose,
+  onUpdated,
 }: {
   task: Task;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   currentUserId: string | null;
   onClose: () => void;
+  onUpdated: () => void;
 }) {
   const { isClosing, handleClose } = useSlideupClose(onClose);
+
+  // local copy, task prop never change after putTask
+  const [status, setStatus] = useState(task.status);
+  const [submitting, setSubmitting] = useState(false);
+
+  const isAssignedToMe = task.assignees.some((a) => a.id === currentUserId);
+  const isCompleted = status === "completed";
+
+  async function handleToggle() {
+    const next = isCompleted ? "in_progress" : "completed";
+    const action = isCompleted ? "unsubmit" : "submit";
+
+    setSubmitting(true);
+
+    try {
+      // send due_date as it is
+      await putTask(task.id, {
+        name: task.name,
+        category_id: task.category_id,
+        description: task.description,
+        status: next,
+        due_date: task.due_date,
+        assignees: task.assignees.map((a) => a.id),
+      });
+
+      setStatus(next);
+      onUpdated();
+    } catch {
+      console.error(`Fail to ${action}`);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const buttonColor = isCompleted
+    ? submitting
+      ? "bg-gray-200"
+      : "bg-(--primary-red) hover:bg-(--primary-red-hover)"
+    : submitting
+      ? "bg-gray-200"
+      : "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)";
+
+  const buttonLabel = isCompleted
+    ? submitting
+      ? "Unsubmitting"
+      : "Unsubmit"
+    : submitting
+      ? "Submitting"
+      : "Submit";
 
   const sortedAssignees = [...task.assignees].sort((a, b) => {
     if (a.id === currentUserId) return -1;
@@ -66,7 +118,7 @@ export default function TaskSlideup({
 
           <SlideupMissingBadge
             type="task"
-            status={task.status}
+            status={status}
             dueDate={task.due_date}
           />
         </div>
@@ -96,6 +148,19 @@ export default function TaskSlideup({
             </div>
           </div>
         </div>
+
+        {isAssignedToMe && (
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handleToggle}
+            className={`mt-2 h-12 w-full rounded-[20px] text-lg font-bold text-white ${buttonColor} ${
+              submitting ? "cursor-not-allowed" : "cursor-pointer"
+            }`}
+          >
+            {buttonLabel}
+          </button>
+        )}
       </div>
     </SlideupFrame>
   );

@@ -81,6 +81,9 @@ export function useDashboardFetching(
   const [errorMyTickets, setErrorMyTickets] = useState(false);
   const [errorOtherTickets, setErrorOtherTickets] = useState(false);
 
+  // bump to refetch tasks, loading flags stay false so no flicker
+  const [tasksReloadKey, setTasksReloadKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -176,7 +179,7 @@ export function useDashboardFetching(
     return () => {
       cancelled = true;
     };
-  }, [accountId, accountRole, maxTask]);
+  }, [accountId, accountRole, maxTask, tasksReloadKey]);
 
   useEffect(() => {
     if (accountId === undefined) return;
@@ -369,5 +372,6 @@ export function useDashboardFetching(
     errorCategories,
     errorMyTickets,
     errorOtherTickets,
+    reloadTasks: () => setTasksReloadKey((key) => key + 1),
   };
 }
