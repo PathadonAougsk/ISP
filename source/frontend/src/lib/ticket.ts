@@ -178,6 +178,33 @@ export function mapBackendTicket(
   };
 }
 
+// fetch one ticket by id for the modal. throw if not found
+export async function getTicketRowById(
+  id: number,
+  userRole: UserRole,
+): Promise<TicketRow> {
+  const [ticketBody, catBody, accBody] = await Promise.all([
+    getTickets({
+      ...(userRole === "Lab Admin" ? {} : { onlyOwned: true }),
+      ticket_id: id,
+    }),
+    getCategories().catch(() => null),
+    getAccounts().catch(() => null),
+  ]);
+
+  const ticket = ticketBody.Tickets.find((t) => t.id === id);
+  if (!ticket) throw new Error("Ticket not found");
+
+  const categoryById = new Map<number, string>(
+    (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
+  );
+  const accountById = new Map<string, string>(
+    (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
+  );
+
+  return mapBackendTicket(ticket, categoryById, accountById);
+}
+
 export type TicketFilters = { status?: TicketStatus; categoryId?: number };
 
 export function useTickets(

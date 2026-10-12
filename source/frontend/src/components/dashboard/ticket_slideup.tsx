@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CategoryMap } from "@/lib/category";
 import type { Ticket } from "@/lib/ticket";
 import Icon from "@/components/icon";
+import { buildRequestTableUrl } from "@/components/dashboard/redirect";
 import {
   ticketStatusIcon,
   ticketStatusText,
@@ -31,7 +34,9 @@ export default function TicketSlideup({
   usernames: Record<string, string>;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const { isClosing, handleClose } = useSlideupClose(onClose);
+  const [redirecting, setRedirecting] = useState(false);
 
   return (
     <SlideupFrame
@@ -39,12 +44,28 @@ export default function TicketSlideup({
       onClose={handleClose}
       className="flex flex-col"
     >
-      <div className="flex min-w-0 items-start gap-2">
-        <h1 className="min-w-0 flex-1 wrap-break-word text-3xl font-bold text-black">
-          {ticket.name}
-        </h1>
+      <div className="flex justify-end gap-4 pb-2">
+        <button
+          type="button"
+          onClick={() => {
+            setRedirecting(true);
+            router.push(buildRequestTableUrl("ticket", ticket.id));
+          }}
+          disabled={redirecting}
+          className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
+            redirecting
+              ? "cursor-wait bg-gray-700"
+              : "cursor-pointer bg-black hover:bg-gray-700"
+          }`}
+        >
+          Open in Request-table
+        </button>
         <SlideupCloseButton onClose={handleClose} />
       </div>
+
+      <h1 className="min-w-0 wrap-break-word text-3xl font-bold text-black">
+        {ticket.name}
+      </h1>
 
       <SlideupMeta
         id={ticket.id}

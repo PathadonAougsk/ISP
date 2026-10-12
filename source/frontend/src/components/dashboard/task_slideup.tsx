@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
 import Icon from "@/components/icon";
+import { buildRequestTableUrl } from "@/components/dashboard/redirect";
 import {
   SlideupDescription,
   SlideupEdited,
@@ -32,11 +34,13 @@ export default function TaskSlideup({
   onClose: () => void;
   onUpdated: () => void;
 }) {
+  const router = useRouter();
   const { isClosing, handleClose } = useSlideupClose(onClose);
 
   // local copy, task prop never change after putTask
   const [status, setStatus] = useState(task.status);
   const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const isAssignedToMe = task.assignees.some((a) => a.id === currentUserId);
   const isCompleted = status === "completed";
@@ -93,74 +97,93 @@ export default function TaskSlideup({
     <SlideupFrame
       isClosing={isClosing}
       onClose={handleClose}
-      className="flex gap-5"
+      className="flex flex-col"
     >
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h1 className="wrap-break-word text-3xl font-bold text-black">
-          {task.name}
-        </h1>
-
-        <SlideupMeta
-          id={task.id}
-          categoryName={categoryMap[task.category_id] ?? "-"}
-          createdDate={task.created}
+      <div className="flex justify-end gap-4 pb-2">
+        <button
+          type="button"
+          onClick={() => {
+            setRedirecting(true);
+            router.push(buildRequestTableUrl("task", task.id));
+          }}
+          disabled={redirecting}
+          className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
+            redirecting
+              ? "cursor-wait bg-gray-700"
+              : "cursor-pointer bg-black hover:bg-gray-700"
+          }`}
         >
-          <div className="flex items-center gap-2">
-            <Icon src="/user.svg" alt="" className="h-4 w-auto" />
-            <span>{usernames[task.created_by] ?? "-"}</span>
-          </div>
-        </SlideupMeta>
-
-        <SlideupEdited created={task.created} updated={task.updated} />
-
-        <div className="flex items-end gap-8">
-          <SlideupDuedate dueDate={task.due_date} />
-
-          <SlideupMissingBadge
-            type="task"
-            status={status}
-            dueDate={task.due_date}
-          />
-        </div>
-
-        <SlideupDescription description={task.description} />
+          Open in Request-table
+        </button>
+        <SlideupCloseButton onClose={handleClose} />
       </div>
 
-      <div className="flex w-72 shrink-0 flex-col gap-2">
-        <div className="flex h-7.5 w-full justify-end">
-          <SlideupCloseButton onClose={handleClose} />
+      <div className="flex min-h-0 flex-1 gap-5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="wrap-break-word text-3xl font-bold text-black">
+            {task.name}
+          </h1>
+
+          <SlideupMeta
+            id={task.id}
+            categoryName={categoryMap[task.category_id] ?? "-"}
+            createdDate={task.created}
+          >
+            <div className="flex items-center gap-2">
+              <Icon src="/user.svg" alt="" className="h-4 w-auto" />
+              <span>{usernames[task.created_by] ?? "-"}</span>
+            </div>
+          </SlideupMeta>
+
+          <SlideupEdited created={task.created} updated={task.updated} />
+
+          <div className="flex items-end gap-8">
+            <SlideupDuedate dueDate={task.due_date} />
+
+            <SlideupMissingBadge
+              type="task"
+              status={status}
+              dueDate={task.due_date}
+            />
+          </div>
+
+          <SlideupDescription description={task.description} />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
-          <h1 className="text-base font-bold text-black">Responsible person</h1>
+        <div className="flex w-72 shrink-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
+            <h1 className="text-base font-bold text-black">
+              Responsible person
+            </h1>
 
-          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-            <div className="flex flex-col gap-2">
-              {sortedAssignees.map((assignee) => (
-                <div key={assignee.id} className="flex items-center gap-2">
-                  <Icon src="/profile.svg" className="h-5 w-auto shrink-0" />
-                  <span className="truncate text-base font-normal text-gray-800">
-                    {assignee.username}
-                    {assignee.id === currentUserId && " (You)"}
-                  </span>
-                </div>
-              ))}
+            <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+              <div className="flex flex-col gap-2">
+                {sortedAssignees.map((assignee) => (
+                  <div key={assignee.id} className="flex items-center gap-2">
+                    <Icon src="/profile.svg" className="h-5 w-auto shrink-0" />
+                    <span className="truncate text-base font-normal text-gray-800">
+                      {assignee.username}
+                      {assignee.id === currentUserId && " (You)"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {isAssignedToMe && (
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={handleToggle}
-            className={`mt-2 h-12 w-full rounded-[20px] text-lg font-bold text-white ${buttonColor} ${
-              submitting ? "cursor-not-allowed" : "cursor-pointer"
-            }`}
-          >
-            {buttonLabel}
-          </button>
-        )}
+          {isAssignedToMe && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={handleToggle}
+              className={`mt-2 h-12 w-full rounded-[20px] text-lg font-bold text-white ${buttonColor} ${
+                submitting ? "cursor-not-allowed" : "cursor-pointer"
+              }`}
+            >
+              {buttonLabel}
+            </button>
+          )}
+        </div>
       </div>
     </SlideupFrame>
   );

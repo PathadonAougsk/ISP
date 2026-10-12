@@ -153,6 +153,27 @@ export function mapBackendTask(
   };
 }
 
+// fetch one task by id for the modal. throw if not found
+export async function getTaskRowById(id: number): Promise<TaskRow> {
+  const [taskBody, catBody, accBody] = await Promise.all([
+    getTasks({ id }),
+    getCategories().catch(() => null),
+    getAccounts().catch(() => null),
+  ]);
+
+  const task = taskBody.Tasks.find((t) => t.id === id);
+  if (!task) throw new Error("Task not found");
+
+  const categoryById = new Map<number, string>(
+    (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
+  );
+  const accountById = new Map<string, string>(
+    (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
+  );
+
+  return mapBackendTask(task, categoryById, accountById);
+}
+
 export type TaskFilters = { status?: TaskStatus; categoryId?: number };
 
 export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {

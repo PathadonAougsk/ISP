@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCurrentAccount, useMembers } from "@/lib/account";
-import { useTickets, type TicketRow, type TicketStatus } from "@/lib/ticket";
-import { useTasks, type TaskRow, type TaskStatus } from "@/lib/task";
+import {
+  getTicketRowById,
+  useTickets,
+  type TicketRow,
+  type TicketStatus,
+} from "@/lib/ticket";
+import {
+  getTaskRowById,
+  useTasks,
+  type TaskRow,
+  type TaskStatus,
+} from "@/lib/task";
 import { useCategories } from "@/lib/category";
 import TicketTable from "@/components/request-table/TicketTable";
 import TaskTable from "@/components/request-table/TaskTable";
@@ -11,8 +21,36 @@ import TicketDetailModal from "@/components/request-table/TicketDetailModal";
 import TaskDetailModal from "@/components/request-table/TaskDetailModal";
 import CreateTicketModal from "@/components/request-table/CreateTicketModal";
 import CreateTaskModal from "@/components/request-table/CreateTaskModal";
+import {
+  SlideupCloseButton,
+  SlideupFrame,
+  useSlideupClose,
+} from "@/components/modal_slideup";
 
 type Tab = "ticket" | "task";
+
+// remove ?type=&id= from url, so refresh dont reopen the modal
+function clearLinkParams() {
+  window.history.replaceState(null, "", window.location.pathname);
+}
+
+// shown when the id from the url cant be fetched
+function LinkErrorModal({ onClose }: { onClose: () => void }) {
+  const { isClosing, handleClose } = useSlideupClose(onClose);
+
+  return (
+    <SlideupFrame
+      isClosing={isClosing}
+      onClose={handleClose}
+      className="flex flex-col"
+    >
+      <div className="flex justify-end pb-2">
+        <SlideupCloseButton onClose={handleClose} />
+      </div>
+      <p className="text-sm text-red-500">Failed to fetch</p>
+    </SlideupFrame>
+  );
+}
 
 export default function RequestTable() {
   const [tab, setTab] = useState<Tab>("ticket");
@@ -21,6 +59,7 @@ export default function RequestTable() {
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [linkError, setLinkError] = useState(false);
 
   // Paging + filters live here so they survive switching tabs
   const [ticketPage, setTicketPage] = useState(1);
@@ -62,6 +101,41 @@ export default function RequestTable() {
   const { categories } = useCategories();
 
   const { currentUserId } = useCurrentAccount();
+
+  // open modal from link such as /request-table?type=task&id=12
+  useEffect(() => {
+    if (meLoading) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type");
+    const id = Number(params.get("id"));
+
+    if ((type !== "task" && type !== "ticket") || !Number.isInteger(id)) return;
+    if (id <= 0) return;
+
+    let cancelled = false;
+    setTab(type);
+
+    async function openFromLink() {
+      try {
+        if (type === "task") {
+          const row = await getTaskRowById(id);
+          if (!cancelled) setSelectedTask(row);
+        } else {
+          const row = await getTicketRowById(id, userRole);
+          if (!cancelled) setSelectedTicket(row);
+        }
+      } catch {
+        if (!cancelled) setLinkError(true);
+      }
+    }
+
+    openFromLink();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meLoading, userRole]);
 
   const tabClass = (t: Tab) =>
     `relative z-10 px-8 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
@@ -146,7 +220,10 @@ export default function RequestTable() {
           currentUserId={currentUserId}
           members={members}
           categories={categories}
-          onClose={() => setSelectedTicket(null)}
+          onClose={() => {
+            clearLinkParams();
+            setSelectedTicket(null);
+          }}
           onSaved={() => setTicketsReloadKey((k) => k + 1)}
           onTaskCreated={() => setTasksReloadKey((k) => k + 1)}
         />
@@ -160,8 +237,20 @@ export default function RequestTable() {
           currentUserId={currentUserId}
           members={members}
           categories={categories}
-          onClose={() => setSelectedTask(null)}
+          onClose={() => {
+            clearLinkParams();
+            setSelectedTask(null);
+          }}
           onSaved={() => setTasksReloadKey((k) => k + 1)}
+        />
+      )}
+
+      {linkError && (
+        <LinkErrorModal
+          onClose={() => {
+            clearLinkParams();
+            setLinkError(false);
+          }}
         />
       )}
 
