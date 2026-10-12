@@ -6,14 +6,31 @@ const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 ).replace(/\/+$/, "");
 
+const TIMEOUT_MS = 15_000;
+
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
   const supabase = createClient();
+
+  // one timer for session + request + also keep caller signal
+  const timeout = AbortSignal.timeout(TIMEOUT_MS);
+  const signal = init.signal
+    ? AbortSignal.any([init.signal, timeout])
+    : timeout;
+
+  // getSession can be hanged, so race it with timer
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(signal.reason), {
+        once: true,
+      });
+    }),
+  ]);
 
   const headers = new Headers(init.headers);
   if (session) {
@@ -22,7 +39,7 @@ export async function apiFetch(
 
   const url = `${API_URL}/${path.replace(/^\/+/, "")}`;
 
-  return fetch(url, { ...init, headers });
+  return fetch(url, { ...init, headers, signal });
 }
 
 export function apiSendJson(

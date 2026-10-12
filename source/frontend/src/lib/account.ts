@@ -3,6 +3,7 @@
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
+import { cached } from "@/lib/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -50,6 +51,18 @@ export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
+// higher number = higher role
+const ROLE_RANK: Record<AccountRole, number> = {
+  "Lab User": 0,
+  "Lab Admin": 1,
+  "Lab Owner": 2,
+};
+
+// true only when actor role is strictly higher than target role
+export function outranks(actor: AccountRole, target: AccountRole): boolean {
+  return ROLE_RANK[actor] > ROLE_RANK[target];
+}
+
 // The cached role is a UI hint only - anyone can edit their own cookies, so dont trust it too much.
 export function readCachedRole(): AccountRole | null {
   if (typeof document === "undefined") return null;
@@ -71,21 +84,22 @@ export function cacheRole(role: AccountRole) {
 
 export function clearCachedRole() {
   clearMeCache();
+  getAccounts.clear();
 
   if (typeof document === "undefined") return;
 
   document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
-export async function getAccounts(): Promise<AccountsResponse> {
+const ACCOUNTS_CACHE_TTL = 60 * 1000;
+
+async function fetchAccounts(): Promise<AccountsResponse> {
   const res = await apiFetch("/account/");
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
 
 // Creates the caller's own row. An invited member has an auth user but no
 // account row until they pick a username, so this is step one of setup.
@@ -96,6 +110,7 @@ export async function createMyAccount(username: string): Promise<Account> {
   const { Account: account } = (await res.json()) as AccountResponse;
   cacheRole(account.role);
   primeMeCache(account);
+  getAccounts.clear();
 
   return account;
 }
@@ -161,10 +176,20 @@ export async function isAdmin(): Promise<boolean> {
 
 export type UserRole = "Lab Admin" | "Lab User";
 
-export type Member = { id: string; name: string; email: string };
+export type Member = {
+  id: string;
+  name: string;
+  email: string;
+  role: AccountRole;
+};
 
 export function mapAccountToMember(account: Account): Member {
-  return { id: account.id, name: account.username, email: account.email };
+  return {
+    id: account.id,
+    name: account.username,
+    email: account.email,
+    role: account.role,
+  };
 }
 
 export type AccountPatch = {
@@ -178,6 +203,7 @@ export type AccountPatch = {
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
   clearMeCache();
+  getAccounts.clear();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.

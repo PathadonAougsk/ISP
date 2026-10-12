@@ -4,17 +4,19 @@ import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import Icon from "@/components/icon";
 import {
-  PopupCloseButton,
-  PopupDescription,
-  PopupEdited,
-  PopupDuedate,
-  PopupFrame,
-  PopupMeta,
-  PopupMissingBadge,
-  usePopupClose,
+  SlideupDescription,
+  SlideupEdited,
+  SlideupDuedate,
+  SlideupMeta,
+  SlideupMissingBadge,
 } from "@/components/dashboard/dashboard_utils";
+import {
+  SlideupCloseButton,
+  SlideupFrame,
+  useSlideupClose,
+} from "@/components/modal_slideup";
 
-export default function TaskPopup({
+export default function TaskSlideup({
   task,
   categoryMap,
   usernames,
@@ -27,7 +29,7 @@ export default function TaskPopup({
   currentUserId: string | null;
   onClose: () => void;
 }) {
-  const { isClosing, handleClose } = usePopupClose(onClose);
+  const { isClosing, handleClose } = useSlideupClose(onClose);
 
   const sortedAssignees = [...task.assignees].sort((a, b) => {
     if (a.id === currentUserId) return -1;
@@ -36,7 +38,7 @@ export default function TaskPopup({
   });
 
   return (
-    <PopupFrame
+    <SlideupFrame
       isClosing={isClosing}
       onClose={handleClose}
       className="flex gap-5"
@@ -46,7 +48,7 @@ export default function TaskPopup({
           {task.name}
         </h1>
 
-        <PopupMeta
+        <SlideupMeta
           id={task.id}
           categoryName={categoryMap[task.category_id] ?? "-"}
           createdDate={task.created}
@@ -55,26 +57,26 @@ export default function TaskPopup({
             <Icon src="/user.svg" alt="" className="h-4 w-auto" />
             <span>{usernames[task.created_by] ?? "-"}</span>
           </div>
-        </PopupMeta>
+        </SlideupMeta>
 
-        <PopupEdited created={task.created} updated={task.updated} />
+        <SlideupEdited created={task.created} updated={task.updated} />
 
         <div className="flex items-end gap-8">
-          <PopupDuedate dueDate={task.due_date} />
+          <SlideupDuedate dueDate={task.due_date} />
 
-          <PopupMissingBadge
+          <SlideupMissingBadge
             type="task"
             status={task.status}
             dueDate={task.due_date}
           />
         </div>
 
-        <PopupDescription description={task.description} />
+        <SlideupDescription description={task.description} />
       </div>
 
       <div className="flex w-72 shrink-0 flex-col gap-2">
         <div className="flex h-7.5 w-full justify-end">
-          <PopupCloseButton onClose={handleClose} />
+          <SlideupCloseButton onClose={handleClose} />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
@@ -95,6 +97,6 @@ export default function TaskPopup({
           </div>
         </div>
       </div>
-    </PopupFrame>
+    </SlideupFrame>
   );
 }

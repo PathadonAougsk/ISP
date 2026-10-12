@@ -1,6 +1,9 @@
 "use client";
 import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { cached } from "@/lib/cache";
+
+const CACHE_TTL = 60 * 1000;
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -46,15 +49,15 @@ export type CategoriesResponse = {
 
 export type CategoryMap = Record<number, string>;
 
-export async function getCategories(): Promise<CategoriesResponse> {
+async function fetchCategories(): Promise<CategoriesResponse> {
   const res = await apiFetch("/category/");
-
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
-
   return res.json();
 }
+
+export const getCategories = cached(fetchCategories, 60 * 1000);
 
 export async function createCategory(name: string): Promise<void> {
   const res = await apiFetch("/category/", {
@@ -66,6 +69,8 @@ export async function createCategory(name: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
+
+  getCategories.clear();
 }
 
 export async function updateCategory(id: number, name: string): Promise<void> {
@@ -78,6 +83,8 @@ export async function updateCategory(id: number, name: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
+
+  getCategories.clear();
 }
 
 export async function deleteCategory(id: number): Promise<void> {
@@ -86,6 +93,8 @@ export async function deleteCategory(id: number): Promise<void> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
+
+  getCategories.clear();
 }
 
 // id -> name lookup, e.g. { 1: "Report 1", 2: "Report 2" }

@@ -8,17 +8,19 @@ import {
   ticketStatusText,
 } from "@/components/dashboard/dashboard_status";
 import {
-  PopupCloseButton,
-  PopupDescription,
-  PopupEdited,
-  PopupDuedate,
-  PopupFrame,
-  PopupMeta,
-  PopupMissingBadge,
-  usePopupClose,
+  SlideupDescription,
+  SlideupEdited,
+  SlideupDuedate,
+  SlideupMeta,
+  SlideupMissingBadge,
 } from "@/components/dashboard/dashboard_utils";
+import {
+  SlideupCloseButton,
+  SlideupFrame,
+  useSlideupClose,
+} from "@/components/modal_slideup";
 
-export default function TicketPopup({
+export default function TicketSlideup({
   ticket,
   categoryMap,
   usernames,
@@ -29,10 +31,10 @@ export default function TicketPopup({
   usernames: Record<string, string>;
   onClose: () => void;
 }) {
-  const { isClosing, handleClose } = usePopupClose(onClose);
+  const { isClosing, handleClose } = useSlideupClose(onClose);
 
   return (
-    <PopupFrame
+    <SlideupFrame
       isClosing={isClosing}
       onClose={handleClose}
       className="flex flex-col"
@@ -41,10 +43,10 @@ export default function TicketPopup({
         <h1 className="min-w-0 flex-1 wrap-break-word text-3xl font-bold text-black">
           {ticket.name}
         </h1>
-        <PopupCloseButton onClose={handleClose} />
+        <SlideupCloseButton onClose={handleClose} />
       </div>
 
-      <PopupMeta
+      <SlideupMeta
         id={ticket.id}
         categoryName={categoryMap[ticket.category_id] ?? "-"}
         createdDate={ticket.created}
@@ -57,21 +59,21 @@ export default function TicketPopup({
           <Icon src="/user.svg" alt="" className="h-4 w-auto" />
           <span>{usernames[ticket.created_by] ?? "-"}</span>
         </div>
-      </PopupMeta>
+      </SlideupMeta>
 
-      <PopupEdited created={ticket.created} updated={ticket.updated} />
+      <SlideupEdited created={ticket.created} updated={ticket.updated} />
 
       <div className="flex items-end gap-8">
-        <PopupDuedate dueDate={ticket.due_date} />
+        <SlideupDuedate dueDate={ticket.due_date} />
 
-        <PopupMissingBadge
+        <SlideupMissingBadge
           type="ticket"
           status={ticket.status}
           dueDate={ticket.due_date}
         />
       </div>
 
-      <PopupDescription description={ticket.description} />
-    </PopupFrame>
+      <SlideupDescription description={ticket.description} />
+    </SlideupFrame>
   );
 }
