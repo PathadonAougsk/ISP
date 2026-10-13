@@ -2,10 +2,8 @@
 
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
-import {
-  isMissingTask,
-  isMissingTicket,
-} from "@/components/dashboard/dashboard_status";
+import { isMissingItem } from "@/components/dashboard/dashboard_status";
+import { formatCount } from "@/components/dashboard/dashboard_utils";
 
 export default function Missing({
   myTasks,
@@ -14,6 +12,8 @@ export default function Missing({
   loadingMyTasks,
   loadingMyPendingTickets,
   loadingMyRejectedTickets,
+  maxTask,
+  maxTicket,
 }: {
   myTasks: Task[];
   myPendingTickets: Ticket[];
@@ -21,15 +21,17 @@ export default function Missing({
   loadingMyTasks: boolean;
   loadingMyPendingTickets: boolean;
   loadingMyRejectedTickets: boolean;
+  maxTask: number;
+  maxTicket: number;
 }) {
   const now = new Date();
 
   const overdueTasks = myTasks.filter((task) =>
-    isMissingTask(task, now),
+    isMissingItem(task, "in_progress", now),
   ).length;
 
   const pastDueTickets = myPendingTickets.filter((ticket) =>
-    isMissingTicket(ticket, now),
+    isMissingItem(ticket, "pending", now),
   ).length;
 
   const rejectedTickets = myRejectedTickets.length;
@@ -38,16 +40,19 @@ export default function Missing({
     {
       label: "Overdue Tasks",
       count: overdueTasks,
+      max: maxTask,
       loading: loadingMyTasks,
     },
     {
       label: "Past Due Tickets",
       count: pastDueTickets,
+      max: maxTicket,
       loading: loadingMyPendingTickets,
     },
     {
       label: "Rejected Tickets",
       count: rejectedTickets,
+      max: maxTicket,
       loading: loadingMyRejectedTickets,
     },
   ];
@@ -71,7 +76,7 @@ export default function Missing({
             {section.label}
           </h1>
           <h1 className="text-5xl font-extrabold text-white">
-            {section.loading ? "-" : section.count}
+            {section.loading ? "-" : formatCount(section.count, section.max)}
           </h1>
         </div>
       ))}

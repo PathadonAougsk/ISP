@@ -2,6 +2,13 @@ import { getThaiDateParts } from "@/lib/format";
 
 export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
+// fields that task and ticket share
+export type DashboardItem = {
+  status: string;
+  category_id: number;
+  due_date: string | null;
+};
+
 export const dueBucketColor: Record<DueBucketKey, string> = {
   missing: "bg-(--primary-red)",
   thisWeek: "bg-(--primary-orange)",
@@ -60,18 +67,12 @@ function isMissing(dueDateIso: string | null, now: Date): boolean {
 }
 
 // only in_progress task or pending ticket can missing
-export function isMissingTask(
-  task: { status: string; due_date: string | null },
+export function isMissingItem(
+  item: { status: string; due_date: string | null },
+  status: "in_progress" | "pending",
   now: Date,
 ): boolean {
-  return task.status === "in_progress" && isMissing(task.due_date, now);
-}
-
-export function isMissingTicket(
-  ticket: { status: string; due_date: string | null },
-  now: Date,
-): boolean {
-  return ticket.status === "pending" && isMissing(ticket.due_date, now);
+  return item.status === status && isMissing(item.due_date, now);
 }
 
 export function getDueBucket(
@@ -99,4 +100,11 @@ export const ticketStatusIcon: Record<string, string> = {
   pending: "/pending.svg",
   accepted: "/accepted.svg",
   rejected: "/rejected.svg",
+};
+
+// higher role can judge lower role ticket
+export const roleRank: Record<string, number> = {
+  "Lab Owner": 3,
+  "Lab Admin": 2,
+  "Lab User": 1,
 };

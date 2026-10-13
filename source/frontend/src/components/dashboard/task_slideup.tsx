@@ -1,17 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
 import Icon from "@/components/icon";
-import { buildRequestTableUrl } from "@/components/dashboard/redirect";
 import {
+  RequestTableButton,
   SlideupDescription,
+  SlideupDueRow,
   SlideupEdited,
-  SlideupDuedate,
   SlideupMeta,
-  SlideupMissingBadge,
 } from "@/components/dashboard/dashboard_utils";
 import {
   SlideupCloseButton,
@@ -34,13 +32,11 @@ export default function TaskSlideup({
   onClose: () => void;
   onUpdated: () => void;
 }) {
-  const router = useRouter();
   const { isClosing, handleClose } = useSlideupClose(onClose);
 
   // local copy, task prop never change after putTask
   const [status, setStatus] = useState(task.status);
   const [submitting, setSubmitting] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
 
   const isAssignedToMe = task.assignees.some((a) => a.id === currentUserId);
   const isCompleted = status === "completed";
@@ -100,21 +96,11 @@ export default function TaskSlideup({
       className="flex flex-col"
     >
       <div className="flex justify-end gap-4 pb-2">
-        <button
-          type="button"
-          onClick={() => {
-            setRedirecting(true);
-            router.push(buildRequestTableUrl("task", task.id));
-          }}
-          disabled={redirecting}
-          className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
-            redirecting
-              ? "cursor-wait bg-gray-700"
-              : "cursor-pointer bg-black hover:bg-gray-700"
-          }`}
-        >
-          Open in Request-table
-        </button>
+        <RequestTableButton
+          type="task"
+          id={task.id}
+          label="Open in Request-table"
+        />
         <SlideupCloseButton onClose={handleClose} />
       </div>
 
@@ -137,15 +123,7 @@ export default function TaskSlideup({
 
           <SlideupEdited created={task.created} updated={task.updated} />
 
-          <div className="flex items-end gap-8">
-            <SlideupDuedate dueDate={task.due_date} />
-
-            <SlideupMissingBadge
-              type="task"
-              status={status}
-              dueDate={task.due_date}
-            />
-          </div>
+          <SlideupDueRow type="task" status={status} dueDate={task.due_date} />
 
           <SlideupDescription description={task.description} />
         </div>
@@ -176,7 +154,7 @@ export default function TaskSlideup({
               type="button"
               disabled={submitting}
               onClick={handleToggle}
-              className={`mt-2 h-12 w-full rounded-[20px] text-lg font-bold text-white ${buttonColor} ${
+              className={`mt-2 h-10 w-full rounded-full text-lg font-bold text-white ${buttonColor} ${
                 submitting ? "cursor-not-allowed" : "cursor-pointer"
               }`}
             >

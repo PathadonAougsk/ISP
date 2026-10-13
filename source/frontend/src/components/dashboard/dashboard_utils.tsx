@@ -1,12 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import { useRouter } from "next/navigation";
 import { formatFullDateTime } from "@/lib/format";
 import Icon from "@/components/icon";
+import { isMissingItem } from "@/components/dashboard/dashboard_status";
 import {
-  isMissingTask,
-  isMissingTicket,
-} from "@/components/dashboard/dashboard_status";
+  buildRequestTableUrl,
+  type RequestTableTarget,
+} from "@/components/dashboard/redirect";
+
+// ==========================================================
+// Count
+// ==========================================================
+
+// count pass the max, show "{max}+"
+export function formatCount(count: number, max: number) {
+  return count > max ? `${max}+` : String(count);
+}
+
+// room left after used items take their part. never below 0
+export function getRoom(max: number, ...used: number[]) {
+  return Math.max(max - used.reduce((sum, count) => sum + count, 0), 0);
+}
 
 // ==========================================================
 // Links
@@ -79,6 +101,111 @@ export function ListMessage({ children }: { children: ReactNode }) {
   );
 }
 
+// ownership label, title + count (count already formatted into string and "+" sign)
+// sticky, so it stay under column header while its section scroll
+export function ListLabel({ title, count }: { title: string; count: string }) {
+  return (
+    <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1 pb-2">
+      <h1 className="text-base font-semibold text-black">{title}</h1>
+      <span className="text-xl font-bold text-green-800">{count}</span>
+    </div>
+  );
+}
+
+// label + rows of one section
+export function ListSection({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex shrink-0 flex-col gap-2">
+      <ListLabel title={title} count={count} />
+      {children}
+    </div>
+  );
+}
+
+// one clickable row for task or ticket. lead = mark before cells, cells = column text
+export function ListRow({
+  overdue,
+  spacingClassName,
+  lead,
+  cells,
+  onClick,
+}: {
+  overdue: boolean;
+  spacingClassName: string;
+  lead: ReactNode;
+  cells: string[];
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
+        overdue
+          ? "border-(--primary-red) text-red-700"
+          : "border-transparent text-black"
+      }`}
+    >
+      {lead}
+      <div className={listGridClass}>
+        {cells.map((cell, index) => (
+          // last cell is date, no truncate
+          <p
+            key={index}
+            className={
+              index === cells.length - 1 ? "text-sm" : "truncate text-sm"
+            }
+          >
+            {cell}
+          </p>
+        ))}
+      </div>
+    </button>
+  );
+}
+
+// header + scroll body. show message when list is empty
+export function ListPanel({
+  titles,
+  hasOverflow,
+  listRef,
+  empty,
+  message,
+  children,
+}: {
+  titles: string[];
+  hasOverflow: boolean;
+  listRef: RefObject<HTMLDivElement | null>;
+  empty: boolean;
+  message: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-0 flex-col gap-2">
+      <ListHeader titles={titles} hasOverflow={hasOverflow} />
+
+      {empty ? (
+        <ListMessage>{message}</ListMessage>
+      ) : (
+        <div
+          ref={listRef}
+          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // overflown detection
 export function useListOverflow(dependencies: unknown[]) {
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -116,6 +243,38 @@ export function useListOverflow(dependencies: unknown[]) {
 // ==========================================================
 
 type DateInput = string | null;
+
+// black button, go to request-table. label is different per caller
+export function RequestTableButton({
+  type,
+  id,
+  label,
+}: {
+  type: RequestTableTarget;
+  id: number;
+  label: string;
+}) {
+  const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setRedirecting(true);
+        router.push(buildRequestTableUrl(type, id));
+      }}
+      disabled={redirecting}
+      className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
+        redirecting
+          ? "cursor-wait bg-gray-700"
+          : "cursor-pointer bg-black hover:bg-gray-700"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 // id + category + due date row. children are extra items added at the end
 export function SlideupMeta({
@@ -157,8 +316,11 @@ export function SlideupMissingBadge({
 }) {
   const item = { status, due_date: dueDate };
   const now = new Date();
-  const missing =
-    type === "task" ? isMissingTask(item, now) : isMissingTicket(item, now);
+  const missing = isMissingItem(
+    item,
+    type === "task" ? "in_progress" : "pending",
+    now,
+  );
 
   if (!missing) return null;
 
@@ -200,6 +362,25 @@ export function SlideupDuedate({ dueDate }: { dueDate: DateInput }) {
           <span>{formattedDate}</span>
         </>
       )}
+    </div>
+  );
+}
+
+// due date + missing badge in one row
+export function SlideupDueRow({
+  type,
+  status,
+  dueDate,
+}: {
+  type: "task" | "ticket";
+  status: string;
+  dueDate: DateInput;
+}) {
+  return (
+    <div className="flex items-end gap-8">
+      <SlideupDuedate dueDate={dueDate} />
+
+      <SlideupMissingBadge type={type} status={status} dueDate={dueDate} />
     </div>
   );
 }

@@ -7,13 +7,11 @@ import {
   emptyBucketCounts,
   getDueBucket,
   getDueBucketLimits,
+  type DashboardItem,
   type DueBucketKey,
 } from "@/components/dashboard/dashboard_status";
 import { ListMessage } from "@/components/dashboard/dashboard_utils";
 import type { DashboardView } from "@/components/dashboard/view_toggle";
-
-// fields for task and ticket
-type OverviewItem = { category_id: number; due_date: string | null };
 
 export default function Overview({
   tasks,
@@ -23,7 +21,7 @@ export default function Overview({
   categoryMap,
   view,
 }: {
-  tasks: OverviewItem[];
+  tasks: DashboardItem[];
   loadingTasks: boolean;
   errorTasks: boolean;
   errorCategories: boolean;
@@ -35,10 +33,13 @@ export default function Overview({
   const isTicket = view === "ticket";
   const noun = isTicket ? "tickets" : "tasks";
 
+  // task and ticket both group by due date range
   const grouped = tasks.reduce<Record<number, Record<DueBucketKey, number>>>(
     (acc, task) => {
       const bucket = getDueBucket(task.due_date, limits);
-      if (!acc[task.category_id]) acc[task.category_id] = emptyBucketCounts();
+      if (!acc[task.category_id]) {
+        acc[task.category_id] = emptyBucketCounts();
+      }
       acc[task.category_id][bucket] += 1;
       return acc;
     },
@@ -67,7 +68,7 @@ export default function Overview({
       ) : tasks.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">
           {isTicket
-            ? "No pending tickets! Smooth sailing ahead, so enjoy the calm."
+            ? "No tickets! Smooth sailing ahead, so enjoy the calm."
             : "All tasks are done! Time to enjoy a well-earned break."}
         </p>
       ) : (

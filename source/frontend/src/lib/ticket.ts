@@ -58,7 +58,7 @@ export type TicketUpdatePayload = Partial<TicketCreatePayload> & {
 export type TicketRow = {
   id: string;
   title: string;
-  status: "Pending" | "Approved" | "Rejected";
+  status: "Pending" | "Accepted" | "Rejected";
   dueDate: string;
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
@@ -146,7 +146,7 @@ export async function putTicket(
 function mapTicketStatus(status: TicketStatus): TicketRow["status"] {
   switch (status) {
     case "accepted":
-      return "Approved";
+      return "Accepted";
     case "rejected":
       return "Rejected";
     default:

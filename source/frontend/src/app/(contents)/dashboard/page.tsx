@@ -18,9 +18,10 @@ import ViewToggle, {
   type DashboardView,
 } from "@/components/dashboard/view_toggle";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
+import { formatCount, getRoom } from "@/components/dashboard/dashboard_utils";
 
-const MAX_TASK = 50;
-const MAX_TICKET = 50;
+const MAX_TASK = 30;
+const MAX_TICKET = 30;
 
 export default function Dashboard() {
   const { account: currentAccount, loading: accountLoading } =
@@ -35,6 +36,7 @@ export default function Dashboard() {
     otherRejectedTickets,
     otherPendingTickets,
     usernames,
+    creatorRoles,
     loadingMyTasks,
     loadingOtherTasks,
     loadingCategories,
@@ -46,6 +48,7 @@ export default function Dashboard() {
     errorMyTickets,
     errorOtherTickets,
     reloadTasks,
+    reloadTickets,
   } = useDashboardFetching(
     currentAccount,
     accountLoading,
@@ -75,19 +78,75 @@ export default function Dashboard() {
     return otherTasks.filter((task) => !myTaskIds.has(task.id));
   }, [myTasks, otherTasks]);
 
+  // keep one extra item, so count can show max+
   const visibleOtherTasks = useMemo(() => {
     if (loadingMyTasks) return [];
 
-    return othersOnly.slice(0, Math.max(MAX_TASK - myTasks.length, 0));
+    return othersOnly.slice(0, getRoom(MAX_TASK + 1, myTasks.length));
   }, [loadingMyTasks, myTasks.length, othersOnly]);
 
   const showLoadingOtherTasks =
-    loadingOtherTasks && (loadingMyTasks || myTasks.length < MAX_TASK);
+    loadingOtherTasks && (loadingMyTasks || myTasks.length <= MAX_TASK);
 
-  // summary and overview read from the selected view and scope
-  const myItems = isTicketView ? myPendingTickets : myTasks;
-  const otherItems = isTicketView ? otherPendingTickets : visibleOtherTasks;
-  const viewItems = isAllScope ? [...myItems, ...otherItems] : myItems;
+  // lists show max only, the extra item is just for count
+  const shownMyTasks = useMemo(() => myTasks.slice(0, MAX_TASK), [myTasks]);
+
+  const otherTaskRoom = getRoom(MAX_TASK, myTasks.length);
+
+  const shownOtherTasks = useMemo(
+    () => visibleOtherTasks.slice(0, otherTaskRoom),
+    [otherTaskRoom, visibleOtherTasks],
+  );
+
+  const shownMyRejectedTickets = useMemo(
+    () => myRejectedTickets.slice(0, MAX_TICKET),
+    [myRejectedTickets],
+  );
+
+  const shownMyPendingTickets = useMemo(
+    () => myPendingTickets.slice(0, MAX_TICKET),
+    [myPendingTickets],
+  );
+
+  // others only fill the room that mine leave
+  const ticketRoom = getRoom(
+    MAX_TICKET,
+    shownMyRejectedTickets.length,
+    shownMyPendingTickets.length,
+  );
+
+  const shownOtherRejectedTickets = useMemo(
+    () => otherRejectedTickets.slice(0, ticketRoom),
+    [otherRejectedTickets, ticketRoom],
+  );
+
+  const pendingRoom = getRoom(ticketRoom, shownOtherRejectedTickets.length);
+
+  const shownOtherPendingTickets = useMemo(
+    () => otherPendingTickets.slice(0, pendingRoom),
+    [otherPendingTickets, pendingRoom],
+  );
+
+  // label counting
+  const listCounts = {
+    myTasks: formatCount(myTasks.length, MAX_TASK),
+    otherTasks: formatCount(visibleOtherTasks.length, otherTaskRoom),
+    myRejectedTickets: formatCount(myRejectedTickets.length, MAX_TICKET),
+    myPendingTickets: formatCount(myPendingTickets.length, MAX_TICKET),
+    otherRejectedTickets: formatCount(otherRejectedTickets.length, ticketRoom),
+    otherPendingTickets: formatCount(otherPendingTickets.length, pendingRoom),
+  };
+
+  // summary and overview use same items as the list. mine first, others fill remaining room
+  const viewItems = isTicketView
+    ? [
+        ...shownMyRejectedTickets,
+        ...shownMyPendingTickets,
+        ...(isAllScope
+          ? [...shownOtherRejectedTickets, ...shownOtherPendingTickets]
+          : []),
+      ]
+    : [...shownMyTasks, ...(isAllScope ? shownOtherTasks : [])];
 
   const loadingViewItems = isTicketView
     ? loadingMyTickets || (isAllScope && loadingOtherTickets)
@@ -109,14 +168,9 @@ export default function Dashboard() {
             )}
           </div>
           <Summary
-            tasks={viewItems}
+            items={viewItems}
             loadingTasks={loadingViewItems || errorViewItems}
             view={view}
-            rejectedCount={
-              isAllScope
-                ? myRejectedTickets.length + otherRejectedTickets.length
-                : myRejectedTickets.length
-            }
           />
 
           <Overview
@@ -141,22 +195,24 @@ export default function Dashboard() {
             loadingMyTasks={loadingMyTasks || errorMyTasks}
             loadingMyPendingTickets={loadingMyTickets || errorMyTickets}
             loadingMyRejectedTickets={loadingMyTickets || errorMyTickets}
+            maxTask={MAX_TASK}
+            maxTicket={MAX_TICKET}
           />
         </div>
 
         {/* list need own height when stacked */}
         <div className="order-last flex h-200 min-w-0 flex-col min-[1000px]:order-0 min-[1000px]:h-auto min-[1000px]:min-h-0 min-[1000px]:flex-1">
           <TaskTicketList
-            myTasks={myTasks}
-            otherTasks={visibleOtherTasks}
+            myTasks={shownMyTasks}
+            otherTasks={shownOtherTasks}
             loadingMyTasks={loadingMyTasks}
             loadingOtherTasks={showLoadingOtherTasks}
             errorMyTasks={errorMyTasks}
             errorOtherTasks={errorOtherTasks}
-            myRejectedTickets={myRejectedTickets}
-            myPendingTickets={myPendingTickets}
-            otherRejectedTickets={otherRejectedTickets}
-            otherPendingTickets={otherPendingTickets}
+            myRejectedTickets={shownMyRejectedTickets}
+            myPendingTickets={shownMyPendingTickets}
+            otherRejectedTickets={shownOtherRejectedTickets}
+            otherPendingTickets={shownOtherPendingTickets}
             loadingMyTickets={loadingMyTickets || loadingCategories}
             loadingOtherTickets={loadingOtherTickets}
             errorMyTickets={errorMyTickets}
@@ -164,6 +220,7 @@ export default function Dashboard() {
             categoryMap={categoryMap}
             usernames={usernames}
             isLabUser={isLabUser}
+            counts={listCounts}
             onSelectTask={setSelectedTask}
             onSelectTicket={setSelectedTicket}
           />
@@ -186,8 +243,11 @@ export default function Dashboard() {
           ticket={selectedTicket}
           categoryMap={categoryMap}
           usernames={usernames}
+          creatorRoles={creatorRoles}
           currentUserId={currentAccount?.id ?? null}
+          currentRole={currentAccount?.role ?? null}
           onClose={() => setSelectedTicket(null)}
+          onUpdated={reloadTickets}
         />
       )}
     </main>
