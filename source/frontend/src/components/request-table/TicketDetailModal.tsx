@@ -42,7 +42,8 @@ export default function TicketDetailModal({
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null);
 
   const canEditTicket =
-    ticket.createdById === currentUserId && ticket.status === "Pending";
+    ticket.createdById === currentUserId && 
+    (ticket.status === "Pending" || ticket.status === "Rejected");
 
   // only role higher than creator can judge. creator not found = nobody
   const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
@@ -148,6 +149,7 @@ export default function TicketDetailModal({
         description: editTicketDescription || null,
         category_id: editTicketCategoryId,
         due_date: editTicketDueDate || null,
+        status: ticket.status === "Rejected" ? "pending" : undefined,
       });
       onSaved();
       handleClose();
