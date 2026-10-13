@@ -9,17 +9,34 @@ import { getTickets, type Ticket } from "@/lib/ticket";
 const CACHE_MS = 60_000;
 
 // share one request between callers. retry after a failure or after CACHE_MS
+
 function cachedRequest<T>(load: () => Promise<T>) {
   let request: Promise<T | null> | null = null;
   let loadedAt = 0;
+  let pending = false;
 
   return () => {
-    if (request === null || Date.now() - loadedAt > CACHE_MS) {
-      loadedAt = Date.now();
-      const next: Promise<T | null> = load().catch(() => {
-        if (request === next) request = null;
-        return null;
-      });
+    if (request === null || (!pending && Date.now() - loadedAt > CACHE_MS)) {
+      pending = true;
+
+      const next: Promise<T | null> = load()
+        .then((result) => {
+          if (request === next) {
+            loadedAt = Date.now();
+            pending = false;
+          }
+
+          return result;
+        })
+        .catch(() => {
+          if (request === next) {
+            request = null;
+            pending = false;
+          }
+
+          return null;
+        });
+
       request = next;
     }
 

@@ -5,10 +5,94 @@ import { useRef, type KeyboardEvent } from "react";
 export type DashboardView = "task" | "ticket";
 export type DashboardScope = "mine" | "all";
 
-const options: { key: DashboardView; label: string }[] = [
-  { key: "task", label: "Task" },
-  { key: "ticket", label: "Ticket" },
-];
+type ToggleProps = {
+  labels: string[];
+  methods: (() => void)[];
+  selectedIndex: number;
+  ariaLabel: string;
+  widthClassName: string;
+  backgroundColor?: string;
+  selectedBackgroundColor?: string;
+  unselectedTextColor?: string;
+  selectedTextColor?: string;
+};
+
+function Toggle({
+  labels,
+  methods,
+  selectedIndex,
+  ariaLabel,
+  widthClassName,
+  backgroundColor = "var(--primary-color-2)",
+  selectedBackgroundColor = "white",
+  unselectedTextColor = "white",
+  selectedTextColor = "black",
+}: ToggleProps) {
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    let nextIndex = selectedIndex;
+
+    if (event.key === "ArrowLeft") {
+      nextIndex = Math.max(0, selectedIndex - 1);
+    } else if (event.key === "ArrowRight") {
+      nextIndex = Math.min(labels.length - 1, selectedIndex + 1);
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    methods[nextIndex]?.();
+    buttonRefs.current[nextIndex]?.focus();
+  };
+
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className={`relative flex h-10 shrink-0 rounded-full ${widthClassName}`}
+      style={{ backgroundColor }}
+    >
+      <div
+        className="absolute inset-y-0 left-0 p-1 transition-transform duration-150 ease-out"
+        style={{
+          width: `${100 / labels.length}%`,
+          transform: `translateX(${selectedIndex * 100}%)`,
+        }}
+      >
+        <div
+          className="h-full w-full rounded-full"
+          style={{ backgroundColor: selectedBackgroundColor }}
+        />
+      </div>
+
+      {labels.map((label, index) => {
+        const selected = index === selectedIndex;
+
+        return (
+          <button
+            key={label}
+            ref={(element) => {
+              buttonRefs.current[index] = element;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            onClick={methods[index]}
+            onKeyDown={handleKeyDown}
+            className="relative z-10 h-full flex-1 cursor-pointer rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2)"
+            style={{
+              color: selected ? selectedTextColor : unselectedTextColor,
+            }}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ViewToggle({
   value,
@@ -17,69 +101,19 @@ export default function ViewToggle({
   value: DashboardView;
   onChange: (value: DashboardView) => void;
 }) {
-  const buttonRefs = useRef<Record<DashboardView, HTMLButtonElement | null>>({
-    task: null,
-    ticket: null,
-  });
-
-  // arrow keys move the selection and the focus together
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const next: DashboardView | null =
-      event.key === "ArrowLeft"
-        ? "task"
-        : event.key === "ArrowRight"
-          ? "ticket"
-          : null;
-
-    if (next === null) return;
-
-    event.preventDefault();
-    onChange(next);
-    buttonRefs.current[next]?.focus();
-  };
+  const labels = ["Task", "Ticket"];
 
   return (
-    <div
-      role="tablist"
-      aria-label="Dashboard view"
-      className="relative flex h-10 w-39/100 shrink-0 rounded-full bg-(--primary-color-2)"
-    >
-      <div
-        className={`absolute inset-y-0 left-0 w-1/2 p-1 transition-transform duration-150 ease-out ${
-          value === "ticket" ? "translate-x-full" : ""
-        }`}
-      >
-        <div className="h-full w-full rounded-full bg-white" />
-      </div>
-
-      {options.map((option) => {
-        const selected = option.key === value;
-
-        return (
-          <button
-            key={option.key}
-            ref={(element) => {
-              buttonRefs.current[option.key] = element;
-            }}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(option.key)}
-            onKeyDown={handleKeyDown}
-            className={`relative z-10 h-full w-1/2 cursor-pointer rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2) ${
-              selected ? "text-black" : "text-white"
-            }`}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <Toggle
+      labels={labels}
+      methods={[() => onChange("task"), () => onChange("ticket")]}
+      selectedIndex={value === "task" ? 0 : 1}
+      ariaLabel="Dashboard view"
+      widthClassName="w-39/100"
+    />
   );
 }
 
-// same look as ViewToggle, label follow the selected view
 export function ScopeToggle({
   value,
   onChange,
@@ -89,71 +123,16 @@ export function ScopeToggle({
   onChange: (value: DashboardScope) => void;
   view: DashboardView;
 }) {
-  const buttonRefs = useRef<Record<DashboardScope, HTMLButtonElement | null>>({
-    mine: null,
-    all: null,
-  });
-
   const noun = view === "ticket" ? "Tickets" : "Tasks";
-
-  const scopeOptions: { key: DashboardScope; label: string }[] = [
-    { key: "mine", label: `My ${noun}` },
-    { key: "all", label: `All ${noun}` },
-  ];
-
-  // arrow keys move the selection and the focus together
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const next: DashboardScope | null =
-      event.key === "ArrowLeft"
-        ? "mine"
-        : event.key === "ArrowRight"
-          ? "all"
-          : null;
-
-    if (next === null) return;
-
-    event.preventDefault();
-    onChange(next);
-    buttonRefs.current[next]?.focus();
-  };
+  const labels = [`My ${noun}`, `All ${noun}`];
 
   return (
-    <div
-      role="tablist"
-      aria-label="Dashboard scope"
-      className="relative flex h-10 w-59/100 shrink-0 rounded-full bg-(--primary-color-2)"
-    >
-      <div
-        className={`absolute inset-y-0 left-0 w-1/2 p-1 transition-transform duration-150 ease-out ${
-          value === "all" ? "translate-x-full" : ""
-        }`}
-      >
-        <div className="h-full w-full rounded-full bg-white" />
-      </div>
-
-      {scopeOptions.map((option) => {
-        const selected = option.key === value;
-
-        return (
-          <button
-            key={option.key}
-            ref={(element) => {
-              buttonRefs.current[option.key] = element;
-            }}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(option.key)}
-            onKeyDown={handleKeyDown}
-            className={`relative z-10 h-full w-1/2 cursor-pointer rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2) ${
-              selected ? "text-black" : "text-white"
-            }`}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <Toggle
+      labels={labels}
+      methods={[() => onChange("mine"), () => onChange("all")]}
+      selectedIndex={value === "mine" ? 0 : 1}
+      ariaLabel="Dashboard scope"
+      widthClassName="w-59/100"
+    />
   );
 }
