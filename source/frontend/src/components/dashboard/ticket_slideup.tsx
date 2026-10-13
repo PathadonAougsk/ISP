@@ -27,16 +27,20 @@ export default function TicketSlideup({
   ticket,
   categoryMap,
   usernames,
+  currentUserId,
   onClose,
 }: {
   ticket: Ticket;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
+  currentUserId: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
   const { isClosing, handleClose } = useSlideupClose(onClose);
   const [redirecting, setRedirecting] = useState(false);
+  const isMyRejectedTicket =
+    ticket.status === "rejected" && ticket.created_by === currentUserId;
 
   return (
     <SlideupFrame
@@ -58,7 +62,9 @@ export default function TicketSlideup({
               : "cursor-pointer bg-black hover:bg-gray-700"
           }`}
         >
-          Open in Request-table
+          {isMyRejectedTicket
+            ? "Revise in Request-table"
+            : "Open in Request-table"}
         </button>
         <SlideupCloseButton onClose={handleClose} />
       </div>

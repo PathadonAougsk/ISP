@@ -186,6 +186,7 @@ export default function Dashboard() {
           ticket={selectedTicket}
           categoryMap={categoryMap}
           usernames={usernames}
+          currentUserId={currentAccount?.id ?? null}
           onClose={() => setSelectedTicket(null)}
         />
       )}

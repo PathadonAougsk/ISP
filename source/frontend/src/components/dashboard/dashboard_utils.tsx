@@ -211,12 +211,15 @@ export function SlideupDescription({
   description: string | null;
 }) {
   return (
-    <div className="mt-4 min-h-0 pr-5 pb-25 flex-1 overflow-y-auto scrollbar-thin whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
-      {description ? (
-        renderWithLinks(description)
-      ) : (
-        <span className="text-gray-400">No description</span>
-      )}
+    <div className="mt-4 min-h-0 flex-1 flex flex-col">
+      <div className="mb-4 border-t border-gray-300" />
+      <div className="min-h-0 pr-5 pb-25 flex-1 overflow-y-auto scrollbar-thin whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
+        {description ? (
+          renderWithLinks(description)
+        ) : (
+          <span className="text-gray-400">No description</span>
+        )}
+      </div>
     </div>
   );
 }
