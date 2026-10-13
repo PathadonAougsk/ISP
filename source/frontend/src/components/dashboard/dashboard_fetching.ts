@@ -157,12 +157,13 @@ export function useDashboardFetching(
     }
 
     // load as sequence and with only needed amount
+    // limit = max + 1
     async function loadAllTasks(userId: string) {
       const mine = await loadTasks(
         {
           status: "in_progress",
           assignsTo: userId,
-          limit: maxTask,
+          limit: maxTask + 1,
         },
         setMyTasks,
         setErrorMyTasks,
@@ -172,8 +173,8 @@ export function useDashboardFetching(
       // lab user cant see others' tasks
       if (cancelled || accountRole === "Lab User") return;
 
-      // my tasks already fill the max, skip the request
-      if (mine.length >= maxTask) {
+      // my tasks already over the max, skip the request
+      if (mine.length > maxTask) {
         setLoadingOtherTasks(false);
         return;
       }
@@ -182,7 +183,7 @@ export function useDashboardFetching(
       await loadTasks(
         {
           status: "in_progress",
-          limit: maxTask,
+          limit: maxTask + 1,
         },
         setOtherTasks,
         setErrorOtherTasks,
@@ -204,6 +205,7 @@ export function useDashboardFetching(
     let cancelled = false;
 
     // my rejected -> my pending -> others' rejected -> others' pending
+    // limit = max + 1
     async function loadTickets() {
       let rejectedCount = 0;
       let myPending: Ticket[] = [];
@@ -212,7 +214,7 @@ export function useDashboardFetching(
         const { Tickets: rejected } = await getTickets({
           status: "rejected",
           onlyOwned: true,
-          limit: maxTicket,
+          limit: maxTicket + 1,
         });
 
         if (cancelled) return;
@@ -224,7 +226,7 @@ export function useDashboardFetching(
         const { Tickets: pending } = await getTickets({
           status: "pending",
           onlyOwned: true,
-          limit: maxTicket,
+          limit: maxTicket + 1,
         });
 
         if (cancelled) return;
@@ -248,9 +250,9 @@ export function useDashboardFetching(
       // lab user cant see others' tickets
       if (cancelled || accountRole === "Lab User") return;
 
-      const room = maxTicket - rejectedCount - myPending.length;
+      const room = maxTicket + 1 - rejectedCount - myPending.length;
 
-      // my tickets already fill the max, skip the request
+      // my tickets already over the max, skip the request
       if (room <= 0) {
         setLoadingOtherTickets(false);
         return;
@@ -261,7 +263,7 @@ export function useDashboardFetching(
         const { Tickets: otherRejected } = await getTickets({
           status: "rejected",
           notOwned: true,
-          limit: maxTicket - rejectedCount,
+          limit: maxTicket + 1 - rejectedCount,
         });
 
         if (cancelled) return;
@@ -278,7 +280,7 @@ export function useDashboardFetching(
           const { Tickets: otherPending } = await getTickets({
             status: "pending",
             notOwned: true,
-            limit: maxTicket - myPending.length,
+            limit: maxTicket + 1 - myPending.length,
           });
 
           if (cancelled) return;

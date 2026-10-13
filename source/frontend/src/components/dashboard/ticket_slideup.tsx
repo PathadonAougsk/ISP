@@ -41,6 +41,8 @@ export default function TicketSlideup({
   const [redirecting, setRedirecting] = useState(false);
   const isMyRejectedTicket =
     ticket.status === "rejected" && ticket.created_by === currentUserId;
+  const isMyPendingTicket =
+    ticket.status === "pending" && ticket.created_by === currentUserId;
 
   return (
     <SlideupFrame
@@ -64,7 +66,9 @@ export default function TicketSlideup({
         >
           {isMyRejectedTicket
             ? "Revise in Request-table"
-            : "Open in Request-table"}
+            : isMyPendingTicket
+              ? "Edit in Request-table"
+              : "Open in Request-table"}
         </button>
         <SlideupCloseButton onClose={handleClose} />
       </div>

@@ -9,6 +9,15 @@ import {
 } from "@/components/dashboard/dashboard_status";
 
 // ==========================================================
+// Count
+// ==========================================================
+
+// count pass the max, show "{max}+"
+export function formatCount(count: number, max: number) {
+  return count > max ? `${max}+` : String(count);
+}
+
+// ==========================================================
 // Links
 // ==========================================================
 

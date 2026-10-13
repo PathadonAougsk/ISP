@@ -8,6 +8,7 @@ import {
   getDueBucketLimits,
   type DueBucketKey,
 } from "@/components/dashboard/dashboard_status";
+import { formatCount } from "@/components/dashboard/dashboard_utils";
 import type { DashboardView } from "@/components/dashboard/view_toggle";
 
 // task and ticket both have due date
@@ -18,11 +19,13 @@ export default function Summary({
   loadingTasks,
   view,
   rejectedCount,
+  max,
 }: {
   tasks: DueItem[];
   loadingTasks: boolean;
   view: DashboardView;
   rejectedCount: number;
+  max: number;
 }) {
   const limits = getDueBucketLimits(new Date());
   // compare day on Thai clock
@@ -40,21 +43,22 @@ export default function Summary({
 
   const dueToday = tasks.filter(isDueToday).length;
 
-  const counts = tasks.reduce<Record<DueBucketKey, number>>((acc, task) => {
-    const bucket = getDueBucket(task.due_date, limits);
-    acc[bucket] += 1;
-    return acc;
-  }, emptyBucketCounts());
+  // tasks has one extra item for count, legend use first max only
+  const counts = tasks
+    .slice(0, max)
+    .reduce<Record<DueBucketKey, number>>((acc, task) => {
+      const bucket = getDueBucket(task.due_date, limits);
+      acc[bucket] += 1;
+      return acc;
+    }, emptyBucketCounts());
 
-  // missing only show when something is missing
+  // hide empty range, but show all of them while loading
   const dueBuckets = dueBucketMeta
     .map((bucket) => ({
       ...bucket,
       count: counts[bucket.key],
     }))
-    .filter((bucket) => bucket.key !== "missing" || bucket.count > 0);
-
-  const hasMissing = dueBuckets.some((bucket) => bucket.key === "missing");
+    .filter((bucket) => loadingTasks || bucket.count > 0);
 
   const isTicket = view === "ticket";
 
@@ -69,20 +73,17 @@ export default function Summary({
       ];
 
   return (
-    <div className="flex w-full gap-5">
-      <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[20px] bg-white p-0">
+    <div className="flex min-h-26 w-full gap-5">
+      {/* size container, so number size follow the squircle size */}
+      <div className="flex flex-1 divide-x divide-(--primary-color-3) rounded-[20px] bg-white p-0 @container-size">
         {summaryItems.map((item) => (
           <div
             key={item.label}
             className="flex flex-1 flex-col items-center justify-center gap-1"
           >
             <h1 className="text-lg font-bold text-black">{item.label}</h1>
-            <h1
-              className={`font-extrabold text-black ${
-                hasMissing ? "text-7xl" : "text-5xl"
-              }`}
-            >
-              {loadingTasks ? "-" : item.value}
+            <h1 className="text-[min(50cqh,25cqw)] leading-none font-extrabold text-black">
+              {loadingTasks ? "-" : formatCount(item.value, max)}
             </h1>
           </div>
         ))}
