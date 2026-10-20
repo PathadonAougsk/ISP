@@ -6,11 +6,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.model import Account, AccountRole
 from app.service import account_service
+from app.service.account_service import AuthUser
 
 accountRouter = APIRouter(prefix="/account", dependencies=[Depends(account_service.get_current_auth_user)])
 

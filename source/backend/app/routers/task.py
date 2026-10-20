@@ -7,11 +7,11 @@ from pydantic import BaseModel
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
+from app.service.account_service import AuthUser
 
 
 # Base Task model.

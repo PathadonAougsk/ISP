@@ -8,6 +8,7 @@ import Categories from "./category";
 import Icon from "./icon";
 import Sidebar from "./sidebar";
 import Member from "./member";
+import Log from "./log";
 
 // To whom may this function concern
 // index.tsx is the heart of this feature it contain sidebar and contents
@@ -31,7 +32,8 @@ export default function Settings({
   const panels: Record<string, React.ReactNode> = {
     Account: <AccountPanel account={account} loading={loading} />,
     Category: <Categories isAdmin={isAdmin} />,
-    Member: <Member account={account} isAdmin={isAdmin} />
+    Member: <Member account={account} isAdmin={isAdmin} />,
+    Log: <Log isAdmin={isAdmin} accountLoading={loading} />
   };
 
   useEffect(() => {
