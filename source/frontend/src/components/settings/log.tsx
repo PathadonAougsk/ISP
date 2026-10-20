@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
-import { formatDueDate } from "@/lib/format";
+import { formatShortDateTime } from "@/lib/format";
 
 // The log is written by hand, one row per changed column, by whichever endpoint
 // made the change so these are the only tables that can show up.
@@ -179,7 +179,7 @@ export default function Log({
                   className="flex items-center gap-3 border-b border-[#e0e0e0] py-3"
                 >
                   <span className="w-57.5 shrink-0">
-                    {formatDueDate(entry.occurred_at)}
+                    {formatShortDateTime(entry.occurred_at)}
                   </span>
                   <span
                     className="w-32.5 shrink-0 truncate"

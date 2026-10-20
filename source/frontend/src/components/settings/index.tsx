@@ -33,6 +33,7 @@ export default function Settings({
     Account: <AccountPanel account={account} loading={loading} />,
     Category: <Categories isAdmin={isAdmin} />,
     Member: <Member account={account} isAdmin={isAdmin} />,
+    Log: <Log isAdmin={isAdmin} accountLoading={loading} />,
   };
 
   useEffect(() => {
