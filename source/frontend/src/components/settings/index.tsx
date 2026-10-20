@@ -33,10 +33,6 @@ export default function Settings({
     Account: <AccountPanel account={account} loading={loading} />,
     Category: <Categories isAdmin={isAdmin} />,
     Member: <Member account={account} isAdmin={isAdmin} />,
-<<<<<<< HEAD
-=======
-    Log: <Log isAdmin={isAdmin} accountLoading={loading} />
->>>>>>> eb1b7a1 (Convert checking token via server to local)
   };
 
   useEffect(() => {
