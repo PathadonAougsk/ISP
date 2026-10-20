@@ -11,6 +11,10 @@ export const accountNav: NavItem[] = [
   { label: "Account", icon: "account" },
   { label: "Category", icon: "category" },
   { label: "Member", icon: "team" },
+<<<<<<< HEAD
+=======
+  { label: "Log", icon: "log" }
+>>>>>>> eb1b7a1 (Convert checking token via server to local)
 ];
 
 export default function Nav({
