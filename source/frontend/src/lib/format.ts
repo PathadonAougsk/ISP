@@ -149,6 +149,12 @@ export function getThaiDateParts(input: string | Date) {
   };
 }
 
+// getThaiDateKey("2026-08-28T02:47:00Z") -> "2026-8-28" (Thai day, for compare)
+export function getThaiDateKey(input: string | Date) {
+  const { year, month, day } = getThaiDateParts(input);
+  return `${year}-${month}-${day}`;
+}
+
 // maskEmail("someone@example.com") -> "*******@example.com"
 export function maskEmail(value: string) {
   const at = value.indexOf("@");

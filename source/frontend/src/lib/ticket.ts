@@ -32,9 +32,11 @@ export type GetTicketsParams = {
   ticket_id?: number;
   status?: TicketStatus;
   category_id?: number;
+  due_after?: string;
   /** ISO 8601 string, e.g. new Date().toISOString() — FastAPI parses it into a datetime. */
   due_before?: string;
   onlyOwned?: boolean;
+  notOwned?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -56,7 +58,7 @@ export type TicketUpdatePayload = Partial<TicketCreatePayload> & {
 export type TicketRow = {
   id: string;
   title: string;
-  status: "Pending" | "Approved" | "Rejected";
+  status: "Pending" | "Accepted" | "Rejected";
   dueDate: string;
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
@@ -76,8 +78,10 @@ export async function fetchTickets(
     ticket_id,
     status,
     category_id,
+    due_after,
     due_before,
     onlyOwned,
+    notOwned,
     limit,
     offset,
   } = params;
@@ -86,8 +90,10 @@ export async function fetchTickets(
   if (ticket_id !== undefined) query.set("ticket_id", String(ticket_id));
   if (status !== undefined) query.set("status", status);
   if (category_id !== undefined) query.set("category_id", String(category_id));
+  if (due_after !== undefined) query.set("due_after", due_after);
   if (due_before !== undefined) query.set("due_before", due_before);
   if (onlyOwned !== undefined) query.set("onlyOwned", String(onlyOwned));
+  if (notOwned !== undefined) query.set("notOwned", String(notOwned));
   if (limit !== undefined) query.set("limit", String(limit));
   if (offset !== undefined) query.set("offset", String(offset));
 
@@ -140,7 +146,7 @@ export async function putTicket(
 function mapTicketStatus(status: TicketStatus): TicketRow["status"] {
   switch (status) {
     case "accepted":
-      return "Approved";
+      return "Accepted";
     case "rejected":
       return "Rejected";
     default:
@@ -170,6 +176,33 @@ export function mapBackendTicket(
     categoryId: bt.category_id,
     createdById: bt.created_by,
   };
+}
+
+// fetch one ticket by id for the modal. throw if not found
+export async function getTicketRowById(
+  id: number,
+  userRole: UserRole,
+): Promise<TicketRow> {
+  const [ticketBody, catBody, accBody] = await Promise.all([
+    getTickets({
+      ...(userRole === "Lab Admin" ? {} : { onlyOwned: true }),
+      ticket_id: id,
+    }),
+    getCategories().catch(() => null),
+    getAccounts().catch(() => null),
+  ]);
+
+  const ticket = ticketBody.Tickets.find((t) => t.id === id);
+  if (!ticket) throw new Error("Ticket not found");
+
+  const categoryById = new Map<number, string>(
+    (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
+  );
+  const accountById = new Map<string, string>(
+    (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
+  );
+
+  return mapBackendTicket(ticket, categoryById, accountById);
 }
 
 export type TicketFilters = { status?: TicketStatus; categoryId?: number };

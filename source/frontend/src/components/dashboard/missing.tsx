@@ -2,76 +2,81 @@
 
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
-import {
-  isMissingTask,
-  isMissingTicket,
-} from "@/components/dashboard/dashboard_status";
+import { isMissingItem } from "@/components/dashboard/dashboard_status";
+import { formatCount } from "@/components/dashboard/dashboard_utils";
 
 export default function Missing({
   myTasks,
-  otherTasks,
-  tickets,
+  myPendingTickets,
+  myRejectedTickets,
   loadingMyTasks,
-  loadingOtherTasks,
-  loadingTickets,
-  isLabUser,
+  loadingMyPendingTickets,
+  loadingMyRejectedTickets,
+  maxTask,
+  maxTicket,
 }: {
   myTasks: Task[];
-  otherTasks: Task[];
-  tickets: Ticket[];
+  myPendingTickets: Ticket[];
+  myRejectedTickets: Ticket[];
   loadingMyTasks: boolean;
-  loadingOtherTasks: boolean;
-  loadingTickets: boolean;
-  isLabUser: boolean;
+  loadingMyPendingTickets: boolean;
+  loadingMyRejectedTickets: boolean;
+  maxTask: number;
+  maxTicket: number;
 }) {
   const now = new Date();
 
-  const countTasks = (tasks: Task[]) =>
-    tasks.filter((task) => isMissingTask(task, now)).length;
-
-  const missingTickets = tickets.filter((ticket) =>
-    isMissingTicket(ticket, now),
+  const overdueTasks = myTasks.filter((task) =>
+    isMissingItem(task, "in_progress", now),
   ).length;
+
+  const pastDueTickets = myPendingTickets.filter((ticket) =>
+    isMissingItem(ticket, "pending", now),
+  ).length;
+
+  const rejectedTickets = myRejectedTickets.length;
 
   const sections = [
     {
-      label: "My Missing Tasks",
-      count: countTasks(myTasks),
+      label: "Overdue Tasks",
+      count: overdueTasks,
+      max: maxTask,
       loading: loadingMyTasks,
     },
-    // lab user cant see others' tasks
-    ...(isLabUser
-      ? []
-      : [
-          {
-            label: "Others' Missing Tasks",
-            count: countTasks(otherTasks),
-            loading: loadingOtherTasks || loadingMyTasks,
-          },
-        ]),
     {
-      label: "Missing Tickets",
-      count: missingTickets,
-      loading: loadingTickets,
+      label: "Past Due Tickets",
+      count: pastDueTickets,
+      max: maxTicket,
+      loading: loadingMyPendingTickets,
+    },
+    {
+      label: "Rejected Tickets",
+      count: rejectedTickets,
+      max: maxTicket,
+      loading: loadingMyRejectedTickets,
     },
   ];
 
-  // if nothing is missing, hide whole squircle
-  if (sections.every((section) => section.loading || section.count === 0))
+  const visibleSections = sections.filter(
+    (section) => section.loading || section.count > 0,
+  );
+
+  if (visibleSections.length === 0) {
     return null;
+  }
 
   return (
     <div className="flex w-full divide-x divide-white rounded-[30px] bg-(--primary-red)">
-      {sections.map((section) => (
+      {visibleSections.map((section) => (
         <div
           key={section.label}
           className="flex flex-1 flex-col items-center justify-center gap-1 px-2 py-3"
         >
-          <h1 className="text-center text-base font-bold text-white">
+          <h1 className="text-center text-lg font-bold text-white">
             {section.label}
           </h1>
           <h1 className="text-5xl font-extrabold text-white">
-            {section.loading ? "-" : section.count}
+            {section.loading ? "-" : formatCount(section.count, section.max)}
           </h1>
         </div>
       ))}

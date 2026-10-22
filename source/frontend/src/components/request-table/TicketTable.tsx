@@ -95,7 +95,7 @@ export default function TicketTable({
           >
             <option value="All">All</option>
             <option value="pending">Pending</option>
-            <option value="accepted">Approved</option>
+            <option value="accepted">Accepted</option>
             <option value="rejected">Rejected</option>
           </select>
         </div>
