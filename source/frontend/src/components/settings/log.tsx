@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
 import { formatShortDateTime } from "@/lib/format";
@@ -28,46 +28,57 @@ export default function Log({
   accountLoading: boolean;
 }) {
   const [entries, setEntries] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [table, setTable] = useState("");
 
+  // Which filter the rows on screen came from, null before the first fetch.
+  // Loading is derived from it, so a new filter cannot show the old rows.
+  const [loadedTable, setLoadedTable] = useState<string | null>(null);
+  const loading = loadedTable !== table;
+
   // A full page back means there is probably another one behind it.
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Bumped by the cleanup below, and shared with "Load more" so a response
+  // from before the filter changed knows it is stale and drops itself.
+  const requestId = useRef(0);
 
   // Refetches whenever the table filter changes - the filter is applied by the
   // server, so it covers the whole log and not just the page already in hand.
   // The server already refuses a Lab User, so dont spend a request on a 403.
   useEffect(() => {
     if (!isAdmin) return;
-    let cancelled = false;
+    const id = requestId.current;
 
     getAuditLogs({ limit: PAGE_SIZE, from_table: table || undefined })
       .then((body) => {
-        if (cancelled) return;
+        if (requestId.current !== id) return;
         setEntries(body.AuditLogs);
         setHasMore(body.AuditLogs.length === PAGE_SIZE);
         setError(null);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (requestId.current !== id) return;
         setEntries([]);
         setHasMore(false);
         setError(err instanceof Error ? err.message : "Could not load the log.");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        // Clears the loading state - on an error too, the message takes over.
+        if (requestId.current === id) setLoadedTable(table);
       });
 
     return () => {
-      cancelled = true;
+      requestId.current += 1;
     };
   }, [isAdmin, table]);
 
-  // Keyset would be steadier, but offset matches the endpoint we have.
+  // Keyset would be steadier, but offset matches the endpoint we have. A new
+  // entry on top shifts every page down, so drop rows already in hand.
   async function loadMore() {
+    const id = requestId.current;
     setLoadingMore(true);
     try {
       const { AuditLogs } = await getAuditLogs({
@@ -75,13 +86,21 @@ export default function Log({
         offset: entries.length,
         from_table: table || undefined,
       });
+      if (requestId.current !== id) return;
 
-      setEntries((current) => [...current, ...AuditLogs]);
+      setEntries((current) => {
+        const seen = new Set(current.map((entry) => entry.id));
+        const fresh = AuditLogs.filter((entry) => !seen.has(entry.id));
+        return [...current, ...fresh];
+      });
+      // On what the server sent, not on what survived the dedupe.
       setHasMore(AuditLogs.length === PAGE_SIZE);
       setError(null);
     } catch (err) {
+      if (requestId.current !== id) return;
       setError(err instanceof Error ? err.message : "Could not load more.");
     } finally {
+      // Unconditional - a stale run still has to let go of the button.
       setLoadingMore(false);
     }
   }
@@ -155,12 +174,16 @@ export default function Log({
 
           {error && <p className="text-[#b3261e]">{error}</p>}
 
+          {/* Six columns in 700px of monospace, hence text-sm rows and a title
+              on every column that can truncate. Only account row_ids are
+              UUIDs - category, ticket and task ids are small integers. */}
           <div className="flex flex-col">
             <div className="flex items-center gap-3 border-b border-[#d0d0d0] pb-2 text-sm text-[#8a8a8a] uppercase">
-              <span className="w-57.5 shrink-0">When</span>
-              <span className="w-32.5 shrink-0">Who</span>
+              <span className="w-15 shrink-0">Row</span>
+              <span className="w-50 shrink-0">When</span>
+              <span className="w-27.5 shrink-0">Who</span>
               <span className="w-20 shrink-0">Table</span>
-              <span className="w-27.5 shrink-0">Column</span>
+              <span className="w-22.5 shrink-0">Column</span>
               <span className="flex-1">Change</span>
             </div>
 
@@ -176,24 +199,36 @@ export default function Log({
               visible.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center gap-3 border-b border-[#e0e0e0] py-3"
+                  className="flex items-center gap-3 border-b border-[#e0e0e0] py-3 text-sm"
                 >
-                  <span className="w-57.5 shrink-0">
+                  <span
+                    className="w-15 shrink-0 truncate"
+                    title={entry.row_id ?? undefined}
+                  >
+                    {valueOf(entry.row_id)}
+                  </span>
+                  <span className="w-50 shrink-0">
                     {formatShortDateTime(entry.occurred_at)}
                   </span>
                   <span
-                    className="w-32.5 shrink-0 truncate"
-                    title={entry.row_id ?? undefined}
+                    className="w-27.5 shrink-0 truncate"
+                    title={entry.by_username ?? undefined}
                   >
                     {entry.by_username ?? (
                       <span className="text-[#8a8a8a]">Deleted account</span>
                     )}
                   </span>
                   <span className="w-20 shrink-0">{entry.from_table}</span>
-                  <span className="w-27.5 shrink-0 truncate">
+                  <span
+                    className="w-22.5 shrink-0 truncate"
+                    title={entry.column_name}
+                  >
                     {entry.column_name}
                   </span>
-                  <span className="flex-1 truncate">
+                  <span
+                    className="flex-1 truncate"
+                    title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
+                  >
                     <span className="text-[#8a8a8a]">
                       {valueOf(entry.old_value)}
                     </span>
