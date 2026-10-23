@@ -14,6 +14,12 @@ from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
 
 
+def to_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return value.astimezone(timezone.utc)
+
+
 # Base Task model.
 class TaskRequest(BaseModel):
     name: str
@@ -38,9 +44,26 @@ async def retrieve_tasks(
     categories: int | None = None,
     assignsTo: uuid.UUID | None = None,
     status: TaskStatus | None = None,
+    due_after: datetime | None = None,
+    due_before: datetime | None = None,
+    onlyOwned: bool = False,
+    notOwned: bool = False,
     limit: int = 20,
-    offset: int= 0 # Where will the results start? 0 means at the beginning.
+    offset: int = 0,
 ):
+    if assignsTo is not None and notOwned:
+        raise HTTPException(
+            status_code=400,
+            detail="assignsTo and notOwned cannot be used together",
+        )
+    
+    if onlyOwned and notOwned:
+        raise HTTPException(
+            status_code=400,
+            detail="onlyOwned and notOwned cannot be both true",
+        )
+
+   
     tasks = select(Task).options(selectinload(Task.assignees))
     # Then, we filter each attribute one by one.
     if id:
@@ -51,10 +74,19 @@ async def retrieve_tasks(
         tasks = tasks.where(Task.assignees.any(Account.id == assignsTo))
     if status:
         tasks = tasks.where(Task.status == status)
+    if due_after:
+        tasks = tasks.where(Task.due_date >= to_utc(due_after))
+    if due_before:
+        tasks = tasks.where(Task.due_date <= to_utc(due_before))
+
     # A lab user never sees tasks that are not assigned to them.
     if me.role == AccountRole.LAB_USER:
         tasks = tasks.where(Task.assignees.any(Account.id == me.id))
-
+    elif onlyOwned:
+        tasks = tasks.where(Task.created_by == me.id)
+    elif notOwned:
+        tasks = tasks.where(Task.created_by != me.id)
+    
     # Most urgent due date first, and unfinished work first when they tie.
     status_order = case(
         (Task.status == TaskStatus.IN_PROGRESS, 1),
