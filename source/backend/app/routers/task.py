@@ -43,18 +43,17 @@ async def retrieve_tasks(
     id: int | None = None,
     categories: int | None = None,
     assignsTo: uuid.UUID | None = None,
+    notassignsTo: uuid.UUID | None = None,
     status: TaskStatus | None = None,
     due_after: datetime | None = None,
     due_before: datetime | None = None,
-    onlyOwned: bool = False,
-    notOwned: bool = False,
     limit: int = 20,
     offset: int = 0,
 ):
-    if assignsTo is not None and notOwned:
+    if assignsTo and notAssignsTo and assignsTo == notAssignsTo:
         raise HTTPException(
             status_code=400,
-            detail="assignsTo and notOwned cannot be used together",
+            detail="assignsTo and notAssignsTo cannot be the same person",
         )
     
     if onlyOwned and notOwned:
@@ -72,6 +71,8 @@ async def retrieve_tasks(
         tasks = tasks.where(Task.category_id == categories)
     if assignsTo:
         tasks = tasks.where(Task.assignees.any(Account.id == assignsTo))
+    if notAssignsTo:
+        tasks = tasks.where(~Task.assignees.any(Account.id == notAssignsTo))
     if status:
         tasks = tasks.where(Task.status == status)
     if due_after:
