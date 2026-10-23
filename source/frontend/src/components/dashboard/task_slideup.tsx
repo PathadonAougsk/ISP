@@ -1,0 +1,168 @@
+"use client";
+
+import { useState } from "react";
+import type { CategoryMap } from "@/lib/category";
+import { putTask, type Task } from "@/lib/task";
+import Icon from "@/components/icon";
+import {
+  RequestTableButton,
+  SlideupDescription,
+  SlideupDueRow,
+  SlideupEdited,
+  SlideupMeta,
+} from "@/components/dashboard/dashboard_utils";
+import {
+  SlideupCloseButton,
+  SlideupFrame,
+  useSlideupClose,
+} from "@/components/modal_slideup";
+
+export default function TaskSlideup({
+  task,
+  categoryMap,
+  usernames,
+  currentUserId,
+  onClose,
+  onUpdated,
+}: {
+  task: Task;
+  categoryMap: CategoryMap;
+  usernames: Record<string, string>;
+  currentUserId: string | null;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const { isClosing, handleClose } = useSlideupClose(onClose);
+
+  // local copy, task prop never change after putTask
+  const [status, setStatus] = useState(task.status);
+  const [submitting, setSubmitting] = useState(false);
+
+  const isAssignedToMe = task.assignees.some((a) => a.id === currentUserId);
+  const isCompleted = status === "completed";
+
+  async function handleToggle() {
+    const next = isCompleted ? "in_progress" : "completed";
+    const action = isCompleted ? "unsubmit" : "submit";
+
+    setSubmitting(true);
+
+    try {
+      // send due_date as it is
+      await putTask(task.id, {
+        name: task.name,
+        category_id: task.category_id,
+        description: task.description,
+        status: next,
+        due_date: task.due_date,
+        assignees: task.assignees.map((a) => a.id),
+      });
+
+      setStatus(next);
+      onUpdated();
+    } catch {
+      console.error(`Fail to ${action}`);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const buttonColor = isCompleted
+    ? submitting
+      ? "bg-gray-200"
+      : "bg-(--primary-red) hover:bg-(--primary-red-hover)"
+    : submitting
+      ? "bg-gray-200"
+      : "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)";
+
+  const buttonLabel = isCompleted
+    ? submitting
+      ? "Unsubmitting"
+      : "Unsubmit"
+    : submitting
+      ? "Submitting"
+      : "Submit";
+
+  const sortedAssignees = [...task.assignees].sort((a, b) => {
+    if (a.id === currentUserId) return -1;
+    if (b.id === currentUserId) return 1;
+    return a.username.localeCompare(b.username);
+  });
+
+  return (
+    <SlideupFrame
+      isClosing={isClosing}
+      onClose={handleClose}
+      className="flex flex-col"
+    >
+      <div className="flex justify-end gap-4 pb-2">
+        <RequestTableButton
+          type="task"
+          id={task.id}
+          label="Open in Request-table"
+        />
+        <SlideupCloseButton onClose={handleClose} />
+      </div>
+
+      <div className="flex min-h-0 flex-1 gap-5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="wrap-break-word text-3xl font-bold text-black">
+            {task.name}
+          </h1>
+
+          <SlideupMeta
+            id={task.id}
+            categoryName={categoryMap[task.category_id] ?? "-"}
+            createdDate={task.created}
+          >
+            <div className="flex items-center gap-2">
+              <Icon src="/user.svg" alt="" className="h-4 w-auto" />
+              <span>{usernames[task.created_by] ?? "-"}</span>
+            </div>
+          </SlideupMeta>
+
+          <SlideupEdited created={task.created} updated={task.updated} />
+
+          <SlideupDueRow type="task" status={status} dueDate={task.due_date} />
+
+          <SlideupDescription description={task.description} />
+        </div>
+
+        <div className="flex w-72 shrink-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
+            <h1 className="text-base font-bold text-black">
+              Responsible person
+            </h1>
+
+            <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+              <div className="flex flex-col gap-2">
+                {sortedAssignees.map((assignee) => (
+                  <div key={assignee.id} className="flex items-center gap-2">
+                    <Icon src="/profile.svg" className="h-5 w-auto shrink-0" />
+                    <span className="truncate text-base font-normal text-gray-800">
+                      {assignee.username}
+                      {assignee.id === currentUserId && " (You)"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {isAssignedToMe && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={handleToggle}
+              className={`mt-2 h-10 w-full rounded-full text-lg font-bold text-white ${buttonColor} ${
+                submitting ? "cursor-not-allowed" : "cursor-pointer"
+              }`}
+            >
+              {buttonLabel}
+            </button>
+          )}
+        </div>
+      </div>
+    </SlideupFrame>
+  );
+}

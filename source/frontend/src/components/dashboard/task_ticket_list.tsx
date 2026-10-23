@@ -1,6 +1,5 @@
 "use client";
 
-import { Fragment } from "react";
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
@@ -10,17 +9,27 @@ import {
   dueBucketColor,
   getDueBucket,
   getDueBucketLimits,
-  isMissingTask,
-  isMissingTicket,
+  isMissingItem,
   ticketStatusIcon,
   ticketStatusText,
 } from "@/components/dashboard/dashboard_status";
 import {
-  ListHeader,
   ListMessage,
-  listGridClass,
+  ListPanel,
+  ListRow,
+  ListSection,
   useListOverflow,
 } from "@/components/dashboard/dashboard_utils";
+
+// ready-to-show count string
+export type ListCounts = {
+  myTasks: string;
+  otherTasks: string;
+  myRejectedTickets: string;
+  myPendingTickets: string;
+  otherRejectedTickets: string;
+  otherPendingTickets: string;
+};
 
 function TaskList({
   myTasks,
@@ -32,6 +41,7 @@ function TaskList({
   categoryMap,
   usernames,
   isLabUser,
+  counts,
   onSelectTask,
 }: {
   myTasks: Task[];
@@ -43,6 +53,7 @@ function TaskList({
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   isLabUser: boolean;
+  counts: ListCounts;
   onSelectTask: (task: Task) => void;
 }) {
   const limits = getDueBucketLimits(new Date());
@@ -52,97 +63,71 @@ function TaskList({
 
   const { listRef, hasOverflow } = useListOverflow([myTasks, otherTasks]);
 
-  const renderTask = (task: Task) => {
-    const overdue = isMissingTask(task, limits.now);
-
-    return (
-      <button
-        key={task.id}
-        type="button"
-        onClick={() => onSelectTask(task)}
-        className={`flex h-8 pl-2.5 pr-3.5 w-full shrink-0 cursor-pointer items-center gap-6 rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${
-          overdue
-            ? "border-(--primary-red) text-red-700"
-            : "border-transparent text-black"
-        }`}
-      >
+  const renderTask = (task: Task) => (
+    <ListRow
+      key={task.id}
+      overdue={isMissingItem(task, "in_progress", limits.now)}
+      spacingClassName="pl-2.5 pr-3.5 gap-6"
+      lead={
         <span
           className={`h-2 w-2 shrink-0 rounded-full ${dueBucketColor[getDueBucket(task.due_date, limits)]}`}
         />
-        <div className={listGridClass}>
-          <p className="truncate text-sm">{task.name}</p>
-          <p className="truncate text-sm">
-            {usernames[task.created_by] ?? "-"}
-          </p>
-          <p className="truncate text-sm">
-            {categoryMap[task.category_id] ?? "-"}
-          </p>
-          <p className="text-sm">{formatShortDate(task.due_date)}</p>
-        </div>
-      </button>
-    );
-  };
+      }
+      cells={[
+        task.name,
+        usernames[task.created_by] ?? "-",
+        categoryMap[task.category_id] ?? "-",
+        formatShortDate(task.due_date),
+      ]}
+      onClick={() => onSelectTask(task)}
+    />
+  );
 
   return (
-    <div className="flex min-h-0 flex-col gap-2">
-      <ListHeader
-        titles={["Task Name", "Created by", "Category", "Duedate"]}
-        hasOverflow={hasOverflow}
-      />
-
-      {!hasMyTasks && !hasOtherTasks ? (
-        <ListMessage>
-          {errorMyTasks || errorOtherTasks
-            ? "Failed to load tasks"
-            : loadingMyTasks || loadingOtherTasks
-              ? "Loading tasks..."
-              : "Good job! You have completed all tasks."}
-        </ListMessage>
-      ) : (
-        <div
-          ref={listRef}
-          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
-        >
-          {hasMyTasks && (
-            <Fragment>
-              {!isLabUser && (
-                <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                  My tasks
-                </h1>
-              )}
-              {myTasks.map(renderTask)}
-            </Fragment>
-          )}
-
-          {hasOtherTasks && (
-            <Fragment>
-              <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                {"Others' tasks"}
-              </h1>
-              {otherTasks.map(renderTask)}
-            </Fragment>
-          )}
-
-          {loadingOtherTasks && <ListMessage>Loading tasks...</ListMessage>}
-
-          {errorMyTasks && (
-            <ListMessage>
-              {isLabUser ? "Failed to load tasks" : "Failed to load my tasks"}
-            </ListMessage>
-          )}
-
-          {errorOtherTasks && (
-            <ListMessage>{"Failed to load others' tasks"}</ListMessage>
-          )}
-        </div>
+    <ListPanel
+      titles={["Task Name", "Created by", "Category", "Duedate"]}
+      hasOverflow={hasOverflow}
+      listRef={listRef}
+      empty={!hasMyTasks && !hasOtherTasks}
+      message={
+        errorMyTasks || errorOtherTasks
+          ? "Failed to load tasks"
+          : loadingMyTasks || loadingOtherTasks
+            ? "Loading tasks..."
+            : "Good job! You have completed all tasks."
+      }
+    >
+      {hasMyTasks && (
+        <ListSection title="My tasks" count={counts.myTasks}>
+          {myTasks.map(renderTask)}
+        </ListSection>
       )}
-    </div>
+
+      {hasOtherTasks && (
+        <ListSection title="Others' tasks" count={counts.otherTasks}>
+          {otherTasks.map(renderTask)}
+        </ListSection>
+      )}
+
+      {loadingOtherTasks && <ListMessage>Loading tasks...</ListMessage>}
+
+      {errorMyTasks && (
+        <ListMessage>
+          {isLabUser ? "Failed to load tasks" : "Failed to load my tasks"}
+        </ListMessage>
+      )}
+
+      {errorOtherTasks && (
+        <ListMessage>{"Failed to load others' tasks"}</ListMessage>
+      )}
+    </ListPanel>
   );
 }
 
 function TicketList({
   myRejectedTickets,
   myPendingTickets,
+  otherRejectedTickets,
   otherPendingTickets,
   loadingMyTickets,
   loadingOtherTickets,
@@ -150,10 +135,12 @@ function TicketList({
   errorOtherTickets,
   categoryMap,
   isLabUser,
+  counts,
   onSelectTicket,
 }: {
   myRejectedTickets: Ticket[];
   myPendingTickets: Ticket[];
+  otherRejectedTickets: Ticket[];
   otherPendingTickets: Ticket[];
   loadingMyTickets: boolean;
   loadingOtherTickets: boolean;
@@ -161,6 +148,7 @@ function TicketList({
   errorOtherTickets: boolean;
   categoryMap: CategoryMap;
   isLabUser: boolean;
+  counts: ListCounts;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
   const now = new Date();
@@ -168,108 +156,103 @@ function TicketList({
   const hasMyRejected = !loadingMyTickets && myRejectedTickets.length > 0;
   const hasMyPending = !loadingMyTickets && myPendingTickets.length > 0;
   // others wait for my tickets, so the list never jump around
+  const hasOtherRejected = !loadingMyTickets && otherRejectedTickets.length > 0;
   const hasOtherTickets = !loadingMyTickets && otherPendingTickets.length > 0;
 
   const { listRef, hasOverflow } = useListOverflow([
     myRejectedTickets,
     myPendingTickets,
+    otherRejectedTickets,
     otherPendingTickets,
   ]);
 
   const renderTicket = (ticket: Ticket) => {
-    const overdue = isMissingTicket(ticket, now);
+    const overdue = isMissingItem(ticket, "pending", now);
 
     return (
-      <button
+      <ListRow
         key={ticket.id}
-        type="button"
+        overdue={overdue}
+        spacingClassName="pl-1.5 pr-3.5 gap-5"
+        lead={
+          <Icon
+            src={overdue ? "/alert.svg" : ticketStatusIcon[ticket.status]}
+            className="h-4 w-auto shrink-0"
+            alt={ticket.status}
+          />
+        }
+        cells={[
+          ticket.name,
+          ticketStatusText[ticket.status],
+          categoryMap[ticket.category_id] ?? "-",
+          formatShortDate(ticket.due_date),
+        ]}
         onClick={() => onSelectTicket(ticket)}
-        className={`flex h-8 pl-1.5 pr-3.5 w-full shrink-0 cursor-pointer items-center gap-5 rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${
-          overdue
-            ? "border-(--primary-red) text-red-700"
-            : "border-transparent text-black"
-        }`}
-      >
-        <Icon
-          src={overdue ? "/alert.svg" : ticketStatusIcon[ticket.status]}
-          className="h-4 w-auto shrink-0"
-          alt={ticket.status}
-        />
-        <div className={listGridClass}>
-          <p className="truncate text-sm">{ticket.name}</p>
-          <p className="truncate text-sm">{ticketStatusText[ticket.status]}</p>
-          <p className="truncate text-sm">
-            {categoryMap[ticket.category_id] ?? "-"}
-          </p>
-          <p className="text-sm">{formatShortDate(ticket.due_date)}</p>
-        </div>
-      </button>
+      />
     );
   };
 
   return (
-    <div className="flex min-h-0 flex-col gap-2">
-      <ListHeader
-        titles={["Ticket Name", "Status", "Category", "Duedate"]}
-        hasOverflow={hasOverflow}
-      />
-
-      {!hasMyRejected && !hasMyPending && !hasOtherTickets ? (
-        <ListMessage>
-          {errorMyTickets || errorOtherTickets
-            ? "Failed to load tickets"
-            : loadingMyTickets || loadingOtherTickets
-              ? "Loading tickets..."
-              : "Looks like everything's pretty peaceful around here. Hell yeah!"}
-        </ListMessage>
-      ) : (
-        <div
-          ref={listRef}
-          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
+    <ListPanel
+      titles={["Ticket Name", "Status", "Category", "Duedate"]}
+      hasOverflow={hasOverflow}
+      listRef={listRef}
+      empty={
+        !hasMyRejected && !hasMyPending && !hasOtherRejected && !hasOtherTickets
+      }
+      message={
+        errorMyTickets || errorOtherTickets
+          ? "Failed to load tickets"
+          : loadingMyTickets || loadingOtherTickets
+            ? "Loading tickets..."
+            : "Looks like everything's pretty peaceful around here. Hell yeah!"
+      }
+    >
+      {hasMyRejected && (
+        <ListSection
+          title="My rejected tickets"
+          count={counts.myRejectedTickets}
         >
-          {hasMyRejected && (
-            <Fragment>
-              <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                My rejected tickets
-              </h1>
-              {myRejectedTickets.map(renderTicket)}
-            </Fragment>
-          )}
-
-          {hasMyPending && (
-            <Fragment>
-              <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                My pending tickets
-              </h1>
-              {myPendingTickets.map(renderTicket)}
-            </Fragment>
-          )}
-
-          {hasOtherTickets && (
-            <Fragment>
-              <h1 className="flex shrink-0 pl-1 text-base font-semibold text-black">
-                {"Others' pending tickets"}
-              </h1>
-              {otherPendingTickets.map(renderTicket)}
-            </Fragment>
-          )}
-
-          {loadingOtherTickets && <ListMessage>Loading tickets...</ListMessage>}
-
-          {errorMyTickets && (
-            <ListMessage>
-              {isLabUser
-                ? "Failed to load tickets"
-                : "Failed to load my tickets"}
-            </ListMessage>
-          )}
-
-          {errorOtherTickets && (
-            <ListMessage>{"Failed to load others' tickets"}</ListMessage>
-          )}
-        </div>
+          {myRejectedTickets.map(renderTicket)}
+        </ListSection>
       )}
-    </div>
+
+      {hasMyPending && (
+        <ListSection title="My pending tickets" count={counts.myPendingTickets}>
+          {myPendingTickets.map(renderTicket)}
+        </ListSection>
+      )}
+
+      {hasOtherRejected && (
+        <ListSection
+          title="Others' rejected tickets"
+          count={counts.otherRejectedTickets}
+        >
+          {otherRejectedTickets.map(renderTicket)}
+        </ListSection>
+      )}
+
+      {hasOtherTickets && (
+        <ListSection
+          title="Others' pending tickets"
+          count={counts.otherPendingTickets}
+        >
+          {otherPendingTickets.map(renderTicket)}
+        </ListSection>
+      )}
+
+      {loadingOtherTickets && <ListMessage>Loading tickets...</ListMessage>}
+
+      {errorMyTickets && (
+        <ListMessage>
+          {isLabUser ? "Failed to load tickets" : "Failed to load my tickets"}
+        </ListMessage>
+      )}
+
+      {errorOtherTickets && (
+        <ListMessage>{"Failed to load others' tickets"}</ListMessage>
+      )}
+    </ListPanel>
   );
 }
 
@@ -282,6 +265,7 @@ export default function TaskTicketList({
   errorOtherTasks,
   myRejectedTickets,
   myPendingTickets,
+  otherRejectedTickets,
   otherPendingTickets,
   loadingMyTickets,
   loadingOtherTickets,
@@ -290,6 +274,7 @@ export default function TaskTicketList({
   categoryMap,
   usernames,
   isLabUser,
+  counts,
   onSelectTask,
   onSelectTicket,
 }: {
@@ -301,6 +286,7 @@ export default function TaskTicketList({
   errorOtherTasks: boolean;
   myRejectedTickets: Ticket[];
   myPendingTickets: Ticket[];
+  otherRejectedTickets: Ticket[];
   otherPendingTickets: Ticket[];
   loadingMyTickets: boolean;
   loadingOtherTickets: boolean;
@@ -309,6 +295,7 @@ export default function TaskTicketList({
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   isLabUser: boolean;
+  counts: ListCounts;
   onSelectTask: (task: Task) => void;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
@@ -325,11 +312,13 @@ export default function TaskTicketList({
           categoryMap={categoryMap}
           usernames={usernames}
           isLabUser={isLabUser}
+          counts={counts}
           onSelectTask={onSelectTask}
         />
         <TicketList
           myRejectedTickets={myRejectedTickets}
           myPendingTickets={myPendingTickets}
+          otherRejectedTickets={otherRejectedTickets}
           otherPendingTickets={otherPendingTickets}
           loadingMyTickets={loadingMyTickets}
           loadingOtherTickets={loadingOtherTickets}
@@ -337,6 +326,7 @@ export default function TaskTicketList({
           errorOtherTickets={errorOtherTickets}
           categoryMap={categoryMap}
           isLabUser={isLabUser}
+          counts={counts}
           onSelectTicket={onSelectTicket}
         />
       </div>

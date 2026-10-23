@@ -149,8 +149,25 @@ export function getThaiDateParts(input: string | Date) {
   };
 }
 
+// getThaiDateKey("2026-08-28T02:47:00Z") -> "2026-8-28" (Thai day, for compare)
+export function getThaiDateKey(input: string | Date) {
+  const { year, month, day } = getThaiDateParts(input);
+  return `${year}-${month}-${day}`;
+}
+
 // maskEmail("someone@example.com") -> "*******@example.com"
 export function maskEmail(value: string) {
   const at = value.indexOf("@");
   return at > 0 ? "*".repeat(at) + value.slice(at) : "*".repeat(value.length);
+}
+
+// toDateInputValue("2026-08-27T17:00:00Z") -> "2026-08-28" (Bangkok date), "" if null
+export function toDateInputValue(iso: string | null) {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
 }

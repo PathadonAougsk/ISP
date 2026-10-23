@@ -3,6 +3,8 @@ import { useState } from "react";
 import { putTask, type TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member, UserRole } from "@/lib/account";
+import DateInput from "@/components/request-table/DateInput";
+import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function TaskDetailModal({
   task,
@@ -21,6 +23,7 @@ export default function TaskDetailModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { isClosing, handleClose } = useSlideupClose(onClose);
   const [editTaskTitle, setEditTaskTitle] = useState(task.title);
   const [editTaskCategoryId, setEditTaskCategoryId] = useState<number | "">(
     task.categoryId,
@@ -28,7 +31,7 @@ export default function TaskDetailModal({
   const [editTaskDescription, setEditTaskDescription] = useState(
     task.description,
   );
-  const [editTaskDueDate, setEditTaskDueDate] = useState(task.dueDate);
+  const [editTaskDueDate, setEditTaskDueDate] = useState(task.dueDateValue);
   const [editTaskAssignedIds, setEditTaskAssignedIds] = useState<string[]>(
     task.assigneeIds,
   );
@@ -58,10 +61,10 @@ export default function TaskDetailModal({
         description: task.description || null,
         status: "completed",
         category_id: task.categoryId,
-        due_date: task.dueDate || null,
+        due_date: task.dueDateValue || null,
       });
       onSaved();
-      onClose();
+      handleClose();
     } catch (err) {
       setTaskSubmitError(
         err instanceof Error ? err.message : "Failed to submit task",
@@ -80,10 +83,10 @@ export default function TaskDetailModal({
         description: task.description || null,
         status: "in_progress",
         category_id: task.categoryId,
-        due_date: task.dueDate || null,
+        due_date: task.dueDateValue || null,
       });
       onSaved();
-      onClose();
+      handleClose();
     } catch (err) {
       setTaskSubmitError(
         err instanceof Error ? err.message : "Failed to unsubmit task",
@@ -110,7 +113,7 @@ export default function TaskDetailModal({
         assignees: editTaskAssignedIds,
       });
       onSaved();
-      onClose();
+      handleClose();
     } catch (err) {
       setTaskSubmitError(
         err instanceof Error ? err.message : "Failed to update task",
@@ -121,13 +124,13 @@ export default function TaskDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
-        <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
-          Task detail
+    <SlideupFrame isClosing={isClosing} onClose={handleClose}>
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex items-center justify-between pb-3">
+          <h1 className="text-lg font-semibold">Task detail</h1>
         </div>
 
-        <div className="flex gap-6 p-6 flex-1">
+        <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           <div className="flex-1 space-y-4 min-w-0">
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
@@ -184,10 +187,9 @@ export default function TaskDetailModal({
                   Due Date
                 </label>
                 {userRole === "Lab Admin" ? (
-                  <input
-                    type="date"
+                  <DateInput
                     value={editTaskDueDate}
-                    onChange={(e) => setEditTaskDueDate(e.target.value)}
+                    onChange={setEditTaskDueDate}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 ) : (
@@ -292,7 +294,7 @@ export default function TaskDetailModal({
           <button
             onClick={() => {
               setTaskSubmitError(null);
-              onClose();
+              handleClose();
             }}
             disabled={isSavingTask}
             className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
@@ -331,6 +333,6 @@ export default function TaskDetailModal({
             ))}
         </div>
       </div>
-    </div>
+    </SlideupFrame>
   );
 }

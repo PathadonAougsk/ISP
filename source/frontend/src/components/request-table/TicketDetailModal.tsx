@@ -3,11 +3,13 @@ import { useState } from "react";
 import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
-import type { Member, UserRole } from "@/lib/account";
+import { outranks, type AccountRole, type Member } from "@/lib/account";
+import DateInput from "@/components/request-table/DateInput";
+import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function TicketDetailModal({
   ticket,
-  userRole,
+  currentRole,
   currentUserId,
   members,
   categories,
@@ -16,7 +18,7 @@ export default function TicketDetailModal({
   onTaskCreated,
 }: {
   ticket: TicketRow;
-  userRole: UserRole;
+  currentRole: AccountRole;
   currentUserId: string;
   members: Member[];
   categories: Category[];
@@ -24,11 +26,14 @@ export default function TicketDetailModal({
   onSaved: () => void;
   onTaskCreated: () => void;
 }) {
+  const { isClosing, handleClose } = useSlideupClose(onClose);
   const [editTicketTitle, setEditTicketTitle] = useState(ticket.title);
   const [editTicketDescription, setEditTicketDescription] = useState(
     ticket.description,
   );
-  const [editTicketDueDate, setEditTicketDueDate] = useState(ticket.dueDate);
+  const [editTicketDueDate, setEditTicketDueDate] = useState(
+    ticket.dueDateValue,
+  );
   const [editTicketCategoryId, setEditTicketCategoryId] = useState<number | "">(
     ticket.categoryId,
   );
@@ -37,8 +42,12 @@ export default function TicketDetailModal({
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null);
 
   const canEditTicket =
-    userRole === "Lab Admin" ||
-    (ticket.createdById === currentUserId && ticket.status === "Pending");
+    ticket.createdById === currentUserId && 
+    (ticket.status === "Pending" || ticket.status === "Rejected");
+
+  // only role higher than creator can judge. creator not found = nobody
+  const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
+  const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
 
   function toggleAssign(memberId: string) {
     setAssignedMemberIds((prev) =>
@@ -56,6 +65,10 @@ export default function TicketDetailModal({
 
   async function handleDecision(newStatus: TicketRow["status"]) {
     if (ticket.status === newStatus) return;
+    if (!canJudge) {
+      setTaskSubmitError("You can't accept or reject this ticket.");
+      return;
+    }
 
     // Use the edited form values when the user can edit, otherwise the saved ones
     const title = canEditTicket ? editTicketTitle.trim() : ticket.title;
@@ -63,16 +76,16 @@ export default function TicketDetailModal({
       ? editTicketDescription
       : ticket.description;
     const categoryId = canEditTicket ? editTicketCategoryId : ticket.categoryId;
-    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDate;
+    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDateValue;
 
     if (!title || categoryId === "") {
       setTaskSubmitError("Title and category are required.");
       return;
     }
 
-    const backendStatus = newStatus === "Approved" ? "accepted" : "rejected";
+    const backendStatus = newStatus === "Accepted" ? "accepted" : "rejected";
     const previousStatus =
-      ticket.status === "Approved"
+      ticket.status === "Accepted"
         ? "accepted"
         : ticket.status === "Rejected"
           ? "rejected"
@@ -91,8 +104,8 @@ export default function TicketDetailModal({
         status: backendStatus,
       });
 
-      // 2. If approved, create the task from the edited values
-      if (newStatus === "Approved") {
+      // 2. If accepted, create the task from the edited values
+      if (newStatus === "Accepted") {
         try {
           await postTask({
             name: title,
@@ -102,7 +115,7 @@ export default function TicketDetailModal({
             assignees: assignedMemberIds,
           });
         } catch (taskErr) {
-          // Task failed: restore the previous status so it can be approved again
+          // Task failed: restore the previous status so it can be accepted again
           await putTicket(ticket.id, {
             status: previousStatus,
           }).catch(() => {});
@@ -113,7 +126,7 @@ export default function TicketDetailModal({
 
       onSaved();
       setAssignedMemberIds([]);
-      onClose();
+      handleClose();
     } catch (err) {
       setTaskSubmitError(
         err instanceof Error ? err.message : "Failed to update ticket",
@@ -136,9 +149,10 @@ export default function TicketDetailModal({
         description: editTicketDescription || null,
         category_id: editTicketCategoryId,
         due_date: editTicketDueDate || null,
+        status: ticket.status === "Rejected" ? "pending" : undefined,
       });
       onSaved();
-      onClose();
+      handleClose();
     } catch (err) {
       setTaskSubmitError(
         err instanceof Error ? err.message : "Failed to update ticket",
@@ -149,13 +163,13 @@ export default function TicketDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
-        <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
-          Judge tickets
+    <SlideupFrame isClosing={isClosing} onClose={handleClose}>
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex items-center justify-between pb-3">
+          <h1 className="text-lg font-semibold">Judge ticket</h1>
         </div>
 
-        <div className="flex gap-6 p-6 flex-1">
+        <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           <div className="flex-1 space-y-4 min-w-0">
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
@@ -211,10 +225,9 @@ export default function TicketDetailModal({
                     {ticket.dueDate || "—"}
                   </div>
                 ) : (
-                  <input
-                    type="date"
+                  <DateInput
                     value={editTicketDueDate}
-                    onChange={(e) => setEditTicketDueDate(e.target.value)}
+                    onChange={setEditTicketDueDate}
                     className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                 )}
@@ -248,7 +261,7 @@ export default function TicketDetailModal({
             </div>
           </div>
 
-          {userRole === "Lab Admin" && ticket.status !== "Approved" && (
+          {canJudge && ticket.status !== "Accepted" && (
             <div className="w-64 border-l border-gray-200 pl-4">
               <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
                 <span>Members — {members.length}</span>
@@ -266,7 +279,7 @@ export default function TicketDetailModal({
               </div>
 
               <p className="text-xs text-gray-400 mb-2 normal-case">
-                Selected members are assigned to the task when you approve.
+                Selected members are assigned to the task when you accept.
               </p>
 
               <div className="space-y-3 max-h-64 overflow-y-auto">
@@ -311,7 +324,7 @@ export default function TicketDetailModal({
             onClick={() => {
               setAssignedMemberIds([]);
               setTaskSubmitError(null);
-              onClose();
+              handleClose();
             }}
             disabled={isSavingTask}
             className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
@@ -329,7 +342,7 @@ export default function TicketDetailModal({
             </button>
           )}
 
-          {userRole === "Lab Admin" && (
+          {canJudge && (
             <>
               <button
                 onClick={() => handleDecision("Rejected")}
@@ -339,16 +352,16 @@ export default function TicketDetailModal({
                 Reject
               </button>
               <button
-                onClick={() => handleDecision("Approved")}
-                disabled={isSavingTask || ticket.status === "Approved"}
+                onClick={() => handleDecision("Accepted")}
+                disabled={isSavingTask || ticket.status === "Accepted"}
                 className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
               >
-                {isSavingTask ? "Saving…" : "Approve"}
+                {isSavingTask ? "Saving…" : "Accept"}
               </button>
             </>
           )}
         </div>
       </div>
-    </div>
+    </SlideupFrame>
   );
 }
