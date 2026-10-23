@@ -56,6 +56,12 @@ async def retrieve_tasks(
             status_code=400,
             detail="assignsTo and notOwned cannot be used together",
         )
+    
+    if onlyOwned and notOwned:
+        raise HTTPException(
+            status_code=400,
+            detail="onlyOwned and notOwned cannot be both true",
+        )
 
    
     tasks = select(Task).options(selectinload(Task.assignees))
