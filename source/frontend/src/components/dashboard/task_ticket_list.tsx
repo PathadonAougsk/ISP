@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
@@ -22,16 +23,19 @@ import {
 } from "@/components/dashboard/dashboard_utils";
 
 // ready-to-show count string
-export type ListCounts = {
+export type TaskListCounts = {
   myTasks: string;
   otherTasks: string;
+};
+
+export type TicketListCounts = {
   myRejectedTickets: string;
   myPendingTickets: string;
   otherRejectedTickets: string;
   otherPendingTickets: string;
 };
 
-function TaskList({
+export function TaskList({
   myTasks,
   otherTasks,
   loadingMyTasks,
@@ -53,7 +57,7 @@ function TaskList({
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   isLabUser: boolean;
-  counts: ListCounts;
+  counts: TaskListCounts;
   onSelectTask: (task: Task) => void;
 }) {
   const limits = getDueBucketLimits(new Date());
@@ -66,7 +70,7 @@ function TaskList({
   const renderTask = (task: Task) => (
     <ListRow
       key={task.id}
-      overdue={isMissingItem(task, "in_progress", limits.now)}
+      overdue={isMissingItem(task, ["in_progress"], limits.now)}
       spacingClassName="pl-2.5 pr-3.5 gap-6"
       lead={
         <span
@@ -124,7 +128,7 @@ function TaskList({
   );
 }
 
-function TicketList({
+export function TicketList({
   myRejectedTickets,
   myPendingTickets,
   otherRejectedTickets,
@@ -148,7 +152,7 @@ function TicketList({
   errorOtherTickets: boolean;
   categoryMap: CategoryMap;
   isLabUser: boolean;
-  counts: ListCounts;
+  counts: TicketListCounts;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
   const now = new Date();
@@ -167,7 +171,7 @@ function TicketList({
   ]);
 
   const renderTicket = (ticket: Ticket) => {
-    const overdue = isMissingItem(ticket, "pending", now);
+    const overdue = isMissingItem(ticket, ["pending", "rejected"], now);
 
     return (
       <ListRow
@@ -256,79 +260,12 @@ function TicketList({
   );
 }
 
-export default function TaskTicketList({
-  myTasks,
-  otherTasks,
-  loadingMyTasks,
-  loadingOtherTasks,
-  errorMyTasks,
-  errorOtherTasks,
-  myRejectedTickets,
-  myPendingTickets,
-  otherRejectedTickets,
-  otherPendingTickets,
-  loadingMyTickets,
-  loadingOtherTickets,
-  errorMyTickets,
-  errorOtherTickets,
-  categoryMap,
-  usernames,
-  isLabUser,
-  counts,
-  onSelectTask,
-  onSelectTicket,
-}: {
-  myTasks: Task[];
-  otherTasks: Task[];
-  loadingMyTasks: boolean;
-  loadingOtherTasks: boolean;
-  errorMyTasks: boolean;
-  errorOtherTasks: boolean;
-  myRejectedTickets: Ticket[];
-  myPendingTickets: Ticket[];
-  otherRejectedTickets: Ticket[];
-  otherPendingTickets: Ticket[];
-  loadingMyTickets: boolean;
-  loadingOtherTickets: boolean;
-  errorMyTickets: boolean;
-  errorOtherTickets: boolean;
-  categoryMap: CategoryMap;
-  usernames: Record<string, string>;
-  isLabUser: boolean;
-  counts: ListCounts;
-  onSelectTask: (task: Task) => void;
-  onSelectTicket: (ticket: Ticket) => void;
-}) {
+// layout only, the two lists are passed as children
+export default function TaskTicketList({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-w-0 flex-1 shrink-0">
       <div className="absolute inset-0 grid grid-rows-[minmax(0,auto)_minmax(0,auto)] content-start gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
-        <TaskList
-          myTasks={myTasks}
-          otherTasks={otherTasks}
-          loadingMyTasks={loadingMyTasks}
-          loadingOtherTasks={loadingOtherTasks}
-          errorMyTasks={errorMyTasks}
-          errorOtherTasks={errorOtherTasks}
-          categoryMap={categoryMap}
-          usernames={usernames}
-          isLabUser={isLabUser}
-          counts={counts}
-          onSelectTask={onSelectTask}
-        />
-        <TicketList
-          myRejectedTickets={myRejectedTickets}
-          myPendingTickets={myPendingTickets}
-          otherRejectedTickets={otherRejectedTickets}
-          otherPendingTickets={otherPendingTickets}
-          loadingMyTickets={loadingMyTickets}
-          loadingOtherTickets={loadingOtherTickets}
-          errorMyTickets={errorMyTickets}
-          errorOtherTickets={errorOtherTickets}
-          categoryMap={categoryMap}
-          isLabUser={isLabUser}
-          counts={counts}
-          onSelectTicket={onSelectTicket}
-        />
+        {children}
       </div>
     </div>
   );

@@ -2,6 +2,8 @@ import { getThaiDateParts } from "@/lib/format";
 
 export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
+export type DashboardView = "task" | "ticket";
+
 // fields that task and ticket share
 export type DashboardItem = {
   status: string;
@@ -19,12 +21,11 @@ export const dueBucketColor: Record<DueBucketKey, string> = {
 export const dueBucketMeta: {
   key: DueBucketKey;
   label: string;
-  color: string;
 }[] = [
-  { key: "missing", label: "Missing", color: dueBucketColor.missing },
-  { key: "thisWeek", label: "This week", color: dueBucketColor.thisWeek },
-  { key: "nextWeek", label: "Next week", color: dueBucketColor.nextWeek },
-  { key: "later", label: "Later", color: dueBucketColor.later },
+  { key: "missing", label: "Missing" },
+  { key: "thisWeek", label: "This week" },
+  { key: "nextWeek", label: "Next week" },
+  { key: "later", label: "Later" },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -66,13 +67,14 @@ function isMissing(dueDateIso: string | null, now: Date): boolean {
   return dueDateIso !== null && new Date(dueDateIso) <= now;
 }
 
-// only in_progress task or pending ticket can missing
+// missing = status in the list and due date pass
+// task: ["in_progress"], ticket: ["pending", "rejected"]
 export function isMissingItem(
   item: { status: string; due_date: string | null },
-  status: "in_progress" | "pending",
+  statuses: string[],
   now: Date,
 ): boolean {
-  return item.status === status && isMissing(item.due_date, now);
+  return statuses.includes(item.status) && isMissing(item.due_date, now);
 }
 
 export function getDueBucket(
@@ -102,9 +104,12 @@ export const ticketStatusIcon: Record<string, string> = {
   rejected: "/rejected.svg",
 };
 
-// higher role can judge lower role ticket
-export const roleRank: Record<string, number> = {
-  "Lab Owner": 3,
-  "Lab Admin": 2,
-  "Lab User": 1,
-};
+// count pass the max, show "{max}+"
+export function formatCount(count: number, max: number) {
+  return count > max ? `${max}+` : String(count);
+}
+
+// room left after used items take their part. never below 0
+export function getRoom(max: number, ...used: number[]) {
+  return Math.max(max - used.reduce((sum, count) => sum + count, 0), 0);
+}

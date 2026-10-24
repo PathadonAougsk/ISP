@@ -67,21 +67,14 @@ export default function TaskSlideup({
     }
   }
 
-  const buttonColor = isCompleted
-    ? submitting
-      ? "bg-gray-200"
-      : "bg-(--primary-red) hover:bg-(--primary-red-hover)"
-    : submitting
-      ? "bg-gray-200"
+  const buttonColor = submitting
+    ? "bg-gray-200"
+    : isCompleted
+      ? "bg-(--primary-red) hover:bg-(--primary-red-hover)"
       : "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)";
 
-  const buttonLabel = isCompleted
-    ? submitting
-      ? "Unsubmitting"
-      : "Unsubmit"
-    : submitting
-      ? "Submitting"
-      : "Submit";
+  const verb = isCompleted ? "Unsubmit" : "Submit";
+  const buttonLabel = submitting ? `${verb}ting` : verb;
 
   const sortedAssignees = [...task.assignees].sort((a, b) => {
     if (a.id === currentUserId) return -1;
