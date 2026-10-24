@@ -1,27 +1,26 @@
-"use client";
-
 import type { CategoryMap } from "@/lib/category";
 import Icon from "@/components/icon";
 import {
+  dueBucketColor,
   dueBucketMeta,
   emptyBucketCounts,
   getDueBucket,
   getDueBucketLimits,
   type DashboardItem,
+  type DashboardView,
   type DueBucketKey,
 } from "@/components/dashboard/dashboard_status";
 import { ListMessage } from "@/components/dashboard/dashboard_utils";
-import type { DashboardView } from "@/components/dashboard/view_toggle";
 
 export default function Overview({
-  tasks,
+  items,
   loadingTasks,
   errorTasks,
   errorCategories,
   categoryMap,
   view,
 }: {
-  tasks: DashboardItem[];
+  items: DashboardItem[];
   loadingTasks: boolean;
   errorTasks: boolean;
   errorCategories: boolean;
@@ -34,7 +33,7 @@ export default function Overview({
   const noun = isTicket ? "tickets" : "tasks";
 
   // task and ticket both group by due date range
-  const grouped = tasks.reduce<Record<number, Record<DueBucketKey, number>>>(
+  const grouped = items.reduce<Record<number, Record<DueBucketKey, number>>>(
     (acc, task) => {
       const bucket = getDueBucket(task.due_date, limits);
       if (!acc[task.category_id]) {
@@ -65,7 +64,7 @@ export default function Overview({
         <ListMessage>Failed to load {noun}</ListMessage>
       ) : errorCategories ? (
         <ListMessage>Failed to load categories</ListMessage>
-      ) : tasks.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">
           {isTicket
             ? "No tickets! Smooth sailing ahead, so enjoy the calm."
@@ -85,14 +84,14 @@ export default function Overview({
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1">
                     <p className="max-w-full shrink-0 truncate text-base font-bold text-black">
-                      {categoryMap[id] ?? `Category ${id}`}
+                      {categoryMap[id] ?? "-"}
                     </p>
 
                     <div className="flex shrink-0 items-center gap-4">
                       {visibleBuckets.map((b) => (
                         <div key={b.key} className="flex items-center gap-1">
                           <span
-                            className={`h-4 w-4 shrink-0 rounded-full ${b.color}`}
+                            className={`h-4 w-4 shrink-0 rounded-full ${dueBucketColor[b.key]}`}
                           />
                           <span className="text-base font-medium text-black">
                             {counts[b.key]}
@@ -107,7 +106,7 @@ export default function Overview({
                       counts[b.key] > 0 ? (
                         <div
                           key={b.key}
-                          className={b.color}
+                          className={dueBucketColor[b.key]}
                           style={{
                             width: `${(counts[b.key] / total) * 100}%`,
                           }}

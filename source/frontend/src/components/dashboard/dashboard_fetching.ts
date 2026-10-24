@@ -1,90 +1,49 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { getAccounts, type Account } from "@/lib/account";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getAccounts, type Account, type AccountRole } from "@/lib/account";
 import { getCategories, type Category } from "@/lib/category";
 import { getTasks, type GetTasksParams, type Task } from "@/lib/task";
 import { getTickets, type Ticket } from "@/lib/ticket";
-import { getRoom } from "@/components/dashboard/dashboard_utils";
-
-const CACHE_MS = 60_000;
-
-// share one request between callers. retry after a failure or after CACHE_MS
-
-function cachedRequest<T>(load: () => Promise<T>) {
-  let request: Promise<T | null> | null = null;
-  let loadedAt = 0;
-  let pending = false;
-
-  return () => {
-    if (request === null || (!pending && Date.now() - loadedAt > CACHE_MS)) {
-      pending = true;
-
-      const next: Promise<T | null> = load()
-        .then((result) => {
-          if (request === next) {
-            loadedAt = Date.now();
-            pending = false;
-          }
-
-          return result;
-        })
-        .catch(() => {
-          if (request === next) {
-            request = null;
-            pending = false;
-          }
-
-          return null;
-        });
-
-      request = next;
-    }
-
-    return request;
-  };
-}
-
-const loadAccounts = cachedRequest(() =>
-  getAccounts().then(({ Accounts }) => Accounts),
-);
-
-const loadCategories = cachedRequest(() =>
-  getCategories().then(({ Categories }) => Categories),
-);
+import { formatCount, getRoom } from "@/components/dashboard/dashboard_status";
 
 // due date asc, null last. both null or same date, sort by id asc
-function compareByDueDate<T extends { id: number; due_date: string | null }>(
-  a: T,
-  b: T,
-) {
-  if (a.due_date === null && b.due_date === null) return a.id - b.id;
-  if (a.due_date === null) return 1;
-  if (b.due_date === null) return -1;
-
-  const diff = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-  return diff !== 0 ? diff : a.id - b.id;
-}
-
 function sortByDueDate<T extends { id: number; due_date: string | null }>(
   items: T[],
 ) {
-  return [...items].sort(compareByDueDate);
+  return [...items].sort((a, b) => {
+    if (a.due_date === null && b.due_date === null) return a.id - b.id;
+    if (a.due_date === null) return 1;
+    if (b.due_date === null) return -1;
+
+    const diff =
+      new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    return diff !== 0 ? diff : a.id - b.id;
+  });
 }
 
 // loading + error flag, one pair for each request group
-type Resource = "myTasks" | "otherTasks" | "myTickets" | "otherTickets";
+type Resource =
+  | "categories"
+  | "myTasks"
+  | "otherTasks"
+  | "myTickets"
+  | "otherTickets";
 type Flags = { loading: boolean; error: boolean };
 type SetFlag = (key: Resource, patch: Partial<Flags>) => void;
 
 const initialFlags: Record<Resource, Flags> = {
+  categories: { loading: true, error: false },
   myTasks: { loading: true, error: false },
   otherTasks: { loading: true, error: false },
   myTickets: { loading: true, error: false },
   otherTickets: { loading: true, error: false },
 };
 
-const resources = Object.keys(initialFlags) as Resource[];
+// categories dont need an account
+const accountResources = (Object.keys(initialFlags) as Resource[]).filter(
+  (key) => key !== "categories",
+);
 
 // same flow for every group. cancelled = ignore everything
 async function runLoad(
@@ -120,8 +79,7 @@ export function useDashboardFetching(
   const accountRole = currentAccount?.role;
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [errorCategories, setErrorCategories] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [otherTasks, setOtherTasks] = useState<Task[]>([]);
@@ -131,8 +89,6 @@ export function useDashboardFetching(
     [],
   );
   const [otherPendingTickets, setOtherPendingTickets] = useState<Ticket[]>([]);
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
-  const [creatorRoles, setCreatorRoles] = useState<Record<string, string>>({});
 
   const [flags, setFlags] = useState(initialFlags);
 
@@ -149,19 +105,32 @@ export function useDashboardFetching(
   useEffect(() => {
     let cancelled = false;
 
-    // null mean request failed
-    loadCategories().then((loaded) => {
-      if (cancelled) return;
+    runLoad(
+      "categories",
+      setFlag,
+      () => cancelled,
+      async () => {
+        const { Categories } = await getCategories();
 
-      if (loaded) {
-        setCategories(loaded);
-        setErrorCategories(false);
-      } else {
-        setErrorCategories(true);
-      }
+        if (!cancelled) setCategories(Categories);
+      },
+      () => setCategories([]),
+    );
 
-      setLoadingCategories(false);
-    });
+    return () => {
+      cancelled = true;
+    };
+  }, [setFlag]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // fail = names show "-", nothing else break
+    getAccounts()
+      .then(({ Accounts }) => {
+        if (!cancelled) setAccounts(Accounts);
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
@@ -173,9 +142,6 @@ export function useDashboardFetching(
 
     let cancelled = false;
 
-    const run = (key: Resource, load: () => Promise<void>, reset: () => void) =>
-      runLoad(key, setFlag, () => cancelled, load, reset);
-
     async function loadTasks(
       params: GetTasksParams,
       key: Resource,
@@ -183,8 +149,10 @@ export function useDashboardFetching(
     ): Promise<Task[]> {
       let loaded: Task[] = [];
 
-      await run(
+      await runLoad(
         key,
+        setFlag,
+        () => cancelled,
         async () => {
           const { Tasks } = await getTasks(params);
 
@@ -200,7 +168,7 @@ export function useDashboardFetching(
     }
 
     // load as sequence and with only needed amount
-    // limit = max + 1
+    // limit = max + 1 - already loaded
     async function loadAllTasks(userId: string) {
       const mine = await loadTasks(
         {
@@ -221,11 +189,12 @@ export function useDashboardFetching(
         return;
       }
 
-      // load others' task and remove the dupe
+      // load others' task, backend skips the ones assigned to me
       await loadTasks(
         {
           status: "in_progress",
-          limit: maxTask + 1,
+          notassignsTo: userId,
+          limit: maxTask + 1 - mine.length,
         },
         "otherTasks",
         setOtherTasks,
@@ -245,17 +214,16 @@ export function useDashboardFetching(
 
     let cancelled = false;
 
-    const run = (key: Resource, load: () => Promise<void>, reset: () => void) =>
-      runLoad(key, setFlag, () => cancelled, load, reset);
-
     // my rejected -> my pending -> others' rejected -> others' pending
     // limit = max + 1
     async function loadTickets() {
       let rejectedCount = 0;
       let myPending: Ticket[] = [];
 
-      await run(
+      await runLoad(
         "myTickets",
+        setFlag,
+        () => cancelled,
         async () => {
           const { Tickets: rejected } = await getTickets({
             status: "rejected",
@@ -299,8 +267,10 @@ export function useDashboardFetching(
         return;
       }
 
-      await run(
+      await runLoad(
         "otherTickets",
+        setFlag,
+        () => cancelled,
         async () => {
           // others' rejected first, room already > 0 here
           const { Tickets: otherRejected } = await getTickets({
@@ -349,85 +319,130 @@ export function useDashboardFetching(
   }, [accountId, accountRole, maxTicket, ticketsReloadKey, setFlag]);
 
   useEffect(() => {
-    const userIds = [
-      ...myTasks.map((task) => task.created_by),
-      ...otherTasks.map((task) => task.created_by),
-      ...myRejectedTickets.map((ticket) => ticket.created_by),
-      ...myPendingTickets.map((ticket) => ticket.created_by),
-      ...otherRejectedTickets.map((ticket) => ticket.created_by),
-      ...otherPendingTickets.map((ticket) => ticket.created_by),
-    ];
+    if (accountLoading || currentAccount !== null) return;
 
-    const uniqueIds = [...new Set(userIds)];
-    if (uniqueIds.length === 0) return;
+    accountResources.forEach((key) =>
+      setFlag(key, { loading: false, error: true }),
+    );
+  }, [accountLoading, currentAccount, setFlag]);
 
-    let cancelled = false;
-
-    loadAccounts().then((accounts) => {
-      if (cancelled || !accounts) return;
-
-      const names = new Map(
+  // id -> name / role, built from all accounts
+  const usernames = useMemo(
+    () =>
+      Object.fromEntries(
         accounts.map((account): [string, string] => [
           account.id,
           account.username,
         ]),
-      );
+      ),
+    [accounts],
+  );
 
-      const roles = new Map(
-        accounts.map((account): [string, string] => [account.id, account.role]),
-      );
+  const creatorRoles = useMemo(
+    () =>
+      Object.fromEntries(
+        accounts.map((account): [string, AccountRole] => [
+          account.id,
+          account.role,
+        ]),
+      ),
+    [accounts],
+  );
 
-      const nextUsernames: Record<string, string> = {};
-      const nextRoles: Record<string, string> = {};
+  const loadingMyTasks = flags.myTasks.loading;
 
-      uniqueIds.forEach((userId) => {
-        nextUsernames[userId] = names.get(userId) ?? userId;
+  // keep one extra item, so count can show max+
+  const visibleOtherTasks = useMemo(() => {
+    if (loadingMyTasks) return [];
 
-        const role = roles.get(userId);
-        if (role) nextRoles[userId] = role;
-      });
+    return otherTasks.slice(0, getRoom(maxTask + 1, myTasks.length));
+  }, [loadingMyTasks, maxTask, myTasks.length, otherTasks]);
 
-      setUsernames((prev) => ({ ...prev, ...nextUsernames }));
-      setCreatorRoles((prev) => ({ ...prev, ...nextRoles }));
-    });
+  // lists show max only, the extra item is just for count
+  const shownMyTasks = useMemo(
+    () => myTasks.slice(0, maxTask),
+    [maxTask, myTasks],
+  );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    myTasks,
-    otherTasks,
-    myRejectedTickets,
-    myPendingTickets,
-    otherRejectedTickets,
-    otherPendingTickets,
-  ]);
+  const otherTaskRoom = getRoom(maxTask, myTasks.length);
 
-  useEffect(() => {
-    if (accountLoading || currentAccount !== null) return;
+  const shownOtherTasks = useMemo(
+    () => visibleOtherTasks.slice(0, otherTaskRoom),
+    [otherTaskRoom, visibleOtherTasks],
+  );
 
-    resources.forEach((key) => setFlag(key, { loading: false, error: true }));
-  }, [accountLoading, currentAccount, setFlag]);
+  const shownMyRejectedTickets = useMemo(
+    () => myRejectedTickets.slice(0, maxTicket),
+    [maxTicket, myRejectedTickets],
+  );
+
+  const shownMyPendingTickets = useMemo(
+    () => myPendingTickets.slice(0, maxTicket),
+    [maxTicket, myPendingTickets],
+  );
+
+  // others only fill the room that mine leave
+  const ticketRoom = getRoom(
+    maxTicket,
+    shownMyRejectedTickets.length,
+    shownMyPendingTickets.length,
+  );
+
+  const shownOtherRejectedTickets = useMemo(
+    () => otherRejectedTickets.slice(0, ticketRoom),
+    [otherRejectedTickets, ticketRoom],
+  );
+
+  const pendingRoom = getRoom(ticketRoom, shownOtherRejectedTickets.length);
+
+  const shownOtherPendingTickets = useMemo(
+    () => otherPendingTickets.slice(0, pendingRoom),
+    [otherPendingTickets, pendingRoom],
+  );
+
+  // label counting
+  const taskCounts = {
+    myTasks: formatCount(myTasks.length, maxTask),
+    otherTasks: formatCount(visibleOtherTasks.length, otherTaskRoom),
+  };
+
+  const ticketCounts = {
+    myRejectedTickets: formatCount(myRejectedTickets.length, maxTicket),
+    myPendingTickets: formatCount(myPendingTickets.length, maxTicket),
+    otherRejectedTickets: formatCount(otherRejectedTickets.length, ticketRoom),
+    otherPendingTickets: formatCount(otherPendingTickets.length, pendingRoom),
+  };
 
   return {
+    // full lists (with the extra item), only for Missing
     myTasks,
-    otherTasks,
-    categories,
     myRejectedTickets,
     myPendingTickets,
-    otherRejectedTickets,
-    otherPendingTickets,
+    // lists for the UI, already cut to max
+    shownMyTasks,
+    shownOtherTasks,
+    shownMyRejectedTickets,
+    shownMyPendingTickets,
+    shownOtherRejectedTickets,
+    shownOtherPendingTickets,
+    taskCounts,
+    ticketCounts,
+    categories,
     usernames,
     creatorRoles,
-    loadingMyTasks: flags.myTasks.loading,
-    loadingOtherTasks: flags.otherTasks.loading && accountRole !== "Lab User",
-    loadingCategories,
+    loadingMyTasks,
+    // others wait for my tasks, so the list never jump around
+    loadingOtherTasks:
+      flags.otherTasks.loading &&
+      accountRole !== "Lab User" &&
+      (loadingMyTasks || myTasks.length <= maxTask),
+    loadingCategories: flags.categories.loading,
     loadingMyTickets: flags.myTickets.loading,
     loadingOtherTickets:
       flags.otherTickets.loading && accountRole !== "Lab User",
     errorMyTasks: flags.myTasks.error,
     errorOtherTasks: flags.otherTasks.error,
-    errorCategories,
+    errorCategories: flags.categories.error,
     errorMyTickets: flags.myTickets.error,
     errorOtherTickets: flags.otherTickets.error,
     reloadTasks: () => setTasksReloadKey((key) => key + 1),

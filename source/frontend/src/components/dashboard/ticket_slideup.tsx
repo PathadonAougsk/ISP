@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { outranks, type AccountRole } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import { putTicket, type Ticket } from "@/lib/ticket";
 import Icon from "@/components/icon";
 import {
-  roleRank,
   ticketStatusIcon,
   ticketStatusText,
 } from "@/components/dashboard/dashboard_status";
@@ -35,9 +35,9 @@ export default function TicketSlideup({
   ticket: Ticket;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
-  creatorRoles: Record<string, string>;
+  creatorRoles: Record<string, AccountRole>;
   currentUserId: string | null;
-  currentRole: string | null;
+  currentRole: AccountRole | null;
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -52,11 +52,10 @@ export default function TicketSlideup({
   const creatorRole = creatorRoles[ticket.created_by];
   const canJudge =
     currentRole !== null &&
-    currentRole !== "Lab User" &&
     creatorRole !== undefined &&
     ticket.status === "pending" &&
     ticket.created_by !== currentUserId &&
-    (roleRank[creatorRole] ?? 0) < (roleRank[currentRole] ?? 0);
+    outranks(currentRole, creatorRole);
 
   async function handleJudge(status: "accepted" | "rejected") {
     setSubmitting(true);

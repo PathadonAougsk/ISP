@@ -10,25 +10,10 @@ import {
 import { useRouter } from "next/navigation";
 import { formatFullDateTime } from "@/lib/format";
 import Icon from "@/components/icon";
-import { isMissingItem } from "@/components/dashboard/dashboard_status";
 import {
-  buildRequestTableUrl,
-  type RequestTableTarget,
-} from "@/components/dashboard/redirect";
-
-// ==========================================================
-// Count
-// ==========================================================
-
-// count pass the max, show "{max}+"
-export function formatCount(count: number, max: number) {
-  return count > max ? `${max}+` : String(count);
-}
-
-// room left after used items take their part. never below 0
-export function getRoom(max: number, ...used: number[]) {
-  return Math.max(max - used.reduce((sum, count) => sum + count, 0), 0);
-}
+  isMissingItem,
+  type DashboardView,
+} from "@/components/dashboard/dashboard_status";
 
 // ==========================================================
 // Links
@@ -66,32 +51,6 @@ export function renderWithLinks(text: string): ReactNode {
 export const listGridClass =
   "grid flex-1 grid-cols-[2fr_1.25fr_1.25fr_minmax(120px,1fr)] items-center gap-3";
 
-// green header bar, one title per column
-export function ListHeader({
-  titles,
-  hasOverflow = false,
-}: {
-  titles: string[];
-  hasOverflow?: boolean;
-}) {
-  return (
-    <div
-      className={`flex h-8 shrink-0 items-center gap-5 rounded-[20px] bg-(--primary-color-2) pl-2 ${
-        hasOverflow ? "pr-6" : "pr-4"
-      }`}
-    >
-      <Icon src="/header_donut_dark_green.svg" />
-      <div className={listGridClass}>
-        {titles.map((title) => (
-          <h1 key={title} className="truncate text-base font-bold text-white">
-            {title}
-          </h1>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // loading, error or empty text for a list
 export function ListMessage({ children }: { children: ReactNode }) {
   return (
@@ -101,18 +60,9 @@ export function ListMessage({ children }: { children: ReactNode }) {
   );
 }
 
-// ownership label, title + count (count already formatted into string and "+" sign)
-// sticky, so it stay under column header while its section scroll
-export function ListLabel({ title, count }: { title: string; count: string }) {
-  return (
-    <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1 pb-2">
-      <h1 className="text-base font-semibold text-black">{title}</h1>
-      <span className="text-xl font-bold text-green-800">{count}</span>
-    </div>
-  );
-}
-
 // label + rows of one section
+// label = title + count (count already formatted into string and "+" sign)
+// label sticky, so it stay under column header while its section scroll
 export function ListSection({
   title,
   count,
@@ -124,7 +74,10 @@ export function ListSection({
 }) {
   return (
     <div className="flex shrink-0 flex-col gap-2">
-      <ListLabel title={title} count={count} />
+      <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1 pb-2">
+        <h1 className="text-base font-semibold text-black">{title}</h1>
+        <span className="text-xl font-bold text-green-800">{count}</span>
+      </div>
       {children}
     </div>
   );
@@ -172,7 +125,7 @@ export function ListRow({
   );
 }
 
-// header + scroll body. show message when list is empty
+// green header bar (one title per column) + scroll body. show message when list is empty
 export function ListPanel({
   titles,
   hasOverflow,
@@ -190,7 +143,20 @@ export function ListPanel({
 }) {
   return (
     <div className="flex min-h-0 flex-col gap-2">
-      <ListHeader titles={titles} hasOverflow={hasOverflow} />
+      <div
+        className={`flex h-8 shrink-0 items-center gap-5 rounded-[20px] bg-(--primary-color-2) pl-2 ${
+          hasOverflow ? "pr-6" : "pr-4"
+        }`}
+      >
+        <Icon src="/header_donut_dark_green.svg" />
+        <div className={listGridClass}>
+          {titles.map((title) => (
+            <h1 key={title} className="truncate text-base font-bold text-white">
+              {title}
+            </h1>
+          ))}
+        </div>
+      </div>
 
       {empty ? (
         <ListMessage>{message}</ListMessage>
@@ -242,15 +208,13 @@ export function useListOverflow(dependencies: unknown[]) {
 // Slideup parts
 // ==========================================================
 
-type DateInput = string | null;
-
 // black button, go to request-table. label is different per caller
 export function RequestTableButton({
   type,
   id,
   label,
 }: {
-  type: RequestTableTarget;
+  type: DashboardView;
   id: number;
   label: string;
 }) {
@@ -262,7 +226,7 @@ export function RequestTableButton({
       type="button"
       onClick={() => {
         setRedirecting(true);
-        router.push(buildRequestTableUrl(type, id));
+        router.push(`/request-table?type=${type}&id=${id}`);
       }}
       disabled={redirecting}
       className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
@@ -276,7 +240,7 @@ export function RequestTableButton({
   );
 }
 
-// id + category + due date row. children are extra items added at the end
+// id + category + created date row. children are extra items added at the end
 export function SlideupMeta({
   id,
   categoryName,
@@ -285,7 +249,7 @@ export function SlideupMeta({
 }: {
   id: number;
   categoryName: string;
-  createdDate: DateInput;
+  createdDate: string | null;
   children?: ReactNode;
 }) {
   return (
@@ -304,40 +268,13 @@ export function SlideupMeta({
   );
 }
 
-// red badge. show only when task in_progress or ticket pending is past due
-export function SlideupMissingBadge({
-  type,
-  status,
-  dueDate,
-}: {
-  type: "task" | "ticket";
-  status: string;
-  dueDate: DateInput;
-}) {
-  const item = { status, due_date: dueDate };
-  const now = new Date();
-  const missing = isMissingItem(
-    item,
-    type === "task" ? "in_progress" : "pending",
-    now,
-  );
-
-  if (!missing) return null;
-
-  return (
-    <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
-      Missing
-    </div>
-  );
-}
-
 // shows nothing when the item was never edited
 export function SlideupEdited({
   created,
   updated,
 }: {
-  created: DateInput;
-  updated: DateInput;
+  created: string | null;
+  updated: string | null;
 }) {
   if (updated === created) return null;
 
@@ -349,38 +286,41 @@ export function SlideupEdited({
   );
 }
 
-export function SlideupDuedate({ dueDate }: { dueDate: DateInput }) {
-  const formattedDate = formatFullDateTime(dueDate);
-
-  return (
-    <div className="mt-2 flex items-center gap-2 text-base font-semibold text-black">
-      {formattedDate === "No due date" ? (
-        <span>{formatFullDateTime(dueDate)}</span>
-      ) : (
-        <>
-          <span>Due</span>
-          <span>{formattedDate}</span>
-        </>
-      )}
-    </div>
-  );
-}
-
-// due date + missing badge in one row
+// due date + red missing badge in one row
+// badge show only when task in_progress or ticket pending/rejected is past due
 export function SlideupDueRow({
   type,
   status,
   dueDate,
 }: {
-  type: "task" | "ticket";
+  type: DashboardView;
   status: string;
-  dueDate: DateInput;
+  dueDate: string | null;
 }) {
+  const missing = isMissingItem(
+    { status, due_date: dueDate },
+    type === "task" ? ["in_progress"] : ["pending", "rejected"],
+    new Date(),
+  );
+
   return (
     <div className="flex items-end gap-8">
-      <SlideupDuedate dueDate={dueDate} />
+      <div className="mt-2 flex items-center gap-2 text-base font-semibold text-black">
+        {dueDate === null ? (
+          <span>{formatFullDateTime(dueDate)}</span>
+        ) : (
+          <>
+            <span>Due</span>
+            <span>{formatFullDateTime(dueDate)}</span>
+          </>
+        )}
+      </div>
 
-      <SlideupMissingBadge type={type} status={status} dueDate={dueDate} />
+      {missing && (
+        <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+          Missing
+        </div>
+      )}
     </div>
   );
 }

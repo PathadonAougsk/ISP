@@ -1,32 +1,22 @@
 "use client";
 
 import { useRef, type KeyboardEvent } from "react";
+import type { DashboardView } from "@/components/dashboard/dashboard_status";
 
-export type DashboardView = "task" | "ticket";
 export type DashboardScope = "mine" | "all";
 
 type ToggleProps = {
-  labels: string[];
-  methods: (() => void)[];
+  options: { label: string; onClick: () => void }[];
   selectedIndex: number;
   ariaLabel: string;
   widthClassName: string;
-  backgroundColor?: string;
-  selectedBackgroundColor?: string;
-  unselectedTextColor?: string;
-  selectedTextColor?: string;
 };
 
 function Toggle({
-  labels,
-  methods,
+  options,
   selectedIndex,
   ariaLabel,
   widthClassName,
-  backgroundColor = "var(--primary-color-2)",
-  selectedBackgroundColor = "white",
-  unselectedTextColor = "white",
-  selectedTextColor = "black",
 }: ToggleProps) {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -36,13 +26,13 @@ function Toggle({
     if (event.key === "ArrowLeft") {
       nextIndex = Math.max(0, selectedIndex - 1);
     } else if (event.key === "ArrowRight") {
-      nextIndex = Math.min(labels.length - 1, selectedIndex + 1);
+      nextIndex = Math.min(options.length - 1, selectedIndex + 1);
     } else {
       return;
     }
 
     event.preventDefault();
-    methods[nextIndex]?.();
+    options[nextIndex]?.onClick();
     buttonRefs.current[nextIndex]?.focus();
   };
 
@@ -50,23 +40,19 @@ function Toggle({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`relative flex h-10 shrink-0 rounded-full ${widthClassName}`}
-      style={{ backgroundColor }}
+      className={`relative flex h-10 shrink-0 rounded-full bg-(--primary-color-2) ${widthClassName}`}
     >
       <div
         className="absolute inset-y-0 left-0 p-1 transition-transform duration-150 ease-out"
         style={{
-          width: `${100 / labels.length}%`,
+          width: `${100 / options.length}%`,
           transform: `translateX(${selectedIndex * 100}%)`,
         }}
       >
-        <div
-          className="h-full w-full rounded-full"
-          style={{ backgroundColor: selectedBackgroundColor }}
-        />
+        <div className="h-full w-full rounded-full bg-white" />
       </div>
 
-      {labels.map((label, index) => {
+      {options.map(({ label, onClick }, index) => {
         const selected = index === selectedIndex;
 
         return (
@@ -79,12 +65,11 @@ function Toggle({
             role="tab"
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
-            onClick={methods[index]}
+            onClick={onClick}
             onKeyDown={handleKeyDown}
-            className="relative z-10 h-full flex-1 cursor-pointer rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2)"
-            style={{
-              color: selected ? selectedTextColor : unselectedTextColor,
-            }}
+            className={`relative z-10 h-full flex-1 cursor-pointer rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2) ${
+              selected ? "text-black" : "text-white"
+            }`}
           >
             {label}
           </button>
@@ -101,12 +86,12 @@ export default function ViewToggle({
   value: DashboardView;
   onChange: (value: DashboardView) => void;
 }) {
-  const labels = ["Task", "Ticket"];
-
   return (
     <Toggle
-      labels={labels}
-      methods={[() => onChange("task"), () => onChange("ticket")]}
+      options={[
+        { label: "Task", onClick: () => onChange("task") },
+        { label: "Ticket", onClick: () => onChange("ticket") },
+      ]}
       selectedIndex={value === "task" ? 0 : 1}
       ariaLabel="Dashboard view"
       widthClassName="w-39/100"
@@ -124,12 +109,13 @@ export function ScopeToggle({
   view: DashboardView;
 }) {
   const noun = view === "ticket" ? "Tickets" : "Tasks";
-  const labels = [`My ${noun}`, `All ${noun}`];
 
   return (
     <Toggle
-      labels={labels}
-      methods={[() => onChange("mine"), () => onChange("all")]}
+      options={[
+        { label: `My ${noun}`, onClick: () => onChange("mine") },
+        { label: `All ${noun}`, onClick: () => onChange("all") },
+      ]}
       selectedIndex={value === "mine" ? 0 : 1}
       ariaLabel="Dashboard scope"
       widthClassName="w-59/100"

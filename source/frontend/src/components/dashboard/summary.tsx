@@ -1,22 +1,21 @@
-"use client";
-
 import { getThaiDateKey } from "@/lib/format";
 import {
+  dueBucketColor,
   dueBucketMeta,
   emptyBucketCounts,
   getDueBucket,
   getDueBucketLimits,
   type DashboardItem,
+  type DashboardView,
 } from "@/components/dashboard/dashboard_status";
-import type { DashboardView } from "@/components/dashboard/view_toggle";
 
 export default function Summary({
   items,
-  loadingTasks,
+  loading,
   view,
 }: {
   items: DashboardItem[];
-  loadingTasks: boolean;
+  loading: boolean;
   view: DashboardView;
 }) {
   const limits = getDueBucketLimits(new Date());
@@ -47,10 +46,10 @@ export default function Summary({
       ...bucket,
       count: counts[bucket.key],
     }))
-    .filter((bucket) => loadingTasks || bucket.count > 0);
+    .filter((bucket) => loading || bucket.count > 0);
 
   // no item and not loading, hide the whole chart
-  const hasChart = loadingTasks || items.length > 0;
+  const hasChart = loading || items.length > 0;
 
   const summaryItems = isTicket
     ? [
@@ -79,7 +78,7 @@ export default function Summary({
           >
             <h1 className="text-lg font-bold text-black">{item.label}</h1>
             <h1 className="text-[min(50cqh,25cqw)] leading-none font-extrabold text-black">
-              {loadingTasks ? "-" : item.value}
+              {loading ? "-" : item.value}
             </h1>
           </div>
         ))}
@@ -95,14 +94,14 @@ export default function Summary({
         <div className="flex flex-1">
           <div className="flex w-7.5 items-start">
             <div
-              className={`flex h-full w-5 overflow-hidden rounded-[20px] ${loadingTasks ? "bg-white" : "bg-(--panel-bg)"}`}
+              className={`flex h-full w-5 overflow-hidden rounded-[20px] ${loading ? "bg-(--primary-color-3)" : "bg-(--panel-bg)"}`}
             >
-              {!loadingTasks && (
+              {!loading && (
                 <div className="flex h-full w-full flex-col">
                   {dueBuckets.map((bucket) => (
                     <div
                       key={bucket.key}
-                      className={`w-full ${bucket.color}`}
+                      className={`w-full ${dueBucketColor[bucket.key]}`}
                       style={{ flexGrow: bucket.count }}
                     />
                   ))}
@@ -119,10 +118,12 @@ export default function Summary({
             {dueBuckets.map((bucket) => (
               <div key={bucket.key} className="flex items-center">
                 <div className="flex w-7.5 items-center">
-                  <div className={`h-5 w-5 rounded-full ${bucket.color}`} />
+                  <div
+                    className={`h-5 w-5 rounded-full ${dueBucketColor[bucket.key]}`}
+                  />
                 </div>
                 <div className="flex w-6 items-center text-base">
-                  <p>{loadingTasks ? "-" : bucket.count}</p>
+                  <p>{loading ? "-" : bucket.count}</p>
                 </div>
                 <div className="flex flex-1 items-center text-base">
                   <p>{bucket.label}</p>

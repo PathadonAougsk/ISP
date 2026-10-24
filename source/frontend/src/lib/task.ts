@@ -38,7 +38,10 @@ export type GetTasksParams = {
   id?: number;
   categories?: number;
   assignsTo?: string;
+  notassignsTo?: string;
   status?: TaskStatus;
+  due_after?: string;
+  due_before?: string;
   limit?: number;
   offset?: number;
 };
@@ -73,13 +76,26 @@ export type TaskRow = {
 export async function fetchTasks(
   params: GetTasksParams = {},
 ): Promise<TasksResponse> {
-  const { id, categories, assignsTo, status, limit, offset } = params;
+  const {
+    id,
+    categories,
+    assignsTo,
+    notassignsTo,
+    status,
+    due_after,
+    due_before,
+    limit,
+    offset,
+  } = params;
   const query = new URLSearchParams();
 
   if (id !== undefined) query.set("id", String(id));
   if (categories !== undefined) query.set("categories", String(categories));
   if (assignsTo !== undefined) query.set("assignsTo", assignsTo);
+  if (notassignsTo !== undefined) query.set("notassignsTo", notassignsTo);
   if (status !== undefined) query.set("status", status);
+  if (due_after !== undefined) query.set("due_after", due_after);
+  if (due_before !== undefined) query.set("due_before", due_before);
   if (limit !== undefined) query.set("limit", String(limit));
   if (offset !== undefined) query.set("offset", String(offset));
 
