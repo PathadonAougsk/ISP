@@ -28,11 +28,9 @@ export default function Pagination({
 
   // waiting: keep old buttons, no guess next
   const wait = loading || s.busy;
-  const last = wait
-    ? Math.max(page, s.last)
-    : page + (hasNext ? 1 : 0);
+  const last = wait ? Math.max(page, s.last) : page + (hasNext ? 1 : 0);
   if (!wait) s.last = last;
-  
+
   const first = Math.max(1, last - 6);
   const numbers = Array.from({ length: last - first + 1 }, (_, i) => first + i);
 
@@ -43,7 +41,7 @@ export default function Pagination({
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1 || loading}
-        className={`${base} hover:bg-gray-100`}
+        className={`${base} hover:bg-white`}
       >
         Prev
       </button>
@@ -56,7 +54,7 @@ export default function Pagination({
           className={
             n === page
               ? `${base} bg-(--primary-color-2) text-white opacity-100!`
-              : `${base} hover:bg-gray-100`
+              : `${base} hover:bg-white`
           }
         >
           {n}
@@ -66,7 +64,7 @@ export default function Pagination({
       <button
         onClick={() => onChange(page + 1)}
         disabled={!hasNext || loading}
-        className={`${base} hover:bg-gray-100`}
+        className={`${base} hover:bg-white`}
       >
         Next
       </button>
