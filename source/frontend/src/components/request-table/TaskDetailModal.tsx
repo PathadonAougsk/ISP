@@ -3,7 +3,17 @@ import { useState } from "react";
 import { putTask, type TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member, UserRole } from "@/lib/account";
+import { formatShortDate } from "@/lib/format";
+import Icon from "@/components/icon";
 import DateInput from "@/components/request-table/DateInput";
+import {
+  fieldClass,
+  FormButton,
+  FormField,
+  FormFooter,
+  FormHeader,
+  ReadOnlyBox,
+} from "@/components/request-table/FormParts";
 import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function TaskDetailModal({
@@ -126,33 +136,25 @@ export default function TaskDetailModal({
   return (
     <SlideupFrame isClosing={isClosing} onClose={handleClose}>
       <div className="flex flex-col h-full min-h-0">
-        <div className="flex items-center justify-between pb-3">
-          <h1 className="text-lg font-semibold">Task detail</h1>
-        </div>
+        <FormHeader title="Task detail" onClose={handleClose} />
 
         <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           <div className="flex-1 space-y-4 min-w-0">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+            <FormField label="Title">
               {userRole === "Lab Admin" ? (
                 <input
                   type="text"
                   value={editTaskTitle}
                   onChange={(e) => setEditTaskTitle(e.target.value)}
-                  className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className={fieldClass}
                 />
               ) : (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                  {task.title}
-                </div>
+                <ReadOnlyBox>{task.title}</ReadOnlyBox>
               )}
-            </div>
+            </FormField>
 
             <div className="flex gap-4">
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
+              <FormField label="Category" className="flex-1 min-w-0">
                 {userRole === "Lab Admin" ? (
                   <select
                     value={editTaskCategoryId}
@@ -161,7 +163,7 @@ export default function TaskDetailModal({
                         e.target.value ? Number(e.target.value) : "",
                       )
                     }
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    className={fieldClass}
                   >
                     <option value="">Select a category</option>
                     {categories.map((c) => (
@@ -171,82 +173,66 @@ export default function TaskDetailModal({
                     ))}
                   </select>
                 ) : (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                    {task.category}
-                  </div>
+                  <ReadOnlyBox>{task.category}</ReadOnlyBox>
                 )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                  {task.status}
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">
-                  Due Date
-                </label>
+              </FormField>
+              <FormField label="Status" className="flex-1 min-w-0">
+                <ReadOnlyBox>{task.status}</ReadOnlyBox>
+              </FormField>
+              <FormField label="Due Date" className="flex-1 min-w-0">
                 {userRole === "Lab Admin" ? (
                   <DateInput
                     value={editTaskDueDate}
                     onChange={setEditTaskDueDate}
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    className={fieldClass}
                   />
                 ) : (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                    {task.dueDate || "—"}
-                  </div>
+                  <ReadOnlyBox>
+                    {task.dueDateValue
+                      ? formatShortDate(task.dueDateValue)
+                      : task.dueDate || "—"}
+                  </ReadOnlyBox>
                 )}
-              </div>
+              </FormField>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Created By
-              </label>
-              <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word">
-                {task.createdBy}
-              </div>
-            </div>
+            <FormField label="Created By">
+              <ReadOnlyBox>{task.createdBy}</ReadOnlyBox>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Description
-              </label>
+            <FormField label="Description">
               {userRole === "Lab Admin" ? (
                 <textarea
                   value={editTaskDescription}
                   onChange={(e) => setEditTaskDescription(e.target.value)}
-                  className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className={`${fieldClass} min-h-24 max-h-40 overflow-y-auto`}
                 />
               ) : (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto wrap-break-word">
+                <ReadOnlyBox className="min-h-24 max-h-40!">
                   {task.description}
-                </div>
+                </ReadOnlyBox>
               )}
-            </div>
+            </FormField>
 
             {userRole !== "Lab Admin" && (
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Assigned
-                </label>
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                  {task.assignedTo || "—"}
-                </div>
-              </div>
+              <FormField label="Assigned">
+                <ReadOnlyBox>{task.assignedTo || "—"}</ReadOnlyBox>
+              </FormField>
             )}
           </div>
 
           {userRole === "Lab Admin" && (
-            <div className="w-64 border-l border-gray-200 pl-4">
-              <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                <span>Members — {members.length}</span>
+            <div className="w-72 shrink-0 self-start rounded-[20px] bg-(--panel-bg) p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-base font-bold text-black">
+                  Members{" "}
+                  <span className="text-green-800">{members.length}</span>
+                </p>
                 <button
                   type="button"
                   onClick={toggleEditTaskAssignAll}
                   disabled={members.length === 0}
-                  className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                  className="cursor-pointer rounded-full bg-(--primary-color-2) px-3 py-1 text-xs font-semibold text-white hover:bg-(--primary-color-2-hover) disabled:opacity-50"
                 >
                   {members.length > 0 &&
                   editTaskAssignedIds.length === members.length
@@ -254,27 +240,22 @@ export default function TaskDetailModal({
                     : "Assign all"}
                 </button>
               </div>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="max-h-64 space-y-2 overflow-y-auto scrollbar-thin">
                 {members.map((member) => (
-                  <label
-                    key={member.id}
-                    className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
-                  >
+                  <label key={member.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={editTaskAssignedIds.includes(member.id)}
                       onChange={() => toggleEditTaskAssign(member.id)}
-                      className="w-4 h-4"
+                      className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
                     />
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium leading-tight">
-                          {member.name}
-                        </div>
-                        <div className="text-xs text-gray-400 leading-tight">
-                          {member.email}
-                        </div>
+                    <Icon src="/profile.svg" className="h-6 w-auto shrink-0" />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium leading-tight text-gray-800">
+                        {member.name}
+                      </div>
+                      <div className="truncate text-xs leading-tight text-gray-500">
+                        {member.email}
                       </div>
                     </div>
                   </label>
@@ -284,54 +265,37 @@ export default function TaskDetailModal({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
-          {taskSubmitError && (
-            <span className="text-sm text-red-500 mr-auto">
-              {taskSubmitError}
-            </span>
-          )}
-
-          <button
-            onClick={() => {
-              setTaskSubmitError(null);
-              handleClose();
-            }}
-            disabled={isSavingTask}
-            className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
+        <FormFooter error={taskSubmitError}>
           {userRole === "Lab Admin" && (
-            <button
+            <FormButton
+              color="green"
               onClick={handleUpdateTask}
               disabled={isSavingTask}
-              className="px-5 py-2 rounded bg-(--primary-color-2) text-black hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
             >
               {isSavingTask ? "Saving…" : "Save Changes"}
-            </button>
+            </FormButton>
           )}
 
           {(userRole !== "Lab Admin" ||
             task.assigneeIds.includes(currentUserId)) &&
             (task.status === "Completed" ? (
-              <button
+              <FormButton
+                color="red"
                 onClick={handleUnsubmitTask}
                 disabled={isSavingTask}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
               >
                 {isSavingTask ? "Saving…" : "Unsubmit"}
-              </button>
+              </FormButton>
             ) : (
-              <button
+              <FormButton
+                color="green"
                 onClick={handleSubmitTask}
                 disabled={isSavingTask}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
               >
                 {isSavingTask ? "Saving…" : "Submit"}
-              </button>
+              </FormButton>
             ))}
-        </div>
+        </FormFooter>
       </div>
     </SlideupFrame>
   );

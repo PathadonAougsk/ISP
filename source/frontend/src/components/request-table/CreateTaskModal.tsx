@@ -3,7 +3,15 @@ import { useState } from "react";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
+import Icon from "@/components/icon";
 import DateInput from "@/components/request-table/DateInput";
+import {
+  fieldClass,
+  FormButton,
+  FormField,
+  FormFooter,
+  FormHeader,
+} from "@/components/request-table/FormParts";
 import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function CreateTaskModal({
@@ -83,25 +91,21 @@ export default function CreateTaskModal({
   return (
     <SlideupFrame isClosing={isClosing} onClose={handleClose}>
       <div className="flex flex-col h-full min-h-0">
-        <div className="flex items-center justify-between pb-3">
-          <h1 className="text-lg font-semibold">Create new task</h1>
-        </div>
+        <FormHeader title="Create new task" onClose={handleClose} />
 
         <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           {/* Left column: form fields */}
           <div className="flex-1 space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+            <FormField label="Title">
               <input
                 type="text"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
-                className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className={fieldClass}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
+            <FormField label="Category">
               <select
                 value={newTaskCategoryId}
                 onChange={(e) =>
@@ -109,7 +113,7 @@ export default function CreateTaskModal({
                     e.target.value ? Number(e.target.value) : "",
                   )
                 }
-                className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className={fieldClass}
               >
                 <option value="">Select a category</option>
                 {categories.map((c) => (
@@ -118,38 +122,36 @@ export default function CreateTaskModal({
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Due Date</label>
+            <FormField label="Due Date">
               <DateInput
                 value={newTaskDueDate}
                 onChange={setNewTaskDueDate}
-                className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className={fieldClass}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Description
-              </label>
+            <FormField label="Description">
               <textarea
                 value={newTaskDescription}
                 onChange={(e) => setNewTaskDescription(e.target.value)}
-                className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className={`${fieldClass} min-h-24`}
               />
-            </div>
+            </FormField>
           </div>
 
           {/* Right column: assign members */}
-          <div className="w-64 border-l border-gray-200 pl-4">
-            <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-              <span>Members — {members.length}</span>
+          <div className="w-72 shrink-0 self-start rounded-[20px] bg-(--panel-bg) p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-base font-bold text-black">
+                Members <span className="text-green-800">{members.length}</span>
+              </p>
               <button
                 type="button"
                 onClick={toggleNewTaskAssignAll}
                 disabled={members.length === 0}
-                className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                className="cursor-pointer rounded-full bg-(--primary-color-2) px-3 py-1 text-xs font-semibold text-white hover:bg-(--primary-color-2-hover) disabled:opacity-50"
               >
                 {members.length > 0 &&
                 newTaskAssignedIds.length === members.length
@@ -157,7 +159,7 @@ export default function CreateTaskModal({
                   : "Assign all"}
               </button>
             </div>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="max-h-64 space-y-2 overflow-y-auto scrollbar-thin">
               {membersLoading && (
                 <div className="text-xs text-gray-400">Loading members…</div>
               )}
@@ -169,25 +171,20 @@ export default function CreateTaskModal({
               {!membersLoading &&
                 !membersError &&
                 members.map((member) => (
-                  <label
-                    key={member.id}
-                    className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
-                  >
+                  <label key={member.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={newTaskAssignedIds.includes(member.id)}
                       onChange={() => toggleNewTaskAssign(member.id)}
-                      className="w-4 h-4"
+                      className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
                     />
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium leading-tight">
-                          {member.name}
-                        </div>
-                        <div className="text-xs text-gray-400 leading-tight">
-                          {member.email}
-                        </div>
+                    <Icon src="/profile.svg" className="h-6 w-auto shrink-0" />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium leading-tight text-gray-800">
+                        {member.name}
+                      </div>
+                      <div className="truncate text-xs leading-tight text-gray-500">
+                        {member.email}
                       </div>
                     </div>
                   </label>
@@ -196,28 +193,15 @@ export default function CreateTaskModal({
           </div>
         </div>
 
-        {/* Footer: action buttons, bottom-right */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
-          {taskSubmitError && (
-            <span className="text-sm text-red-500 mr-auto">
-              {taskSubmitError}
-            </span>
-          )}
-          <button
-            onClick={resetTaskForm}
-            disabled={isSavingTask}
-            className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
+        <FormFooter error={taskSubmitError}>
+          <FormButton
+            color="green"
             onClick={handleCreateTask}
             disabled={isSavingTask}
-            className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50"
           >
             {isSavingTask ? "Saving…" : "Submit"}
-          </button>
-        </div>
+          </FormButton>
+        </FormFooter>
       </div>
     </SlideupFrame>
   );

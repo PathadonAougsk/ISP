@@ -5,7 +5,7 @@ import { SlideupCloseButton } from "@/components/modal_slideup";
 
 // field look. white modal, so field use panel color
 export const fieldClass =
-  "w-full rounded-[20px] bg-(--panel-bg) px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary-color-2)";
+  "w-full rounded-[20px] bg-(--panel-bg) px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-(--primary-color-2)";
 
 // title + one field. children is input, select, or read only box
 export function FormField({
@@ -80,7 +80,7 @@ const buttonColors = {
   green:
     "bg-(--primary-color-2) text-white enabled:hover:bg-(--primary-color-2-hover)",
   light:
-    "bg-(--primary-color-3) text-black enabled:hover:bg-(--primary-color-3-hover)",
+    "bg-(--primary-color-3) text-white enabled:hover:bg-(--primary-color-3-hover)",
 };
 
 // round pill button for the footer
