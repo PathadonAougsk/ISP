@@ -26,6 +26,7 @@ import {
   SlideupFrame,
   useSlideupClose,
 } from "@/components/modal_slideup";
+import { Toggle } from "@/components/dashboard/view_toggle";
 
 type Tab = "ticket" | "task";
 
@@ -47,7 +48,9 @@ function LinkErrorModal({ onClose }: { onClose: () => void }) {
       <div className="flex justify-end pb-2">
         <SlideupCloseButton onClose={handleClose} />
       </div>
-      <p className="text-sm text-red-500">Failed to fetch</p>
+      <p className="py-6 text-center text-base font-medium text-gray-500">
+        Failed to fetch
+      </p>
     </SlideupFrame>
   );
 }
@@ -137,31 +140,16 @@ export default function RequestTable() {
     };
   }, [meLoading, userRole]);
 
-  const tabClass = (t: Tab) =>
-    `relative z-10 px-8 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
-      tab === t ? "text-gray-900" : "text-white"
-    }`;
-
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <div className="p-6 space-y-6">
-        <div className="relative grid grid-cols-2 w-fit rounded-full bg-(--primary-color-2) p-1">
-          {/* sliding white pill, move when tab change */}
-          <div
-            className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-white transition-transform duration-200 ease-out ${
-              tab === "task" ? "translate-x-full" : ""
-            }`}
-          />
-          <button
-            className={tabClass("ticket")}
-            onClick={() => setTab("ticket")}
-          >
-            Tickets
-          </button>
-          <button className={tabClass("task")} onClick={() => setTab("task")}>
-            Tasks
-          </button>
-        </div>
+        <Toggle
+          labels={["Tickets", "Tasks"]}
+          methods={[() => setTab("ticket"), () => setTab("task")]}
+          selectedIndex={tab === "ticket" ? 0 : 1}
+          ariaLabel="Request table tab"
+          widthClassName="w-64"
+        />
 
         {tab === "ticket" ? (
           <TicketTable
