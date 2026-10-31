@@ -9,16 +9,18 @@ import Announcement from "@/components/dashboard/announcement";
 import Missing from "@/components/dashboard/missing";
 import Summary from "@/components/dashboard/summary";
 import Overview from "@/components/dashboard/overview";
-import TaskTicketList from "@/components/dashboard/task_ticket_list";
+import TaskTicketList, {
+  TaskList,
+  TicketList,
+} from "@/components/dashboard/task_ticket_list";
 import TaskSlideup from "@/components/dashboard/task_slideup";
 import TicketSlideup from "@/components/dashboard/ticket_slideup";
 import ViewToggle, {
   ScopeToggle,
   type DashboardScope,
-  type DashboardView,
 } from "@/components/dashboard/view_toggle";
+import type { DashboardView } from "@/components/dashboard/dashboard_status";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
-import { formatCount, getRoom } from "@/components/dashboard/dashboard_utils";
 
 const MAX_TASK = 30;
 const MAX_TICKET = 30;
@@ -29,12 +31,17 @@ export default function Dashboard() {
 
   const {
     myTasks,
-    otherTasks,
-    categories,
     myRejectedTickets,
     myPendingTickets,
-    otherRejectedTickets,
-    otherPendingTickets,
+    shownMyTasks,
+    shownOtherTasks,
+    shownMyRejectedTickets,
+    shownMyPendingTickets,
+    shownOtherRejectedTickets,
+    shownOtherPendingTickets,
+    taskCounts,
+    ticketCounts,
+    categories,
     usernames,
     creatorRoles,
     loadingMyTasks,
@@ -71,72 +78,6 @@ export default function Dashboard() {
 
   const isTicketView = view === "ticket";
 
-  const othersOnly = useMemo(() => {
-    const myTaskIds = new Set(myTasks.map((task) => task.id));
-
-    // remove dupe tasks
-    return otherTasks.filter((task) => !myTaskIds.has(task.id));
-  }, [myTasks, otherTasks]);
-
-  // keep one extra item, so count can show max+
-  const visibleOtherTasks = useMemo(() => {
-    if (loadingMyTasks) return [];
-
-    return othersOnly.slice(0, getRoom(MAX_TASK + 1, myTasks.length));
-  }, [loadingMyTasks, myTasks.length, othersOnly]);
-
-  const showLoadingOtherTasks =
-    loadingOtherTasks && (loadingMyTasks || myTasks.length <= MAX_TASK);
-
-  // lists show max only, the extra item is just for count
-  const shownMyTasks = useMemo(() => myTasks.slice(0, MAX_TASK), [myTasks]);
-
-  const otherTaskRoom = getRoom(MAX_TASK, myTasks.length);
-
-  const shownOtherTasks = useMemo(
-    () => visibleOtherTasks.slice(0, otherTaskRoom),
-    [otherTaskRoom, visibleOtherTasks],
-  );
-
-  const shownMyRejectedTickets = useMemo(
-    () => myRejectedTickets.slice(0, MAX_TICKET),
-    [myRejectedTickets],
-  );
-
-  const shownMyPendingTickets = useMemo(
-    () => myPendingTickets.slice(0, MAX_TICKET),
-    [myPendingTickets],
-  );
-
-  // others only fill the room that mine leave
-  const ticketRoom = getRoom(
-    MAX_TICKET,
-    shownMyRejectedTickets.length,
-    shownMyPendingTickets.length,
-  );
-
-  const shownOtherRejectedTickets = useMemo(
-    () => otherRejectedTickets.slice(0, ticketRoom),
-    [otherRejectedTickets, ticketRoom],
-  );
-
-  const pendingRoom = getRoom(ticketRoom, shownOtherRejectedTickets.length);
-
-  const shownOtherPendingTickets = useMemo(
-    () => otherPendingTickets.slice(0, pendingRoom),
-    [otherPendingTickets, pendingRoom],
-  );
-
-  // label counting
-  const listCounts = {
-    myTasks: formatCount(myTasks.length, MAX_TASK),
-    otherTasks: formatCount(visibleOtherTasks.length, otherTaskRoom),
-    myRejectedTickets: formatCount(myRejectedTickets.length, MAX_TICKET),
-    myPendingTickets: formatCount(myPendingTickets.length, MAX_TICKET),
-    otherRejectedTickets: formatCount(otherRejectedTickets.length, ticketRoom),
-    otherPendingTickets: formatCount(otherPendingTickets.length, pendingRoom),
-  };
-
   // summary and overview use same items as the list. mine first, others fill remaining room
   const viewItems = isTicketView
     ? [
@@ -150,7 +91,7 @@ export default function Dashboard() {
 
   const loadingViewItems = isTicketView
     ? loadingMyTickets || (isAllScope && loadingOtherTickets)
-    : loadingMyTasks || (isAllScope && showLoadingOtherTasks);
+    : loadingMyTasks || (isAllScope && loadingOtherTasks);
   const errorViewItems = isTicketView
     ? errorMyTickets || (isAllScope && errorOtherTickets)
     : errorMyTasks || (isAllScope && errorOtherTasks);
@@ -169,12 +110,12 @@ export default function Dashboard() {
           </div>
           <Summary
             items={viewItems}
-            loadingTasks={loadingViewItems || errorViewItems}
+            loading={loadingViewItems || errorViewItems}
             view={view}
           />
 
           <Overview
-            tasks={viewItems}
+            items={viewItems}
             loadingTasks={loadingViewItems || loadingCategories}
             errorTasks={errorViewItems}
             errorCategories={errorCategories}
@@ -193,8 +134,7 @@ export default function Dashboard() {
             myPendingTickets={myPendingTickets}
             myRejectedTickets={myRejectedTickets}
             loadingMyTasks={loadingMyTasks || errorMyTasks}
-            loadingMyPendingTickets={loadingMyTickets || errorMyTickets}
-            loadingMyRejectedTickets={loadingMyTickets || errorMyTickets}
+            loadingMyTickets={loadingMyTickets || errorMyTickets}
             maxTask={MAX_TASK}
             maxTicket={MAX_TICKET}
           />
@@ -202,28 +142,35 @@ export default function Dashboard() {
 
         {/* list need own height when stacked */}
         <div className="order-last flex h-200 min-w-0 flex-col min-[1000px]:order-0 min-[1000px]:h-auto min-[1000px]:min-h-0 min-[1000px]:flex-1">
-          <TaskTicketList
-            myTasks={shownMyTasks}
-            otherTasks={shownOtherTasks}
-            loadingMyTasks={loadingMyTasks}
-            loadingOtherTasks={showLoadingOtherTasks}
-            errorMyTasks={errorMyTasks}
-            errorOtherTasks={errorOtherTasks}
-            myRejectedTickets={shownMyRejectedTickets}
-            myPendingTickets={shownMyPendingTickets}
-            otherRejectedTickets={shownOtherRejectedTickets}
-            otherPendingTickets={shownOtherPendingTickets}
-            loadingMyTickets={loadingMyTickets || loadingCategories}
-            loadingOtherTickets={loadingOtherTickets}
-            errorMyTickets={errorMyTickets}
-            errorOtherTickets={errorOtherTickets}
-            categoryMap={categoryMap}
-            usernames={usernames}
-            isLabUser={isLabUser}
-            counts={listCounts}
-            onSelectTask={setSelectedTask}
-            onSelectTicket={setSelectedTicket}
-          />
+          <TaskTicketList>
+            <TaskList
+              myTasks={shownMyTasks}
+              otherTasks={shownOtherTasks}
+              loadingMyTasks={loadingMyTasks}
+              loadingOtherTasks={loadingOtherTasks}
+              errorMyTasks={errorMyTasks}
+              errorOtherTasks={errorOtherTasks}
+              categoryMap={categoryMap}
+              usernames={usernames}
+              isLabUser={isLabUser}
+              counts={taskCounts}
+              onSelectTask={setSelectedTask}
+            />
+            <TicketList
+              myRejectedTickets={shownMyRejectedTickets}
+              myPendingTickets={shownMyPendingTickets}
+              otherRejectedTickets={shownOtherRejectedTickets}
+              otherPendingTickets={shownOtherPendingTickets}
+              loadingMyTickets={loadingMyTickets}
+              loadingOtherTickets={loadingOtherTickets}
+              errorMyTickets={errorMyTickets}
+              errorOtherTickets={errorOtherTickets}
+              categoryMap={categoryMap}
+              isLabUser={isLabUser}
+              counts={ticketCounts}
+              onSelectTicket={setSelectedTicket}
+            />
+          </TaskTicketList>
         </div>
       </div>
 

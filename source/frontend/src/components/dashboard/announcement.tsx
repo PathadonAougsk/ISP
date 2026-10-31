@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import Icon from "@/components/icon";
 import { renderWithLinks } from "@/components/dashboard/dashboard_utils";

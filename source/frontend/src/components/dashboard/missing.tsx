@@ -1,17 +1,16 @@
-"use client";
-
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
-import { isMissingItem } from "@/components/dashboard/dashboard_status";
-import { formatCount } from "@/components/dashboard/dashboard_utils";
+import {
+  formatCount,
+  isMissingItem,
+} from "@/components/dashboard/dashboard_status";
 
 export default function Missing({
   myTasks,
   myPendingTickets,
   myRejectedTickets,
   loadingMyTasks,
-  loadingMyPendingTickets,
-  loadingMyRejectedTickets,
+  loadingMyTickets,
   maxTask,
   maxTicket,
 }: {
@@ -19,19 +18,18 @@ export default function Missing({
   myPendingTickets: Ticket[];
   myRejectedTickets: Ticket[];
   loadingMyTasks: boolean;
-  loadingMyPendingTickets: boolean;
-  loadingMyRejectedTickets: boolean;
+  loadingMyTickets: boolean;
   maxTask: number;
   maxTicket: number;
 }) {
   const now = new Date();
 
   const overdueTasks = myTasks.filter((task) =>
-    isMissingItem(task, "in_progress", now),
+    isMissingItem(task, ["in_progress"], now),
   ).length;
 
   const pastDueTickets = myPendingTickets.filter((ticket) =>
-    isMissingItem(ticket, "pending", now),
+    isMissingItem(ticket, ["pending"], now),
   ).length;
 
   const rejectedTickets = myRejectedTickets.length;
@@ -47,13 +45,13 @@ export default function Missing({
       label: "Past Due Tickets",
       count: pastDueTickets,
       max: maxTicket,
-      loading: loadingMyPendingTickets,
+      loading: loadingMyTickets,
     },
     {
       label: "Rejected Tickets",
       count: rejectedTickets,
       max: maxTicket,
-      loading: loadingMyRejectedTickets,
+      loading: loadingMyTickets,
     },
   ];
 

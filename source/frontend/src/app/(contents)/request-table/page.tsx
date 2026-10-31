@@ -144,8 +144,10 @@ export default function RequestTable() {
     <div className="min-h-screen bg-white text-gray-900">
       <div className="p-6 space-y-6">
         <Toggle
-          labels={["Tickets", "Tasks"]}
-          methods={[() => setTab("ticket"), () => setTab("task")]}
+          options={[
+            { label: "Tickets", onClick: () => setTab("ticket") },
+            { label: "Tasks", onClick: () => setTab("task") },
+          ]}
           selectedIndex={tab === "ticket" ? 0 : 1}
           ariaLabel="Request table tab"
           widthClassName="w-64"

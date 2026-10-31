@@ -14,6 +14,12 @@ from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
 
 
+def to_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return value.astimezone(timezone.utc)
+
+
 # Base Task model.
 class TaskRequest(BaseModel):
     name: str
@@ -30,6 +36,7 @@ taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get
 # Filters: id, categories, users (assignees), status, limit
 # Admins and the lab owner see every task, a plain lab user only sees their own.
 
+
 @taskRouter.get("/", tags=["Task"])
 async def retrieve_tasks(
     me: Annotated[Account, Depends(account_service.get_current_account)],
@@ -37,21 +44,37 @@ async def retrieve_tasks(
     id: int | None = None,
     categories: int | None = None,
     assignsTo: uuid.UUID | None = None,
+    notassignsTo: uuid.UUID | None = None,
     status: TaskStatus | None = None,
-    limit: int = 20,
-    offset: int= 0 # Where will the results start? 0 means at the beginning.
+    due_after: datetime | None = None,
+    due_before: datetime | None = None,
+    limit: int = Query(default=20, ge=0),
+    offset: int = Query(default=0, ge=0),
 ):
     tasks = select(Task).options(selectinload(Task.assignees))
-    # Then, we filter each attribute one by one.
+
     if id:
         tasks = tasks.where(Task.id == id)
+
     if categories:
         tasks = tasks.where(Task.category_id == categories)
+
     if assignsTo:
         tasks = tasks.where(Task.assignees.any(Account.id == assignsTo))
+
+    if notassignsTo:
+        tasks = tasks.where(~Task.assignees.any(Account.id == notassignsTo))
+
     if status:
         tasks = tasks.where(Task.status == status)
-    # A lab user never sees tasks that are not assigned to them.
+
+    if due_after:
+        tasks = tasks.where(Task.due_date >= to_utc(due_after))
+
+    if due_before:
+        tasks = tasks.where(Task.due_date <= to_utc(due_before))
+
+    # lab user can sees tasks that are assigned to them only (cant see others' task)
     if me.role == AccountRole.LAB_USER:
         tasks = tasks.where(Task.assignees.any(Account.id == me.id))
 
@@ -60,17 +83,21 @@ async def retrieve_tasks(
         (Task.status == TaskStatus.IN_PROGRESS, 1),
         (Task.status == TaskStatus.COMPLETED, 2),
     )
+
     tasks = tasks.order_by(Task.due_date, status_order)
+    tasks = tasks.offset(offset)
 
-    # Cap how many tasks come back, if asked for.
-    tasks = tasks.limit(limit)
-    if (offset > 0):
-        tasks = tasks.offset(offset)
+    if limit:
+        tasks = tasks.limit(limit)
 
-    tasks = (await session.scalars(tasks)).all()
-    # Asking for a specific task that does not exist is a 404.
+    result = await session.scalars(tasks)
+    tasks = result.all()
+
     if id and not tasks:
-        raise HTTPException(status_code=404, detail=f"Task with id {id} not found")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task with id {id} not found",
+        )
 
     return {"Tasks": tasks}
 
@@ -93,14 +120,14 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
 
     # Create an audit log for the creation!
     al = AuditLog(
-        from_table = "task",
-        row_id = str(task.id),
-        column_name = "status",
-        old_value = None,
-        new_value = TaskStatus.IN_PROGRESS.value,
-        by_whom = auth_user.id
+        from_table="task",
+        row_id=str(task.id),
+        column_name="status",
+        old_value=None,
+        new_value=TaskStatus.IN_PROGRESS.value,
+        by_whom=auth_user.id
     )
-    
+
     if body.assignees:
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
@@ -112,6 +139,7 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
     await session.refresh(task)
 
     return {"Task": task}
+
 
 @taskRouter.put("/{task_id}", tags=["Task"])
 async def update_task(
@@ -126,22 +154,23 @@ async def update_task(
         .where(Task.id == task_id)
     )
 
-    # Create an audit log for the update! 
-    def update_helper(col_name,old_val, new_value):
+    # Create an audit log for the update!
+    def update_helper(col_name, old_val, new_value):
 
         al = AuditLog(
-            from_table = "task",
-            row_id = str(task.id),
-            column_name = col_name,
-            old_value = f"{old_val}",
-            new_value = f"{new_value}",
-            by_whom = auth_user.id
+            from_table="task",
+            row_id=str(task.id),
+            column_name=col_name,
+            old_value=f"{old_val}",
+            new_value=f"{new_value}",
+            by_whom=auth_user.id
         )
-        if (al.old_value == al.new_value): return 0
-        else: return al
-    
-    audit_list = []
+        if (al.old_value == al.new_value):
+            return 0
+        else:
+            return al
 
+    audit_list = []
 
     # If it does not exist, 404!
     if task is None:
@@ -149,19 +178,19 @@ async def update_task(
 
     # If it exists, then you definetly should update it!
     if body.name is not None:
-        audit_list.append(update_helper("name",task.name, body.name))
+        audit_list.append(update_helper("name", task.name, body.name))
         task.name = body.name
-    
+
     if body.description is not None:
-        audit_list.append(update_helper("description",task.description, body.description))
+        audit_list.append(update_helper("description", task.description, body.description))
         task.description = body.description
 
     if body.status is not None:
-        audit_list.append(update_helper("status",task.status, body.status))
+        audit_list.append(update_helper("status", task.status, body.status))
         task.status = body.status
 
     if body.category_id is not None:
-        audit_list.append(update_helper("category_id",task.category_id, body.category_id))
+        audit_list.append(update_helper("category_id", task.category_id, body.category_id))
         task.category_id = body.category_id
 
     if body.due_date is not None:
@@ -170,11 +199,11 @@ async def update_task(
         if (task.due_date != None):
             dt1 = task.due_date.astimezone(timezone.utc)
         dt2 = body.due_date.astimezone(timezone.utc)
-        audit_list.append(update_helper("due_date",dt1, dt2))
+        audit_list.append(update_helper("due_date", dt1, dt2))
         task.due_date = dt2
 
     if body.assignees is not None:
-        audit_list.append(update_helper("assignees",task.assignees, body.assignees))
+        audit_list.append(update_helper("assignees", task.assignees, body.assignees))
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
 
@@ -192,15 +221,15 @@ async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(get
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )
-    
+
     # Create an audit log for the deletes!
     al = AuditLog(
-        from_table = "task",
-        row_id = str(task.id),
-        column_name = "status",
-        old_value = None,
-        new_value = None,
-        by_whom = auth_user.id
+        from_table="task",
+        row_id=str(task.id),
+        column_name="status",
+        old_value=None,
+        new_value=None,
+        by_whom=auth_user.id
     )
     # If it does not exist, 404!
     if task is None:
