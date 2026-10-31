@@ -17,7 +17,7 @@ type ToggleProps = {
   selectedTextColor?: string;
 };
 
-function Toggle({
+export function Toggle({
   labels,
   methods,
   selectedIndex,
