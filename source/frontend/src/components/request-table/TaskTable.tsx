@@ -4,8 +4,34 @@ import type { TaskRow } from "@/lib/task";
 import type { TaskStatus } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
+import { ListMessage } from "@/components/dashboard/dashboard_utils";
 import Pagination from "@/components/request-table/Pagination";
-import { truncateLabel } from "@/lib/format";
+import {
+  isPastDate,
+  RequestListHeader,
+  RequestListRow,
+} from "@/components/request-table/RequestList";
+import { formatShortDate, truncateLabel } from "@/lib/format";
+
+const titles = [
+  "Task-ID",
+  "Title",
+  "Description",
+  "Category",
+  "Assigned",
+  "Status",
+  "Created By",
+  "Due Date",
+  "Created Date",
+  "Last Update",
+];
+
+// full class string, tailwind need to see it
+const gridClassName =
+  "grid-cols-[0.6fr_1.6fr_1.8fr_1.2fr_1.4fr_1fr_1.2fr_1fr_1fr_1fr]";
+
+const controlClass =
+  "h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary-color-2)";
 
 export default function TaskTable({
   tasks,
@@ -49,9 +75,9 @@ export default function TaskTable({
   );
 
   return (
-    <div>
+    <div className="rounded-[30px] bg-(--panel-bg) p-3">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
+        <h1 className="h-9 text-lg font-semibold flex items-center gap-2">
           Tasks
           {userRole === "Lab Admin" && (
             <button
@@ -61,7 +87,7 @@ export default function TaskTable({
               +
             </button>
           )}
-        </h2>
+        </h1>
 
         <div className="h-9 flex items-center gap-2">
           <input
@@ -69,7 +95,7 @@ export default function TaskTable({
             placeholder="Search this page"
             value={taskSearchTerm}
             onChange={(e) => setTaskSearchTerm(e.target.value)}
-            className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className={controlClass}
           />
 
           <select
@@ -79,7 +105,7 @@ export default function TaskTable({
                 e.target.value === "All" ? "All" : Number(e.target.value),
               )
             }
-            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className={`${controlClass} max-w-40 truncate`}
           >
             <option value="All">All</option>
             {categories.map((c) => (
@@ -94,7 +120,7 @@ export default function TaskTable({
             onChange={(e) =>
               onStatusChange(e.target.value as TaskStatus | "All")
             }
-            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className={`${controlClass} max-w-40 truncate`}
           >
             <option value="All">All</option>
             <option value="in_progress">In progress</option>
@@ -103,96 +129,61 @@ export default function TaskTable({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-(--primary-color-2) text-white text-left text-sm">
-              <th className="px-4 py-2">Task-ID</th>
-              <th className="px-4 py-2">Title</th>
-              <th className="px-4 py-2">Description</th>
-              <th className="px-4 py-2">Category</th>
-              <th className="px-4 py-2">Assigned</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Created By</th>
-              <th className="px-4 py-2">Due Date</th>
-              <th className="px-4 py-2">Created Date</th>
-              <th className="px-4 py-2">Last Update</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTasks.map((task) => (
-              <tr
-                key={task.id}
-                onClick={() => onSelect(task)}
-                className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-4 py-3">{task.id}</td>
-                <td className="px-4 py-3 max-w-40 truncate" title={task.title}>
-                  {task.title}
-                </td>
-                <td
-                  className="px-4 py-3 max-w-50 truncate"
-                  title={task.description}
-                >
-                  {task.description}
-                </td>
-                <td
-                  className="px-4 py-3 max-w-25 truncate"
-                  title={task.category}
-                >
-                  {task.category}
-                </td>
-                <td
-                  className="px-4 py-3 max-w-35 truncate"
-                  title={task.assignedTo}
-                >
-                  {task.assignedTo}
-                </td>
-                <td className="px-4 py-3">{task.status}</td>
-                <td
-                  className="px-4 py-3 max-w-30 truncate"
-                  title={task.createdBy}
-                >
-                  {task.createdBy}
-                </td>
-                <td className="px-4 py-3">{task.dueDate || "—"}</td>
-                <td className="px-4 py-3">{task.createdDate}</td>
-                <td className="px-4 py-3">{task.lastUpdate}</td>
-              </tr>
-            ))}
-            {loading && tasks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={10}
-                  className="px-4 py-6 text-center text-sm text-gray-400"
-                >
-                  Loading tasks…
-                </td>
-              </tr>
-            )}
-            {error && !loading && (
-              <tr>
-                <td
-                  colSpan={10}
-                  className="px-4 py-6 text-center text-sm text-red-500"
-                >
-                  Couldn't load tasks: {error}
-                </td>
-              </tr>
-            )}
-            {!loading && !error && filteredTasks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={10}
-                  className="px-4 py-6 text-center text-sm text-gray-400"
-                >
-                  No tasks yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-2">
+        <RequestListHeader titles={titles} gridClassName={gridClassName} />
+
+        {filteredTasks.map((task) => {
+          const completed = task.status === "Completed";
+          // only unfinished task can be overdue
+          const overdue = !completed && isPastDate(task.dueDateValue);
+
+          return (
+            <RequestListRow
+              key={task.id}
+              overdue={overdue}
+              spacingClassName="pl-2.5 pr-3.5 gap-6"
+              gridClassName={gridClassName}
+              lead={
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    overdue
+                      ? "bg-(--primary-red)"
+                      : completed
+                        ? "bg-(--primary-color-1)"
+                        : "bg-(--primary-blue)"
+                  }`}
+                />
+              }
+              cells={[
+                task.id,
+                task.title,
+                task.description,
+                task.category,
+                task.assignedTo,
+                task.status,
+                task.createdBy,
+                task.dueDateValue
+                  ? formatShortDate(task.dueDateValue)
+                  : task.dueDate || "—",
+                task.createdDate,
+                task.lastUpdate,
+              ]}
+              onClick={() => onSelect(task)}
+            />
+          );
+        })}
+
+        {loading && tasks.length === 0 && (
+          <ListMessage>Loading tasks…</ListMessage>
+        )}
+        {error && !loading && (
+          <ListMessage>Couldn't load tasks: {error}</ListMessage>
+        )}
+        {!loading && !error && filteredTasks.length === 0 && (
+          <ListMessage>No tasks yet.</ListMessage>
+        )}
       </div>
+
       <Pagination
         page={page}
         hasNext={hasNext}

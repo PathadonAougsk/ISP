@@ -12,7 +12,7 @@ type ToggleProps = {
   widthClassName: string;
 };
 
-function Toggle({
+export function Toggle({
   options,
   selectedIndex,
   ariaLabel,

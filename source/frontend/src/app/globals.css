@@ -37,9 +37,13 @@ h1 {
 }
 
 p,
-button {
-  font-family: var(--font-anuphan);
-}
+button,
+input,
+select,
+textarea,
+label {
+   font-family: var(--font-anuphan);
+ }
 
 /* ==========================================================
    Slideup animations

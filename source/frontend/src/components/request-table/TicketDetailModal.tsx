@@ -4,7 +4,17 @@ import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import { outranks, type AccountRole, type Member } from "@/lib/account";
+import { formatShortDate } from "@/lib/format";
+import Icon from "@/components/icon";
 import DateInput from "@/components/request-table/DateInput";
+import {
+  fieldClass,
+  FormButton,
+  FormField,
+  FormFooter,
+  FormHeader,
+  ReadOnlyBox,
+} from "@/components/request-table/FormParts";
 import { SlideupFrame, useSlideupClose } from "@/components/modal_slideup";
 
 export default function TicketDetailModal({
@@ -165,37 +175,27 @@ export default function TicketDetailModal({
   return (
     <SlideupFrame isClosing={isClosing} onClose={handleClose}>
       <div className="flex flex-col h-full min-h-0">
-        <div className="flex items-center justify-between pb-3">
-          <h1 className="text-lg font-semibold">Judge ticket</h1>
-        </div>
+        <FormHeader title="Judge ticket" onClose={handleClose} />
 
         <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
           <div className="flex-1 space-y-4 min-w-0">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+            <FormField label="Title">
               {!canEditTicket ? (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                  {ticket.title}
-                </div>
+                <ReadOnlyBox>{ticket.title}</ReadOnlyBox>
               ) : (
                 <input
                   type="text"
                   value={editTicketTitle}
                   onChange={(e) => setEditTicketTitle(e.target.value)}
-                  className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className={fieldClass}
                 />
               )}
-            </div>
+            </FormField>
 
             <div className="flex gap-4">
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
+              <FormField label="Category" className="flex-1 min-w-0">
                 {!canEditTicket ? (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                    {ticket.category}
-                  </div>
+                  <ReadOnlyBox>{ticket.category}</ReadOnlyBox>
                 ) : (
                   <select
                     value={editTicketCategoryId}
@@ -204,7 +204,7 @@ export default function TicketDetailModal({
                         e.target.value ? Number(e.target.value) : "",
                       )
                     }
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    className={fieldClass}
                   >
                     <option value="">Select a category</option>
                     {categories.map((c) => (
@@ -214,62 +214,56 @@ export default function TicketDetailModal({
                     ))}
                   </select>
                 )}
-              </div>
+              </FormField>
 
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">
-                  Due Date
-                </label>
+              <FormField label="Due Date" className="flex-1 min-w-0">
                 {!canEditTicket ? (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                    {ticket.dueDate || "—"}
-                  </div>
+                  <ReadOnlyBox>
+                    {ticket.dueDateValue
+                      ? formatShortDate(ticket.dueDateValue)
+                      : ticket.dueDate || "—"}
+                  </ReadOnlyBox>
                 ) : (
                   <DateInput
                     value={editTicketDueDate}
                     onChange={setEditTicketDueDate}
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    className={fieldClass}
                   />
                 )}
-              </div>
+              </FormField>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Description
-              </label>
+            <FormField label="Description">
               {!canEditTicket ? (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto wrap-break-word">
+                <ReadOnlyBox className="min-h-24 max-h-40!">
                   {ticket.description}
-                </div>
+                </ReadOnlyBox>
               ) : (
                 <textarea
                   value={editTicketDescription}
                   onChange={(e) => setEditTicketDescription(e.target.value)}
-                  className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className={`${fieldClass} min-h-24 max-h-40 overflow-y-auto`}
                 />
               )}
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Created By
-              </label>
-              <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word">
-                {ticket.createdBy}
-              </div>
-            </div>
+            <FormField label="Created By">
+              <ReadOnlyBox>{ticket.createdBy}</ReadOnlyBox>
+            </FormField>
           </div>
 
           {canJudge && ticket.status !== "Accepted" && (
-            <div className="w-64 border-l border-gray-200 pl-4">
-              <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                <span>Members — {members.length}</span>
+            <div className="w-72 shrink-0 self-start rounded-[20px] bg-(--panel-bg) p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-base font-bold text-black">
+                  Members{" "}
+                  <span className="text-green-800">{members.length}</span>
+                </p>
                 <button
                   type="button"
                   onClick={toggleAssignAll}
                   disabled={members.length === 0}
-                  className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                  className="cursor-pointer rounded-full bg-(--primary-color-2) px-3 py-1 text-xs font-semibold text-white hover:bg-(--primary-color-2-hover) disabled:opacity-50"
                 >
                   {members.length > 0 &&
                   assignedMemberIds.length === members.length
@@ -278,31 +272,26 @@ export default function TicketDetailModal({
                 </button>
               </div>
 
-              <p className="text-xs text-gray-400 mb-2 normal-case">
+              <p className="mb-3 text-xs text-gray-500">
                 Selected members are assigned to the task when you accept.
               </p>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="max-h-64 space-y-2 overflow-y-auto scrollbar-thin">
                 {members.map((member) => (
-                  <label
-                    key={member.id}
-                    className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
-                  >
+                  <label key={member.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={assignedMemberIds.includes(member.id)}
                       onChange={() => toggleAssign(member.id)}
-                      className="w-4 h-4"
+                      className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
                     />
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium leading-tight">
-                          {member.name}
-                        </div>
-                        <div className="text-xs text-gray-400 leading-tight">
-                          {member.email}
-                        </div>
+                    <Icon src="/profile.svg" className="h-6 w-auto shrink-0" />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium leading-tight text-gray-800">
+                        {member.name}
+                      </div>
+                      <div className="truncate text-xs leading-tight text-gray-500">
+                        {member.email}
                       </div>
                     </div>
                   </label>
@@ -312,55 +301,36 @@ export default function TicketDetailModal({
           )}
         </div>
 
-        {/* Footer: action buttons, bottom-right */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
-          {taskSubmitError && (
-            <span className="text-sm text-red-500 mr-auto">
-              {taskSubmitError}
-            </span>
-          )}
-
-          <button
-            onClick={() => {
-              setAssignedMemberIds([]);
-              setTaskSubmitError(null);
-              handleClose();
-            }}
-            disabled={isSavingTask}
-            className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
+        <FormFooter error={taskSubmitError}>
           {canEditTicket && (
-            <button
+            <FormButton
+              color="green"
               onClick={handleUpdateTicket}
               disabled={isSavingTask}
-              className="px-5 py-2 rounded bg-(--primary-color-2) text-black hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
             >
               {isSavingTask ? "Saving…" : "Save Changes"}
-            </button>
+            </FormButton>
           )}
 
           {canJudge && (
             <>
-              <button
+              <FormButton
+                color="red"
                 onClick={() => handleDecision("Rejected")}
                 disabled={isSavingTask || ticket.status === "Rejected"}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-red)"
               >
                 Reject
-              </button>
-              <button
+              </FormButton>
+              <FormButton
+                color="green"
                 onClick={() => handleDecision("Accepted")}
                 disabled={isSavingTask || ticket.status === "Accepted"}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
               >
                 {isSavingTask ? "Saving…" : "Accept"}
-              </button>
+              </FormButton>
             </>
           )}
-        </div>
+        </FormFooter>
       </div>
     </SlideupFrame>
   );
