@@ -7,27 +7,46 @@ import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
 import Announcement from "@/components/dashboard/announcement";
 import Missing from "@/components/dashboard/missing";
-import Summary from "@/components/dashboard/summary";
-import Overview from "@/components/dashboard/overview";
+import Overview, {
+  Summary,
+  ViewToggle,
+  ScopeToggle,
+  type DashboardScope,
+} from "@/components/dashboard/overview";
 import TaskTicketList, {
   TaskList,
   TicketList,
 } from "@/components/dashboard/task_ticket_list";
 import TaskSlideup from "@/components/dashboard/task_slideup";
 import TicketSlideup from "@/components/dashboard/ticket_slideup";
-import ViewToggle, {
-  ScopeToggle,
-  type DashboardScope,
-} from "@/components/dashboard/view_toggle";
-import type { DashboardView } from "@/components/dashboard/dashboard_status";
+import type {
+  DashboardGroup,
+  DashboardItem,
+  DashboardLimits,
+  DashboardView,
+} from "@/components/dashboard/dashboard_status";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
 
-const MAX_TASK = 30;
-const MAX_TICKET = 30;
+// limit increment when clicking Load More button
+const INCREMENT = 10;
+
+const INITIAL_LIMITS: DashboardLimits = {
+  myTasks: 10,
+  otherTasks: 10,
+  myRejectedTickets: 10,
+  myPendingTickets: 10,
+  otherRejectedTickets: 10,
+  otherPendingTickets: 10,
+};
 
 export default function Dashboard() {
-  const { account: currentAccount, loading: accountLoading } =
-    useCurrentAccount();
+  const {
+    account: currentAccount,
+    loading: accountLoading,
+    error: accountError,
+  } = useCurrentAccount();
+
+  const [limits, setLimits] = useState<DashboardLimits>(INITIAL_LIMITS);
 
   const {
     myTasks,
@@ -39,6 +58,8 @@ export default function Dashboard() {
     shownMyPendingTickets,
     shownOtherRejectedTickets,
     shownOtherPendingTickets,
+    overflowItems,
+    refreshing,
     taskCounts,
     ticketCounts,
     categories,
@@ -59,8 +80,8 @@ export default function Dashboard() {
   } = useDashboardFetching(
     currentAccount,
     accountLoading,
-    MAX_TASK,
-    MAX_TICKET,
+    accountError,
+    limits,
   );
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -78,7 +99,10 @@ export default function Dashboard() {
 
   const isTicketView = view === "ticket";
 
-  // summary and overview use same items as the list. mine first, others fill remaining room
+  const handleLoadMore = (group: DashboardGroup) =>
+    setLimits((prev) => ({ ...prev, [group]: prev[group] + INCREMENT }));
+
+  // summary and overview use same items as the list. mine first, others after
   const viewItems = isTicketView
     ? [
         ...shownMyRejectedTickets,
@@ -88,6 +112,25 @@ export default function Dashboard() {
           : []),
       ]
     : [...shownMyTasks, ...(isAllScope ? shownOtherTasks : [])];
+
+  // extra item of each list in the same scope, for the "+" sign
+  const viewOverflowItems = (
+    isTicketView
+      ? [
+          overflowItems.myRejectedTickets,
+          overflowItems.myPendingTickets,
+          ...(isAllScope
+            ? [
+                overflowItems.otherRejectedTickets,
+                overflowItems.otherPendingTickets,
+              ]
+            : []),
+        ]
+      : [
+          overflowItems.myTasks,
+          ...(isAllScope ? [overflowItems.otherTasks] : []),
+        ]
+  ).filter((item): item is DashboardItem => item !== null);
 
   const loadingViewItems = isTicketView
     ? loadingMyTickets || (isAllScope && loadingOtherTickets)
@@ -110,6 +153,7 @@ export default function Dashboard() {
           </div>
           <Summary
             items={viewItems}
+            overflowItems={viewOverflowItems}
             loading={loadingViewItems || errorViewItems}
             view={view}
           />
@@ -135,8 +179,7 @@ export default function Dashboard() {
             myRejectedTickets={myRejectedTickets}
             loadingMyTasks={loadingMyTasks || errorMyTasks}
             loadingMyTickets={loadingMyTickets || errorMyTickets}
-            maxTask={MAX_TASK}
-            maxTicket={MAX_TICKET}
+            limits={limits}
           />
         </div>
 
@@ -154,6 +197,9 @@ export default function Dashboard() {
               usernames={usernames}
               isLabUser={isLabUser}
               counts={taskCounts}
+              overflowItems={overflowItems}
+              refreshing={refreshing}
+              onLoadMore={handleLoadMore}
               onSelectTask={setSelectedTask}
             />
             <TicketList
@@ -168,6 +214,9 @@ export default function Dashboard() {
               categoryMap={categoryMap}
               isLabUser={isLabUser}
               counts={ticketCounts}
+              overflowItems={overflowItems}
+              refreshing={refreshing}
+              onLoadMore={handleLoadMore}
               onSelectTicket={setSelectedTicket}
             />
           </TaskTicketList>
