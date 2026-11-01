@@ -13,7 +13,7 @@ Full-stack project with a Next.js frontend and a FastAPI backend, both run throu
 | Kantinan Lertluckpreecha | 6810545476 | [LELOUCH2L](https://github.com/LELOUCH2L)           |
 | Jedsada Ungsunantwiwat   | 6810545522 | [Jadeung123](https://github.com/Jadeung123)         |
 | Pathadon Aougsk          | 6810545808 | [PathadonAougsk](https://github.com/PathadonAougsk) |
-| Wassawin Swangjaeng      | 6810545905 | [Wassawin Swangjaeng](https://github.com/CYRTRUS)   |
+| Wassawin Swangjaeng      | 6810545905 | [CYRTRUS](https://github.com/CYRTRUS)               |
 | Siraphob Phonphakdee     | 6810545930 | [vaporform](https://github.com/vaporform)           |
 
 ## Project status
