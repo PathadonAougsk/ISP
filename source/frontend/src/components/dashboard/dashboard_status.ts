@@ -4,6 +4,17 @@ export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
 export type DashboardView = "task" | "ticket";
 
+// the six lists in dashboard
+export type DashboardGroup =
+  | "myTasks"
+  | "otherTasks"
+  | "myRejectedTickets"
+  | "myPendingTickets"
+  | "otherRejectedTickets"
+  | "otherPendingTickets";
+
+export type DashboardLimits = Record<DashboardGroup, number>;
+
 // fields that task and ticket share
 export type DashboardItem = {
   status: string;
@@ -107,9 +118,4 @@ export const ticketStatusIcon: Record<string, string> = {
 // count pass the max, show "{max}+"
 export function formatCount(count: number, max: number) {
   return count > max ? `${max}+` : String(count);
-}
-
-// room left after used items take their part. never below 0
-export function getRoom(max: number, ...used: number[]) {
-  return Math.max(max - used.reduce((sum, count) => sum + count, 0), 0);
 }

@@ -238,6 +238,8 @@ export type CurrentAccount =
   | {
       signedIn: false;
       loading: boolean;
+      // set when the request failed. null with no account = really signed out
+      error: string | null;
       account: null;
       userRole: "Lab User";
       currentUserId: "";
@@ -246,6 +248,7 @@ export type CurrentAccount =
   | {
       signedIn: true;
       loading: false;
+      error: null;
       account: Account;
       userRole: UserRole;
       currentUserId: string;
@@ -256,6 +259,7 @@ export type CurrentAccount =
 const SIGNED_OUT = {
   signedIn: false,
   loading: false,
+  error: null,
   account: null,
   userRole: "Lab User",
   currentUserId: "",
@@ -297,9 +301,9 @@ function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
 
 // Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
 export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
-  const { data: account, loading } = useFetched(getMe, enabled);
+  const { data: account, loading, error } = useFetched(getMe, enabled);
 
-  if (!account) return { ...SIGNED_OUT, loading: enabled && loading };
+  if (!account) return { ...SIGNED_OUT, loading: enabled && loading, error };
 
   // "Lab Owner" and "Lab Admin" both count as admin
   const admin = isAdminRole(account.role);
@@ -307,6 +311,7 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
   return {
     signedIn: true,
     loading: false,
+    error: null,
     account,
     userRole: admin ? "Lab Admin" : "Lab User",
     currentUserId: account.id,

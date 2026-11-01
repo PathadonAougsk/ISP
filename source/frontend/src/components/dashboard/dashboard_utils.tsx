@@ -60,16 +60,48 @@ export function ListMessage({ children }: { children: ReactNode }) {
   );
 }
 
+// separator line + button. disabled while the list is refetching
+export function LoadMoreButton({
+  disabled,
+  onClick,
+}: {
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="relative flex h-8 w-full shrink-0 items-center justify-center">
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gray-300" />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className={`relative z-10 rounded-full border border-gray-300 bg-white px-4 py-1 text-sm font-medium text-gray-600 ${
+          disabled
+            ? "cursor-wait opacity-60"
+            : "cursor-pointer hover:bg-gray-100"
+        }`}
+      >
+        Load More
+      </button>
+    </div>
+  );
+}
+
 // label + rows of one section
 // label = title + count (count already formatted into string and "+" sign)
 // label sticky, so it stay under column header while its section scroll
+// Load More show only when onLoadMore is given (list overflow)
 export function ListSection({
   title,
   count,
+  busy = false,
+  onLoadMore,
   children,
 }: {
   title: string;
   count: string;
+  busy?: boolean;
+  onLoadMore?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -79,6 +111,7 @@ export function ListSection({
         <span className="text-xl font-bold text-green-800">{count}</span>
       </div>
       {children}
+      {onLoadMore && <LoadMoreButton disabled={busy} onClick={onLoadMore} />}
     </div>
   );
 }
