@@ -3,6 +3,7 @@ import type { Ticket } from "@/lib/ticket";
 import {
   formatCount,
   isMissingItem,
+  type DashboardLimits,
 } from "@/components/dashboard/dashboard_status";
 
 export default function Missing({
@@ -11,16 +12,14 @@ export default function Missing({
   myRejectedTickets,
   loadingMyTasks,
   loadingMyTickets,
-  maxTask,
-  maxTicket,
+  limits,
 }: {
   myTasks: Task[];
   myPendingTickets: Ticket[];
   myRejectedTickets: Ticket[];
   loadingMyTasks: boolean;
   loadingMyTickets: boolean;
-  maxTask: number;
-  maxTicket: number;
+  limits: DashboardLimits;
 }) {
   const now = new Date();
 
@@ -38,19 +37,19 @@ export default function Missing({
     {
       label: "Overdue Tasks",
       count: overdueTasks,
-      max: maxTask,
+      max: limits.myTasks,
       loading: loadingMyTasks,
     },
     {
       label: "Past Due Tickets",
       count: pastDueTickets,
-      max: maxTicket,
+      max: limits.myPendingTickets,
       loading: loadingMyTickets,
     },
     {
       label: "Rejected Tickets",
       count: rejectedTickets,
-      max: maxTicket,
+      max: limits.myRejectedTickets,
       loading: loadingMyTickets,
     },
   ];
