@@ -70,12 +70,12 @@ export function LoadMoreButton({
 }) {
   return (
     <div className="relative flex h-8 w-full shrink-0 items-center justify-center">
-      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gray-300" />
+      <div className="absolute left-4 right-4 top-1/2 h-px -translate-y-1/2 bg-gray-300" />
       <button
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className={`relative z-10 rounded-full border border-gray-300 bg-white px-4 py-1 text-sm font-medium text-gray-400 ${
+        className={`relative z-10 rounded-full border border-gray-300 bg-white px-4 py-1 text-sm font-medium text-gray-500 ${
           disabled
             ? "cursor-wait opacity-60"
             : "cursor-pointer hover:bg-gray-100"
@@ -106,12 +106,13 @@ export function ListSection({
 }) {
   return (
     <div className="flex shrink-0 flex-col gap-2">
-      <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1 pb-2">
+      <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1">
         <h1 className="text-base font-semibold text-black">{title}</h1>
         <span className="text-xl font-bold text-green-800">{count}</span>
       </div>
       {children}
       {onLoadMore && <LoadMoreButton disabled={busy} onClick={onLoadMore} />}
+      <div className="h-2 shrink-0" />
     </div>
   );
 }
