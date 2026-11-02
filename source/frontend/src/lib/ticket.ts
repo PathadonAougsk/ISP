@@ -103,7 +103,7 @@ export async function fetchTickets(
   return res.json();
 }
 
-const TICKETS_CACHE_TTL = 60 * 1000;
+const TICKETS_CACHE_TTL = 3 * 60 * 1000;
 
 // each page + filter is its own cache entry, so going back is instant
 export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL);
