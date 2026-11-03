@@ -109,7 +109,7 @@ export async function fetchTasks(
   return res.json();
 }
 
-const TASKS_CACHE_TTL = 3 * 60 * 1000;
+const TASKS_CACHE_TTL = 1 * 60 * 1000;
 
 // each page + filter is its own cache entry, so going back is instant
 export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL);

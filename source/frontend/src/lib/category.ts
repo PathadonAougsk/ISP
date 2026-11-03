@@ -3,7 +3,7 @@ import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { cached } from "@/lib/cache";
 
-const CACHE_TTL = 3 * 60 * 1000;
+const CACHE_TTL = 30 * 60 * 1000;
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
