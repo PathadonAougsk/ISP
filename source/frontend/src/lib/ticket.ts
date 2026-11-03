@@ -219,6 +219,8 @@ export function useTickets(
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
   const [ticketsReloadKey, setTicketsReloadKey] = useState(0);
+  // page of the data we hold. differ from page = data is stale
+  const [ticketsLoadedPage, setTicketsLoadedPage] = useState(0);
 
   const { status, categoryId } = filters;
 
@@ -261,7 +263,10 @@ export function useTickets(
             err instanceof Error ? err.message : "Failed to load tickets",
           );
       } finally {
-        if (!cancelled) setTicketsLoading(false);
+        if (!cancelled) {
+          setTicketsLoading(false);
+          setTicketsLoadedPage(page);
+        }
       }
     }
 
@@ -282,7 +287,8 @@ export function useTickets(
   return {
     tickets,
     ticketsHasNext,
-    ticketsLoading,
+    // loading also true on the render right after page change
+    ticketsLoading: ticketsLoading || ticketsLoadedPage !== page,
     ticketsError,
     setTicketsReloadKey,
   };

@@ -68,7 +68,7 @@ export type TaskRow = {
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
   lastUpdate: string;
-  status: "Completed" | "In_progress";
+  status: "Completed" | "In progress";
   categoryId: number;
   assigneeIds: string[];
 };
@@ -144,7 +144,7 @@ export async function putTask(
 }
 
 function mapTaskStatus(status: TaskStatus): TaskRow["status"] {
-  return status === "completed" ? "Completed" : "In_progress";
+  return status === "completed" ? "Completed" : "In progress";
 }
 
 export function mapBackendTask(
@@ -198,6 +198,8 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [tasksReloadKey, setTasksReloadKey] = useState(0);
+  // page of the data we hold. differ from page = data is stale
+  const [tasksLoadedPage, setTasksLoadedPage] = useState(0);
 
   const { status, categoryId } = filters;
 
@@ -235,7 +237,10 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
             err instanceof Error ? err.message : "Failed to load tasks",
           );
       } finally {
-        if (!cancelled) setTasksLoading(false);
+        if (!cancelled) {
+          setTasksLoading(false);
+          setTasksLoadedPage(page);
+        }
       }
     }
 
@@ -245,5 +250,12 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
     };
   }, [enabled, page, status, categoryId, tasksReloadKey]);
 
-  return { tasks, tasksHasNext, tasksLoading, tasksError, setTasksReloadKey };
+  return {
+    tasks,
+    tasksHasNext,
+    // loading also true on the render right after page change
+    tasksLoading: tasksLoading || tasksLoadedPage !== page,
+    tasksError,
+    setTasksReloadKey,
+  };
 }
