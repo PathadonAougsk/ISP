@@ -40,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps) {
           <div className="flex flex-1 min-w-0 h-screen flex-col">
             <Topbar />
 
-            <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
+            <main className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">{children}</main>
           </div>
         </SettingsProvider>
       </body>
