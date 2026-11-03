@@ -36,14 +36,18 @@ h1 {
   font-family: var(--font-noto-sans-thai);
 }
 
+button {
+  cursor: pointer;
+}
+
 p,
 button,
 input,
 select,
 textarea,
 label {
-   font-family: var(--font-anuphan);
- }
+  font-family: var(--font-anuphan);
+}
 
 /* ==========================================================
    Slideup animations
