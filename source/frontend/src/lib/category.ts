@@ -57,7 +57,7 @@ async function fetchCategories(): Promise<CategoriesResponse> {
   return res.json();
 }
 
-export const getCategories = cached(fetchCategories, CACHE_TTL);
+export const getCategories = cached(fetchCategories, CACHE_TTL, "categories");
 
 export async function createCategory(name: string): Promise<void> {
   const res = await apiFetch("/category/", {

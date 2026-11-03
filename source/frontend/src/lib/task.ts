@@ -112,7 +112,7 @@ export async function fetchTasks(
 const TASKS_CACHE_TTL = 1 * 60 * 1000;
 
 // each page + filter is its own cache entry, so going back is instant
-export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL);
+export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL, "tasks");
 
 export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   const res = await apiSendJson("/task/", "POST", body);

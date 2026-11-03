@@ -106,7 +106,7 @@ export async function fetchTickets(
 const TICKETS_CACHE_TTL = 1 * 60 * 1000;
 
 // each page + filter is its own cache entry, so going back is instant
-export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL);
+export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL, "tickets");
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
