@@ -5,7 +5,7 @@ import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type UserRole } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached } from "@/lib/cache";
+import { cached, withoutPagination } from "@/lib/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
@@ -105,8 +105,13 @@ export async function fetchTickets(
 
 const TICKETS_CACHE_TTL = 1 * 60 * 1000;
 
-// each page + filter is its own cache entry, so going back is instant
-export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL, "tickets");
+// same filters share expiration, different limits share the same family
+export const getTickets = cached(
+  fetchTickets,
+  TICKETS_CACHE_TTL,
+  "tickets",
+  withoutPagination,
+);
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);

@@ -5,7 +5,7 @@ import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached } from "@/lib/cache";
+import { cached, withoutPagination } from "@/lib/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
@@ -111,8 +111,13 @@ export async function fetchTasks(
 
 const TASKS_CACHE_TTL = 1 * 60 * 1000;
 
-// each page + filter is its own cache entry, so going back is instant
-export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL, "tasks");
+// same filters share expiration, different limits share the same family
+export const getTasks = cached(
+  fetchTasks,
+  TASKS_CACHE_TTL,
+  "tasks",
+  withoutPagination,
+);
 
 export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   const res = await apiSendJson("/task/", "POST", body);
