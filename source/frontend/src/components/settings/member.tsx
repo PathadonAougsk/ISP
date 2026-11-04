@@ -14,6 +14,7 @@ import {
   type AccountRole,
 } from "@/lib/account";
 import { maskEmail } from "@/lib/format";
+import NewMember from "./new_member";
 
 // Lab Owner first, then Lab Admin, then Lab User
 const ROLE_ORDER: Record<AccountRole, number> = {
@@ -45,6 +46,10 @@ export default function Member({
 
   // Prevent double firing.
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Inline quota editing. A trial is capped; blank means no cap at all.
+  const [quotaEditId, setQuotaEditId] = useState<string | null>(null);
+  const [quotaDraft, setQuotaDraft] = useState("");
 
   // Try-Except helper -> Special thank to Wassawin.
   const refresh = useCallback(
@@ -95,6 +100,28 @@ export default function Member({
     run(member, () => deleteAccount(member.id));
   }
 
+  function startQuotaEdit(member: Account) {
+    setQuotaEditId(member.id);
+    setQuotaDraft(member.quota === null ? "" : String(member.quota));
+  }
+
+  async function commitQuota(member: Account) {
+    const raw = quotaDraft.trim();
+    setQuotaEditId(null);
+
+    // NULL is what the backend reads as no cap, so blank clears it.
+    const quota = raw === "" ? null : Number(raw);
+    if (quota !== null && (!Number.isInteger(quota) || quota < 0)) {
+      setError(
+        "Quota has to be a whole number, 0 or more, or blank for no cap.",
+      );
+      return;
+    }
+    if (quota === member.quota) return;
+
+    await run(member, () => updateAccount(member.id, { quota }));
+  }
+
   const needle = query.trim().toLowerCase();
   const visible = members.filter(
     (member) =>
@@ -122,6 +149,8 @@ export default function Member({
         <p className="text-[#8a8a8a]">Everyone is here!</p>
       </div>
 
+      {isAdmin && <NewMember onCreated={refresh} />}
+
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg">
           All Members
@@ -144,7 +173,7 @@ export default function Member({
           <span className="flex-1">Username</span>
           <span className="flex-1">Email</span>
           <span className="w-25 shrink-0">Role</span>
-          <span className="w-15 shrink-0 text-right">Quota</span>
+          <span className="w-20 shrink-0 text-right">Quota</span>
           <span className="w-25 shrink-0 text-right">Status</span>
           {isAdmin && <span className="w-25 shrink-0" />}
         </div>
@@ -191,9 +220,41 @@ export default function Member({
                 <span className="w-25 shrink-0">{member.role}</span>
               )}
 
-              <span className="w-15 shrink-0 text-right">
-                {member.quota ?? "-"}
-              </span>
+              {isAdmin && canEdit(member) ? (
+                quotaEditId === member.id ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={quotaDraft}
+                    onChange={(e) => setQuotaDraft(e.target.value)}
+                    onBlur={() => commitQuota(member)}
+                    onKeyDown={(e) => {
+                      // Blur is what commits, so Enter just leaves the field.
+                      // Escape unmounts it, which fires no blur at all.
+                      if (e.key === "Enter") e.currentTarget.blur();
+                      if (e.key === "Escape") setQuotaEditId(null);
+                    }}
+                    placeholder="No cap"
+                    className="h-10 w-20 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 text-right outline-none placeholder:text-[#8a8a8a]"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busyId === member.id}
+                    onClick={() => startQuotaEdit(member)}
+                    title="Ticket quota. Leave it blank for no cap."
+                    className="h-10 w-20 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                  >
+                    {member.quota ?? "No cap"}
+                  </button>
+                )
+              ) : (
+                <span className="w-20 shrink-0 text-right">
+                  {member.quota ?? "-"}
+                </span>
+              )}
 
               {isAdmin && canEdit(member) ? (
                 <button

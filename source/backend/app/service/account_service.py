@@ -1,16 +1,21 @@
+import logging
 import uuid
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from supabase_auth.errors import AuthError
+from supabase_auth.errors import AuthApiError, AuthError
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.dependencies import supabase
 from app.model import Account, AccountRole, AuditLog
+
+logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False, description="Supabase access token")
 
@@ -96,3 +101,72 @@ def audit_account(
             by_whom=by_whom,
         )
     )
+
+
+async def assert_login_available(
+    session: AsyncSession, username: str, email: str
+) -> None:
+    """Checked before the auth user exists, so the usual clash never leaves a
+    Supabase login behind that we then have to delete again."""
+    clash = await session.scalar(
+        select(Account).where(
+            or_(Account.username == username, Account.email == email)
+        )
+    )
+    if clash is None:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=(
+            "That username is already taken"
+            if clash.username == username
+            else f"{email} already belongs to {clash.username}"
+        ),
+    )
+
+
+async def create_auth_user(email: str, password: str, username: str) -> uuid.UUID:
+    """The Supabase half of creating a member. `email_confirm` marks the
+    address confirmed on the spot: there is no invite mail to click, the admin
+    hands the password over themselves.
+
+    The supabase client is blocking, so it goes to the threadpool rather than
+    stalling the event loop."""
+    try:
+        response = await run_in_threadpool(
+            supabase.auth.admin.create_user,
+            {
+                "email": email,
+                "password": password,
+                "email_confirm": True,
+                "user_metadata": {"username": username},
+            },
+        )
+    except AuthApiError as exc:
+        # Weak passwords and addresses already in auth.users land here. The
+        # message is Supabase's own ("Password should be at least ..."), and it
+        # is the only hint the admin gets, so pass it through.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Supabase rejected that login: {exc.message}",
+        ) from exc
+
+    if response is None or response.user is None:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Supabase did not return the new user",
+        )
+
+    return uuid.UUID(response.user.id)
+
+
+async def delete_auth_user(user_id: uuid.UUID) -> None:
+    """Undo create_auth_user. Only this request knows the new id, so if the
+    account insert fails we have to take the login back out here or it becomes
+    a user nobody can see in the member list or sign in as anybody."""
+    try:
+        await run_in_threadpool(supabase.auth.admin.delete_user, str(user_id))
+    except Exception:
+        # Already failing the request, so log and let the original error stand.
+        logger.exception("Could not roll back orphaned auth user %s", user_id)

@@ -51,7 +51,7 @@ export default function AuthPage() {
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1 text-xs uppercase text-gray-600">
-            Username
+            Email
             <input
               type="email"
               required

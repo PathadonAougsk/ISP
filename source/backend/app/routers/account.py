@@ -1,8 +1,9 @@
+import enum
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,31 @@ class UpdateAccountRequest(BaseModel):
 
 class AssignRoleRequest(BaseModel):
     role: AccountRole
+
+
+class MemberKind(str, enum.Enum):
+    """How much the new member is allowed to do. A `member` is uncapped; a
+    `trial` gets a ticket quota that counts down as they file tickets."""
+
+    MEMBER = "member"
+    TRIAL = "trial"
+
+
+# What a trial starts with when the admin does not say.
+DEFAULT_TRIAL_QUOTA = 10
+
+
+class CreateMemberRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=100)
+    # Supabase keys a login on the email address, and signing in is email plus
+    # password, so there is nothing to fall back on if this is missing.
+    email: EmailStr
+    # 72 bytes is the bcrypt ceiling Supabase hashes with; anything longer is
+    # silently truncated, so reject it instead of pretending it was kept.
+    password: str = Field(min_length=8, max_length=72)
+    kind: MemberKind = MemberKind.MEMBER
+    # Trial only, and ignored for a plain member - they have no cap at all.
+    quota: int | None = Field(default=None, ge=0)
 
 
 @accountRouter.get("/", tags=["Account"])
@@ -224,14 +250,76 @@ async def delete_account(
 
     return {"Message": f"Successfully deleted {target.username}"}
 
-@accountRouter.post("/admin", tags=["Admin"])
+@accountRouter.post("/admin", tags=["Admin"], status_code=status.HTTP_201_CREATED)
 async def admin_create_account(
+    body: CreateMemberRequest,
+    session: Annotated[AsyncSession, Depends(getSession)],
     me: Annotated[Account, Depends(account_service.require_admin)],
 ):
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Inviting an account is not implemented yet",
+    """Create a member outright. Nothing is emailed and there is nothing for
+    them to accept: the admin picks the username, email and password, and
+    passes the credentials on however they like. The address is marked
+    confirmed on the spot so the new member can sign in right away.
+
+    Unlike POST /account/, which a user calls for themselves, this creates both
+    halves at once: the Supabase login and the account row behind it.
+
+    `kind` picks which sort of member it is. A `member` is left with no quota,
+    which the rest of the app reads as unlimited. A `trial` is capped at
+    `quota` tickets, counted down by create_ticket.
+
+    Everyone created here starts as a Lab User. Promoting them is a separate,
+    deliberate step through PUT /account/{id}/role, so an invite can never hand
+    out admin in one go."""
+    username = body.username.strip()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username cannot be blank",
+        )
+
+    quota = (
+        (DEFAULT_TRIAL_QUOTA if body.quota is None else body.quota)
+        if body.kind is MemberKind.TRIAL
+        else None
     )
+
+    email = body.email.strip().lower()
+
+    await account_service.assert_login_available(session, username, email)
+
+    user_id = await account_service.create_auth_user(email, body.password, username)
+
+    account = Account(
+        id=user_id,
+        username=username,
+        email=email,
+        role=AccountRole.LAB_USER,
+        quota=quota,
+    )
+    session.add(account)
+
+    account_service.audit_account(session, user_id, "created", None, username, me.id)
+    if quota is not None:
+        account_service.audit_account(session, user_id, "quota", None, quota, me.id)
+
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        # The login is live but has no account row, and the id only exists in
+        # this request, so nobody could find it again to clean it up.
+        await account_service.delete_auth_user(user_id)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That username or email is already taken",
+        ) from exc
+
+    await session.refresh(account)
+    return {
+        "Account": account,
+        "Message": f"Created {username} as a {body.kind.value}",
+    }
 
 @accountRouter.put("/{account_id}/role", tags=["Admin"])
 async def assign_role(

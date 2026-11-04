@@ -1,5 +1,6 @@
 type Entry<T> = { promise: Promise<T>; at: number; settled: boolean };
 
+/* THIS THING IS NOT A CACHE THAT PERSISTED AFTER RELOAD. WTF. */
 /**
  * Wraps an async function so that:
  *  - concurrent calls with the same args share ONE request (in-flight dedupe)

@@ -101,8 +101,8 @@ async function fetchAccounts(): Promise<AccountsResponse> {
 
 export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
 
-// Creates the caller's own row. An invited member has an auth user but no
-// account row until they pick a username, so this is step one of setup.
+// Creates the caller's own row. A user who has a login but no account row
+// yet claims it here by picking a username, so this is step one of setup.
 export async function createMyAccount(username: string): Promise<Account> {
   const res = await apiSendJson("/account/", "POST", { username });
   await apiOrThrow(res, "Could not finish setting up your account.");
@@ -232,6 +232,37 @@ export function deleteAccount(accountId: string): Promise<void> {
     apiFetch(`/account/${accountId}`, { method: "DELETE" }),
     "Could not delete that account.",
   );
+}
+
+// A "member" is uncapped. A "trial" gets a ticket quota that counts down every
+// time they file a ticket - see create_ticket on the backend.
+export type MemberKind = "member" | "trial";
+
+export type NewMemberPayload = {
+  username: string;
+  // Supabase keys the login on this, and signing in is email plus password.
+  email: string;
+  password: string;
+  kind: MemberKind;
+  quota?: number | null;
+};
+
+// Creates both halves of a member at once - the Supabase login and the account
+// row behind it - so they can sign in with the credentials the admin just
+// picked. Nothing is emailed; the admin passes those on themselves. Always a
+// Lab User: promoting them is a separate call to assignRole. POST /account/ is
+// the other way round, where the member claims their own row once they already
+// have a login.
+export async function adminCreateAccount(
+  payload: NewMemberPayload,
+): Promise<Account> {
+  const res = await apiSendJson("/account/admin", "POST", payload);
+  await apiOrThrow(res, "Could not create that member.");
+
+  const { Account: account } = (await res.json()) as AccountResponse;
+  getAccounts.clear();
+
+  return account;
 }
 
 export type CurrentAccount =
