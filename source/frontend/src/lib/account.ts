@@ -99,7 +99,11 @@ async function fetchAccounts(): Promise<AccountsResponse> {
   return res.json();
 }
 
-export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
+export const getAccounts = cached(
+  fetchAccounts,
+  ACCOUNTS_CACHE_TTL,
+  "accounts",
+);
 
 // Creates the caller's own row. An invited member has an auth user but no
 // account row until they pick a username, so this is step one of setup.

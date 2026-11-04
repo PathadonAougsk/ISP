@@ -3,7 +3,7 @@ import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { cached } from "@/lib/cache";
 
-const CACHE_TTL = 60 * 1000;
+const CACHE_TTL = 30 * 60 * 1000;
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -57,7 +57,7 @@ async function fetchCategories(): Promise<CategoriesResponse> {
   return res.json();
 }
 
-export const getCategories = cached(fetchCategories, 60 * 1000);
+export const getCategories = cached(fetchCategories, CACHE_TTL, "categories");
 
 export async function createCategory(name: string): Promise<void> {
   const res = await apiFetch("/category/", {

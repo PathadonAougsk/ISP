@@ -12,12 +12,9 @@ announcementRouter = APIRouter(prefix="/announcement", dependencies=[Depends(acc
 
 @announcementRouter.get("/", tags=["Announcement"])
 async def retrieve_announcements(session: Annotated[AsyncSession, Depends(getSession)]):
-    announcements = await session.scalars(select(Announcement))
-    return {"Announcements": announcements.all()}
+    announcements = await session.scalars(select(Announcement).order_by(Announcement.created.desc()))
 
-@announcementRouter.get("/{announcement_id}", tags=["Announcement"])
-async def retrieve_announcement(announcement_id: int):
-    pass
+    return {"Announcements": announcements.all()}
 
 @announcementRouter.post("/", tags=["Announcement"])
 async def create_announcement():

@@ -5,7 +5,7 @@ import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type UserRole } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached } from "@/lib/cache";
+import { cached, withoutPagination } from "@/lib/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
@@ -103,10 +103,15 @@ export async function fetchTickets(
   return res.json();
 }
 
-const TICKETS_CACHE_TTL = 60 * 1000;
+const TICKETS_CACHE_TTL = 1 * 60 * 1000;
 
-// each page + filter is its own cache entry, so going back is instant
-export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL);
+// same filters share expiration, different limits share the same family
+export const getTickets = cached(
+  fetchTickets,
+  TICKETS_CACHE_TTL,
+  "tickets",
+  withoutPagination,
+);
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
@@ -219,6 +224,8 @@ export function useTickets(
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
   const [ticketsReloadKey, setTicketsReloadKey] = useState(0);
+  // page of the data we hold. differ from page = data is stale
+  const [ticketsLoadedPage, setTicketsLoadedPage] = useState(0);
 
   const { status, categoryId } = filters;
 
@@ -261,7 +268,10 @@ export function useTickets(
             err instanceof Error ? err.message : "Failed to load tickets",
           );
       } finally {
-        if (!cancelled) setTicketsLoading(false);
+        if (!cancelled) {
+          setTicketsLoading(false);
+          setTicketsLoadedPage(page);
+        }
       }
     }
 
@@ -282,7 +292,8 @@ export function useTickets(
   return {
     tickets,
     ticketsHasNext,
-    ticketsLoading,
+    // loading also true on the render right after page change
+    ticketsLoading: ticketsLoading || ticketsLoadedPage !== page,
     ticketsError,
     setTicketsReloadKey,
   };

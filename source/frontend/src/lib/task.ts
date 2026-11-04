@@ -5,7 +5,7 @@ import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached } from "@/lib/cache";
+import { cached, withoutPagination } from "@/lib/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
@@ -68,7 +68,7 @@ export type TaskRow = {
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
   lastUpdate: string;
-  status: "Completed" | "In_progress";
+  status: "Completed" | "In progress";
   categoryId: number;
   assigneeIds: string[];
 };
@@ -109,10 +109,15 @@ export async function fetchTasks(
   return res.json();
 }
 
-const TASKS_CACHE_TTL = 60 * 1000;
+const TASKS_CACHE_TTL = 1 * 60 * 1000;
 
-// each page + filter is its own cache entry, so going back is instant
-export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL);
+// same filters share expiration, different limits share the same family
+export const getTasks = cached(
+  fetchTasks,
+  TASKS_CACHE_TTL,
+  "tasks",
+  withoutPagination,
+);
 
 export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   const res = await apiSendJson("/task/", "POST", body);
@@ -144,7 +149,7 @@ export async function putTask(
 }
 
 function mapTaskStatus(status: TaskStatus): TaskRow["status"] {
-  return status === "completed" ? "Completed" : "In_progress";
+  return status === "completed" ? "Completed" : "In progress";
 }
 
 export function mapBackendTask(
@@ -198,6 +203,8 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [tasksReloadKey, setTasksReloadKey] = useState(0);
+  // page of the data we hold. differ from page = data is stale
+  const [tasksLoadedPage, setTasksLoadedPage] = useState(0);
 
   const { status, categoryId } = filters;
 
@@ -235,7 +242,10 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
             err instanceof Error ? err.message : "Failed to load tasks",
           );
       } finally {
-        if (!cancelled) setTasksLoading(false);
+        if (!cancelled) {
+          setTasksLoading(false);
+          setTasksLoadedPage(page);
+        }
       }
     }
 
@@ -245,5 +255,12 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
     };
   }, [enabled, page, status, categoryId, tasksReloadKey]);
 
-  return { tasks, tasksHasNext, tasksLoading, tasksError, setTasksReloadKey };
+  return {
+    tasks,
+    tasksHasNext,
+    // loading also true on the render right after page change
+    tasksLoading: tasksLoading || tasksLoadedPage !== page,
+    tasksError,
+    setTasksReloadKey,
+  };
 }

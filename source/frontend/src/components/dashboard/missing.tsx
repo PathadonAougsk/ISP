@@ -21,15 +21,22 @@ export default function Missing({
   loadingMyTickets: boolean;
   limits: DashboardLimits;
 }) {
+  if (loadingMyTasks || loadingMyTickets) {
+    return null;
+  }
+
   const now = new Date();
 
-  const overdueTasks = myTasks.filter((task) =>
-    isMissingItem(task, ["in_progress"], now),
-  ).length;
+  const extraTasks = myTasks.slice(limits.myTasks);
+  const extraPendingTickets = myPendingTickets.slice(limits.myPendingTickets);
 
-  const pastDueTickets = myPendingTickets.filter((ticket) =>
-    isMissingItem(ticket, ["pending"], now),
-  ).length;
+  const overdueTasks = myTasks
+    .slice(0, limits.myTasks)
+    .filter((task) => isMissingItem(task, ["in_progress"], now)).length;
+
+  const overduePendingTickets = myPendingTickets
+    .slice(0, limits.myPendingTickets)
+    .filter((ticket) => isMissingItem(ticket, ["pending"], now)).length;
 
   const rejectedTickets = myRejectedTickets.length;
 
@@ -37,30 +44,27 @@ export default function Missing({
     {
       label: "Overdue Tasks",
       count: overdueTasks,
-      max: limits.myTasks,
-      loading: loadingMyTasks,
-    },
-    {
-      label: "Past Due Tickets",
-      count: pastDueTickets,
-      max: limits.myPendingTickets,
-      loading: loadingMyTickets,
+      hasMore: extraTasks.some((task) =>
+        isMissingItem(task, ["in_progress"], now),
+      ),
     },
     {
       label: "Rejected Tickets",
       count: rejectedTickets,
-      max: limits.myRejectedTickets,
-      loading: loadingMyTickets,
+      hasMore: rejectedTickets > limits.myRejectedTickets,
+    },
+    {
+      label: "Overdue Pending Tickets",
+      count: overduePendingTickets,
+      hasMore: extraPendingTickets.some((ticket) =>
+        isMissingItem(ticket, ["pending"], now),
+      ),
     },
   ];
 
   const visibleSections = sections.filter(
-    (section) => section.loading || section.count > 0,
+    (section) => section.count > 0 || section.hasMore,
   );
-
-  if (visibleSections.length === 0) {
-    return null;
-  }
 
   return (
     <div className="flex w-full divide-x divide-white rounded-[30px] bg-(--primary-red)">
@@ -73,7 +77,9 @@ export default function Missing({
             {section.label}
           </h1>
           <h1 className="text-5xl font-extrabold text-white">
-            {section.loading ? "-" : formatCount(section.count, section.max)}
+            {section.label === "Rejected Tickets"
+              ? formatCount(section.count, limits.myRejectedTickets)
+              : `${section.count}${section.hasMore ? "+" : ""}`}
           </h1>
         </div>
       ))}
