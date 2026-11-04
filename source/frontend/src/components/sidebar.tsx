@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
+import { clearAllApiCache } from "@/lib/cache";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
 const bottomNavigation = ["announcement"];
@@ -44,11 +45,12 @@ function NavigationItem({
   return (
     <Link
       href={`/${name}`}
-      onClick={(event) => {
+      onClick={async (event) => {
         onClick?.();
 
         if (active) {
           event.preventDefault();
+          await clearAllApiCache();
           window.location.reload();
         }
       }}

@@ -9,6 +9,16 @@ type Entry<T> = {
 
 const CACHE_PREFIX = "api-cache";
 
+type CachedFunction<A extends unknown[], T> = ((...args: A) => Promise<T>) & {
+  clear: () => Promise<void>;
+};
+
+const cacheClearers = new Set<() => Promise<void>>();
+
+export async function clearAllApiCache(): Promise<void> {
+  await Promise.all(Array.from(cacheClearers, (clear) => clear()));
+}
+
 // signed in user id, null if no session or lookup fail
 async function getUserId(): Promise<string | null> {
   try {
@@ -165,7 +175,7 @@ export function cached<A extends unknown[], T>(
     }
   };
 
-  const wrapped = async (...args: A): Promise<T> => {
+  const wrapped: CachedFunction<A, T> = async (...args: A): Promise<T> => {
     // no session = no cache, so nothing can leak to next user
     const userId = await getUserId();
     if (!userId) return fn(...args);
@@ -352,6 +362,8 @@ export function cached<A extends unknown[], T>(
 
     return clearing;
   };
+
+  cacheClearers.add(wrapped.clear);
 
   return wrapped;
 }
