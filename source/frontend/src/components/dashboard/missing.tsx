@@ -66,10 +66,6 @@ export default function Missing({
     (section) => section.count > 0 || section.hasMore,
   );
 
-  if (visibleSections.length === 0) {
-    return null;
-  }
-
   return (
     <div className="flex w-full divide-x divide-white rounded-[30px] bg-(--primary-red)">
       {visibleSections.map((section) => (
