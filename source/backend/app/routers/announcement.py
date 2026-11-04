@@ -125,5 +125,41 @@ async def update_announcement(
 
 
 @announcementRouter.delete("/{announcement_id}", tags=["Announcement"])
-async def delete_announcement(announcement_id: int):
-    pass
+async def delete_announcement(
+    announcement_id: int,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.require_admin)]
+):
+    announcement = await session.get(Announcement, announcement_id)
+
+    if announcement is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Announcement not found"
+        )
+
+    name_audit = AuditLog(
+        from_table="announcement",
+        row_id=str(announcement.id),
+        column_name="name",
+        old_value=announcement.name,
+        new_value=None,
+        by_whom=me.id
+    )
+
+    description_audit = AuditLog(
+        from_table="announcement",
+        row_id=str(announcement.id),
+        column_name="description",
+        old_value=announcement.description,
+        new_value=None,
+        by_whom=me.id
+    )
+
+    session.add(name_audit)
+    session.add(description_audit)
+
+    await session.delete(announcement)
+    await session.commit()
+
+    return {"message": "Announcement deleted successfully"}
