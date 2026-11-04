@@ -1,18 +1,13 @@
 "use client";
 
-// The "add a member" form in the Member panel. Nothing is emailed: the admin
-// picks the username, email and password, and passes the credentials on
-// themselves, which is why they stay on screen until the admin dismisses them.
-
 import { useState } from "react";
 
-import { adminCreateAccount, type MemberKind } from "@/lib/account";
+import { adminCreateAccount, type UserKind } from "@/lib/account";
 
-// Keep in step with DEFAULT_TRIAL_QUOTA and the password Field in the backend.
 const DEFAULT_TRIAL_QUOTA = 10;
 const MIN_PASSWORD = 8;
 
-const KINDS: { value: MemberKind; label: string; blurb: string }[] = [
+const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
     value: "member",
     label: "Member",
@@ -31,12 +26,15 @@ const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
 
 type Handover = { username: string; email: string; password: string };
 
-export default function NewMember({
+// Nothing is emailed: the admin picks the username, email and password, and
+// passes the credentials on themselves, which is why they stay on screen until
+// the admin dismisses them.
+export default function CreateUser({
   onCreated,
 }: {
   onCreated: () => Promise<void> | void;
 }) {
-  const [kind, setKind] = useState<MemberKind>("member");
+  const [kind, setKind] = useState<UserKind>("member");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,7 +67,7 @@ export default function NewMember({
     setBusy(true);
     try {
       // Everyone starts as a Lab User. Promoting them is a separate step in
-      // the member list, so adding someone cannot hand out admin in one go.
+      // the member list, so creating one cannot hand out admin in one go.
       const account = await adminCreateAccount({
         username: name,
         email: login,
@@ -102,12 +100,8 @@ export default function NewMember({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <p>Add A Member</p>
-        <p className="text-[#8a8a8a]">
-          {KINDS.find((k) => k.value === kind)?.blurb} They join as a Lab User
-          and can sign in straight away - nothing is emailed, so pass the
-          credentials on to them yourself.
-        </p>
+        <p>Create A User</p>
+        <p className="text-[#8a8a8a]">Create a user here!</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -127,6 +121,12 @@ export default function NewMember({
             </button>
           ))}
         </div>
+
+        <p className="text-[#8a8a8a]">
+          {KINDS.find((k) => k.value === kind)?.blurb} They join as a Lab User
+          and can sign in straight away - nothing is emailed, so pass the
+          credentials on to them yourself.
+        </p>
 
         <div className="grid grid-cols-2 gap-3">
           <label className={LABEL}>

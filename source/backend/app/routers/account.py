@@ -28,7 +28,7 @@ class AssignRoleRequest(BaseModel):
     role: AccountRole
 
 
-class MemberKind(str, enum.Enum):
+class UserKind(str, enum.Enum):
     """How much the new member is allowed to do. A `member` is uncapped; a
     `trial` gets a ticket quota that counts down as they file tickets."""
 
@@ -40,7 +40,7 @@ class MemberKind(str, enum.Enum):
 DEFAULT_TRIAL_QUOTA = 10
 
 
-class CreateMemberRequest(BaseModel):
+class CreateUserRequest(BaseModel):
     username: str = Field(min_length=1, max_length=100)
     # Supabase keys a login on the email address, and signing in is email plus
     # password, so there is nothing to fall back on if this is missing.
@@ -48,13 +48,16 @@ class CreateMemberRequest(BaseModel):
     # 72 bytes is the bcrypt ceiling Supabase hashes with; anything longer is
     # silently truncated, so reject it instead of pretending it was kept.
     password: str = Field(min_length=8, max_length=72)
-    kind: MemberKind = MemberKind.MEMBER
+    kind: UserKind = UserKind.MEMBER
     # Trial only, and ignored for a plain member - they have no cap at all.
     quota: int | None = Field(default=None, ge=0)
 
 
 @accountRouter.get("/", tags=["Account"])
-async def retrieve_accounts(session : Annotated[AsyncSession, Depends(getSession)]):
+async def retrieve_accounts(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    _me: Annotated[Account, Depends(account_service.get_current_account)],
+):
     accounts = await session.scalars(select(Account))
     return { "Accounts" : accounts.all()}
 
@@ -64,8 +67,9 @@ async def create_my_account(
     session: Annotated[AsyncSession, Depends(getSession)],
     auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)],
 ):
-    """Claim the account row for the signed in user. This is how an invited
-    member picks their username - the row does not exist until they do."""
+    """Claim the account row for the signed in user. A user who has a login
+    but no account row picks their username here - the row does not exist
+    until they do."""
     username = body.username.strip()
     if not username:
         raise HTTPException(
@@ -252,11 +256,11 @@ async def delete_account(
 
 @accountRouter.post("/admin", tags=["Admin"], status_code=status.HTTP_201_CREATED)
 async def admin_create_account(
-    body: CreateMemberRequest,
+    body: CreateUserRequest,
     session: Annotated[AsyncSession, Depends(getSession)],
     me: Annotated[Account, Depends(account_service.require_admin)],
 ):
-    """Create a member outright. Nothing is emailed and there is nothing for
+    """Create a user outright. Nothing is emailed and there is nothing for
     them to accept: the admin picks the username, email and password, and
     passes the credentials on however they like. The address is marked
     confirmed on the spot so the new member can sign in right away.
@@ -269,8 +273,8 @@ async def admin_create_account(
     `quota` tickets, counted down by create_ticket.
 
     Everyone created here starts as a Lab User. Promoting them is a separate,
-    deliberate step through PUT /account/{id}/role, so an invite can never hand
-    out admin in one go."""
+    deliberate step through PUT /account/{id}/role, so creating a user can
+    never hand out admin in one go."""
     username = body.username.strip()
     if not username:
         raise HTTPException(
@@ -280,7 +284,7 @@ async def admin_create_account(
 
     quota = (
         (DEFAULT_TRIAL_QUOTA if body.quota is None else body.quota)
-        if body.kind is MemberKind.TRIAL
+        if body.kind is UserKind.TRIAL
         else None
     )
 

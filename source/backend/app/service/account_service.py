@@ -54,10 +54,22 @@ async def get_current_account(
     auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
     session: Annotated[AsyncSession, Depends(getSession)],
 ) -> Account:
-    """The account row behind the logged in user, so we can read their role."""
+    """The account row behind the logged in user, so we can read their role.
+
+    This is also where a deactivated account is turned away. Every endpoint
+    that needs to know who is calling depends on this, so gating it here keeps
+    an inactive member out of the whole lab rather than one route at a time."""
     account = await session.get(Account, auth_user.id)
     if account is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    if not account.active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "This account is deactivated. Ask a Lab Owner or Lab Admin to "
+                "turn it back on."
+            ),
+        )
     return account
 
 async def require_admin(
@@ -128,8 +140,8 @@ async def assert_login_available(
 
 async def create_auth_user(email: str, password: str, username: str) -> uuid.UUID:
     """The Supabase half of creating a member. `email_confirm` marks the
-    address confirmed on the spot: there is no invite mail to click, the admin
-    hands the password over themselves.
+    address confirmed on the spot: nothing is emailed, the admin hands the
+    password over themselves.
 
     The supabase client is blocking, so it goes to the threadpool rather than
     stalling the event loop."""

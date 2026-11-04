@@ -138,6 +138,20 @@ export function getMe({ force = false }: { force?: boolean } = {}): Promise<
   return entry.promise;
 }
 
+// Sends them back to the login page with a reason, rather than to a blank
+// dashboard that fails every request.
+async function signOutDeactivated() {
+  clearCachedRole();
+  await createClient().auth.signOut();
+
+  if (typeof window !== "undefined") {
+    // A hard navigation on purpose, not router.push: it also clears the
+    // module level caches in this file, and `replace` keeps the dead session's
+    // page out of history so Back cannot return to it.
+    window.location.replace("/auth?deactivated=1");
+  }
+}
+
 async function fetchMe(): Promise<Account | undefined> {
   const {
     data: { session },
@@ -150,6 +164,12 @@ async function fetchMe(): Promise<Account | undefined> {
 
   if (res.ok) {
     account = ((await res.json()) as AccountResponse).Account;
+  } else if (res.status === 403) {
+    // Deactivated. The backend turns away every other endpoint too, so there
+    // is nothing left to show - drop the session instead of leaving them
+    // sitting in a lab they cannot use.
+    await signOutDeactivated();
+    return undefined;
   } else if (res.status === 404) {
     // A row that is not keyed to the auth id still has to be findable by email.
     const { Accounts } = await getAccounts();
@@ -236,14 +256,14 @@ export function deleteAccount(accountId: string): Promise<void> {
 
 // A "member" is uncapped. A "trial" gets a ticket quota that counts down every
 // time they file a ticket - see create_ticket on the backend.
-export type MemberKind = "member" | "trial";
+export type UserKind = "member" | "trial";
 
-export type NewMemberPayload = {
+export type CreateUserPayload = {
   username: string;
   // Supabase keys the login on this, and signing in is email plus password.
   email: string;
   password: string;
-  kind: MemberKind;
+  kind: UserKind;
   quota?: number | null;
 };
 
@@ -254,7 +274,7 @@ export type NewMemberPayload = {
 // the other way round, where the member claims their own row once they already
 // have a login.
 export async function adminCreateAccount(
-  payload: NewMemberPayload,
+  payload: CreateUserPayload,
 ): Promise<Account> {
   const res = await apiSendJson("/account/admin", "POST", payload);
   await apiOrThrow(res, "Could not create that member.");

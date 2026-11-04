@@ -14,7 +14,7 @@ import {
   type AccountRole,
 } from "@/lib/account";
 import { maskEmail } from "@/lib/format";
-import NewMember from "./new_member";
+import CreateUser from "./create_user";
 
 // Lab Owner first, then Lab Admin, then Lab User
 const ROLE_ORDER: Record<AccountRole, number> = {
@@ -149,7 +149,7 @@ export default function Member({
         <p className="text-[#8a8a8a]">Everyone is here!</p>
       </div>
 
-      {isAdmin && <NewMember onCreated={refresh} />}
+      {isAdmin && <CreateUser onCreated={refresh} />}
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg">

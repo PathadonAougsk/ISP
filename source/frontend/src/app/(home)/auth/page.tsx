@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
+// useSearchParams needs a Suspense boundary above it during prerender.
 export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthForm />
+    </Suspense>
+  );
+}
+
+function AuthForm() {
   const router = useRouter();
+  // Set by getMe when the backend turns a deactivated account away, so they
+  // are told why instead of just landing back here.
+  const deactivated = useSearchParams().has("deactivated");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +94,13 @@ export default function AuthPage() {
             {loading ? "Working..." : "Log In"}
           </button>
         </form>
+
+        {deactivated && !error && (
+          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-xs text-red-600">
+            [ ERROR ] Your account has been deactivated. Ask a Lab Owner or Lab
+            Admin to turn it back on.
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-xs text-red-600">
