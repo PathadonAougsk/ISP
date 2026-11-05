@@ -98,9 +98,8 @@ async def create_my_account(
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="That username is already taken",
+        raise account_service.account_conflict(
+            exc, "That username is already taken"
         ) from exc
 
     await session.refresh(account)
@@ -207,9 +206,8 @@ async def update_account(
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="That username is already taken",
+        raise account_service.account_conflict(
+            exc, "That username is already taken"
         ) from exc
 
     await session.refresh(target)
@@ -314,9 +312,8 @@ async def admin_create_account(
         # The login is live but has no account row, and the id only exists in
         # this request, so nobody could find it again to clean it up.
         await account_service.delete_auth_user(user_id)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="That username or email is already taken",
+        raise account_service.account_conflict(
+            exc, "That username or email is already taken"
         ) from exc
 
     await session.refresh(account)

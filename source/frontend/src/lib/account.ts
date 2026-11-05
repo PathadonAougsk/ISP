@@ -138,18 +138,25 @@ export function getMe({ force = false }: { force?: boolean } = {}): Promise<
   return entry.promise;
 }
 
-// Sends them back to the login page with a reason, rather than to a blank
-// dashboard that fails every request.
-async function signOutDeactivated() {
+async function endSession(search = "") {
   clearCachedRole();
   await createClient().auth.signOut();
 
   if (typeof window !== "undefined") {
-    // A hard navigation on purpose, not router.push: it also clears the
-    // module level caches in this file, and `replace` keeps the dead session's
-    // page out of history so Back cannot return to it.
-    window.location.replace("/auth?deactivated=1");
+    window.location.replace(`/auth${search}`);
   }
+}
+
+// Sends them back to the login page with a reason, rather than to a blank
+// dashboard that fails every request.
+function signOutDeactivated() {
+  return endSession("?deactivated=1");
+}
+
+// Logging out on purpose, so no reason flag - the login page has nothing to
+// explain.
+export function signOut() {
+  return endSession();
 }
 
 async function fetchMe(): Promise<Account | undefined> {
@@ -165,13 +172,9 @@ async function fetchMe(): Promise<Account | undefined> {
   if (res.ok) {
     account = ((await res.json()) as AccountResponse).Account;
   } else if (res.status === 403) {
-    // Deactivated. The backend turns away every other endpoint too, so there
-    // is nothing left to show - drop the session instead of leaving them
-    // sitting in a lab they cannot use.
     await signOutDeactivated();
     return undefined;
   } else if (res.status === 404) {
-    // A row that is not keyed to the auth id still has to be findable by email.
     const { Accounts } = await getAccounts();
     account = Accounts.find((user) => user.email === session.user.email);
   } else {

@@ -7,6 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from supabase_auth.errors import AuthApiError, AuthError
 from supabase_auth.types import User as AuthUser
@@ -112,6 +113,29 @@ def audit_account(
             new_value=None if new_value is None else str(new_value),
             by_whom=by_whom,
         )
+    )
+
+
+# Which constraint failed -> what actually went wrong. Reporting every
+# IntegrityError as a username clash hid a duplicate primary key behind a
+# message about a username that was never taken, so name the real one.
+ACCOUNT_CONFLICTS = {
+    "account_username_key": "That username is already taken",
+    "account_email_key": "That email address is already taken",
+    "account_pkey": "An account already exists for that login",
+    "account_quota_check": "Quota cannot be negative",
+    "account_id_fkey": "There is no Supabase login behind that account id",
+}
+
+
+def account_conflict(exc: IntegrityError, fallback: str) -> HTTPException:
+    """A 409 that says which constraint the insert or update actually tripped.
+    asyncpg hands us the constraint name; anything we do not recognise keeps
+    the caller's own wording."""
+    constraint = getattr(exc.orig, "constraint_name", None)
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=ACCOUNT_CONFLICTS.get(constraint, fallback),
     )
 
 

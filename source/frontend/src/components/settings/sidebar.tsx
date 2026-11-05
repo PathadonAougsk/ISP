@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+
+import { signOut } from "@/lib/account";
 import Icon from "@/components/icon";
 import Nav, { accountNav } from "./nav";
 
@@ -12,6 +15,10 @@ export default function Sidebar({
   active: string;
   onSelect: (label: string) => void;
 }) {
+  // signOut hard navigates, so this only has to survive until the page goes
+  // away - it is here to stop a second click firing another sign out.
+  const [leaving, setLeaving] = useState(false);
+
   return (
     <aside className="flex w-76.5 shrink-0 flex-col overflow-y-auto border-r border-[#d6d6d6] px-4 py-6">
       <div className="flex items-stretch gap-3 pl-2">
@@ -41,6 +48,20 @@ export default function Sidebar({
       </label>
 
       <Nav items={accountNav} active={active} onSelect={onSelect} />
+
+      {/* mt-auto pins it to the bottom however short the nav is. */}
+      <button
+        type="button"
+        onClick={() => {
+          setLeaving(true);
+          void signOut();
+        }}
+        disabled={leaving}
+        className="mt-auto flex w-full items-center gap-3 px-2 py-2 text-left hover:bg-[#e0e0e0] disabled:opacity-50"
+      >
+        <Icon src="/logout.svg" className="size-5 shrink-0" />
+        <span>{leaving ? "Logging out..." : "Logout"}</span>
+      </button>
     </aside>
   );
 }
