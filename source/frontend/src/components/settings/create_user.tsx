@@ -136,7 +136,7 @@ export default function CreateUser({
               onChange={(e) => setUsername(e.target.value)}
               disabled={busy}
               maxLength={100}
-              placeholder="somchai"
+              placeholder="Another Win"
               className={FIELD}
             />
           </label>
@@ -148,7 +148,7 @@ export default function CreateUser({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={busy}
-              placeholder="somchai@ku.th"
+              placeholder="Anawin.c@Chula.th"
               className={FIELD}
             />
           </label>
