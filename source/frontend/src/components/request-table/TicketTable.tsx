@@ -2,7 +2,7 @@
 import type { TicketRow, TicketStatus } from "@/lib/ticket";
 import type { Category } from "@/lib/category";
 import Icon from "@/components/icon";
-import { ticketStatusIcon } from "@/components/dashboard/dashboard_status";
+import { ticketStatusIcon } from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
   isPastDate,

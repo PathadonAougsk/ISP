@@ -9,7 +9,7 @@ import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 
 // field look. white modal, so field use panel color
 export const fieldClass =

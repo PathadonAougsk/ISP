@@ -7,6 +7,7 @@ import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached, withoutPagination } from "@/lib/cache/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
+import { buildQuery } from "@/lib/query";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
 
@@ -56,6 +57,9 @@ export type TaskPayload = {
   assignees?: string[];
 };
 
+// Body for PUT /task/{id} (TaskUpdate in the backend, every field optional)
+export type TaskUpdatePayload = Partial<TaskPayload>;
+
 // Shape the request-table UI renders
 export type TaskRow = {
   id: string;
@@ -76,30 +80,7 @@ export type TaskRow = {
 export async function fetchTasks(
   params: GetTasksParams = {},
 ): Promise<TasksResponse> {
-  const {
-    id,
-    categories,
-    assignsTo,
-    notassignsTo,
-    status,
-    due_after,
-    due_before,
-    limit,
-    offset,
-  } = params;
-  const query = new URLSearchParams();
-
-  if (id !== undefined) query.set("id", String(id));
-  if (categories !== undefined) query.set("categories", String(categories));
-  if (assignsTo !== undefined) query.set("assignsTo", assignsTo);
-  if (notassignsTo !== undefined) query.set("notassignsTo", notassignsTo);
-  if (status !== undefined) query.set("status", status);
-  if (due_after !== undefined) query.set("due_after", due_after);
-  if (due_before !== undefined) query.set("due_before", due_before);
-  if (limit !== undefined) query.set("limit", String(limit));
-  if (offset !== undefined) query.set("offset", String(offset));
-
-  const qs = query.toString();
+  const qs = buildQuery(params).toString();
   const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
 
   if (!res.ok) {
@@ -134,7 +115,7 @@ export async function postTask(body: TaskPayload): Promise<TaskResponse> {
 
 export async function putTask(
   id: number | string,
-  body: TaskPayload,
+  body: TaskUpdatePayload,
 ): Promise<TaskResponse> {
   const res = await apiSendJson(`/task/${id}`, "PUT", body);
 
@@ -166,8 +147,8 @@ export function mapBackendTask(
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
     dueDate: formatShortDateTime(bt.due_date),
     dueDateValue: toDateInputValue(bt.due_date),
-    createdDate: formatShortDateTime(bt.created),
-    lastUpdate: formatShortDateTime(bt.updated),
+    createdDate: formatShortDateTime(bt.created, "created"),
+    lastUpdate: formatShortDateTime(bt.updated, "updated"),
     status: mapTaskStatus(bt.status),
     categoryId: bt.category_id,
     assigneeIds: bt.assignees.map((a) => a.id),

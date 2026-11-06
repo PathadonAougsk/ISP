@@ -7,6 +7,7 @@ import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached, withoutPagination } from "@/lib/cache/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
+import { buildQuery } from "@/lib/query";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -74,30 +75,7 @@ export type TicketRow = {
 export async function fetchTickets(
   params: GetTicketsParams = {},
 ): Promise<TicketsResponse> {
-  const {
-    ticket_id,
-    status,
-    category_id,
-    due_after,
-    due_before,
-    onlyOwned,
-    notOwned,
-    limit,
-    offset,
-  } = params;
-  const query = new URLSearchParams();
-
-  if (ticket_id !== undefined) query.set("ticket_id", String(ticket_id));
-  if (status !== undefined) query.set("status", status);
-  if (category_id !== undefined) query.set("category_id", String(category_id));
-  if (due_after !== undefined) query.set("due_after", due_after);
-  if (due_before !== undefined) query.set("due_before", due_before);
-  if (onlyOwned !== undefined) query.set("onlyOwned", String(onlyOwned));
-  if (notOwned !== undefined) query.set("notOwned", String(notOwned));
-  if (limit !== undefined) query.set("limit", String(limit));
-  if (offset !== undefined) query.set("offset", String(offset));
-
-  const qs = query.toString();
+  const qs = buildQuery(params).toString();
   const res = await apiFetch(`/ticket/${qs ? `?${qs}` : ""}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -170,8 +148,8 @@ export function mapBackendTicket(
     status: mapTicketStatus(bt.status),
     dueDate: formatShortDateTime(bt.due_date),
     dueDateValue: toDateInputValue(bt.due_date),
-    createdDate: formatShortDateTime(bt.created),
-    lastUpdate: formatShortDateTime(bt.updated),
+    createdDate: formatShortDateTime(bt.created, "created"),
+    lastUpdate: formatShortDateTime(bt.updated, "updated"),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     description: bt.description ?? "",
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,

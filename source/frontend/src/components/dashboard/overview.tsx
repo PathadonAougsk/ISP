@@ -7,14 +7,12 @@ import Icon from "@/components/icon";
 import {
   dueBucketColor,
   dueBucketMeta,
-  emptyBucketCounts,
-  getDueBucket,
   getDueBucketLimits,
+  type BucketCounts,
   type DashboardItem,
   type DashboardView,
-  type DueBucketKey,
-} from "@/components/dashboard/dashboard_status";
-import { ListMessage } from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-data";
+import { ListMessage } from "@/components/dashboard/dashboard-utils";
 
 // View and scope toggles
 
@@ -143,11 +141,13 @@ export function ScopeToggle({
 export function Summary({
   items,
   overflowItems,
+  counts,
   loading,
   view,
 }: {
   items: DashboardItem[];
   overflowItems: DashboardItem[];
+  counts: BucketCounts;
   loading: boolean;
   view: DashboardView;
 }) {
@@ -169,12 +169,6 @@ export function Summary({
   const moreDueToday = overflowItems.some(isDueToday);
 
   const isTicket = view === "ticket";
-
-  // same items as the list. ticket include rejected
-  const counts = items.reduce((acc, item) => {
-    acc[getDueBucket(item.due_date, limits)] += 1;
-    return acc;
-  }, emptyBucketCounts());
 
   // hide empty range, but show all of them while loading
   const dueBuckets = dueBucketMeta
@@ -289,39 +283,24 @@ export function Summary({
 // Overview
 
 export default function Overview({
-  items,
+  categoryCounts,
   loadingTasks,
   errorTasks,
   errorCategories,
   categoryMap,
   view,
 }: {
-  items: DashboardItem[];
+  categoryCounts: Record<number, BucketCounts>;
   loadingTasks: boolean;
   errorTasks: boolean;
   errorCategories: boolean;
   categoryMap: CategoryMap;
   view: DashboardView;
 }) {
-  const limits = getDueBucketLimits(new Date());
-
   const isTicket = view === "ticket";
   const noun = isTicket ? "tickets" : "tasks";
 
-  // task and ticket both group by due date range
-  const grouped = items.reduce<Record<number, Record<DueBucketKey, number>>>(
-    (acc, task) => {
-      const bucket = getDueBucket(task.due_date, limits);
-      if (!acc[task.category_id]) {
-        acc[task.category_id] = emptyBucketCounts();
-      }
-      acc[task.category_id][bucket] += 1;
-      return acc;
-    },
-    {},
-  );
-
-  const categoryIds = Object.keys(grouped)
+  const categoryIds = Object.keys(categoryCounts)
     .map(Number)
     .sort((a, b) => a - b);
 
@@ -340,7 +319,7 @@ export default function Overview({
         <ListMessage>Failed to load {noun}</ListMessage>
       ) : errorCategories ? (
         <ListMessage>Failed to load categories</ListMessage>
-      ) : items.length === 0 ? (
+      ) : categoryIds.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-4 text-center text-base font-medium text-gray-500">
           {isTicket
             ? "No tickets! Smooth sailing ahead, so enjoy the calm."
@@ -349,7 +328,7 @@ export default function Overview({
       ) : (
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin">
           {categoryIds.map((id) => {
-            const counts = grouped[id];
+            const counts = categoryCounts[id];
             const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
             const visibleBuckets = dueBucketMeta.filter(
               (b) => counts[b.key] > 0,

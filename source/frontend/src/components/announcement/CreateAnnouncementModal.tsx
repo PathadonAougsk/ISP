@@ -5,7 +5,7 @@ import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 import type { CreateAnnouncementInput } from "@/lib/announcement";
 
 export default function CreateAnnouncementModal({
