@@ -1,7 +1,7 @@
 import {
   isMissingItem,
   type GroupState,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 
 // "+" when the list still have more to load
 const withMore = (value: number, more: boolean) =>

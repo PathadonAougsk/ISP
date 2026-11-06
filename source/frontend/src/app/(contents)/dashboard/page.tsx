@@ -16,12 +16,12 @@ import Overview, {
 import TaskTicketList, {
   TaskList,
   TicketList,
-} from "@/components/dashboard/task_ticket_list";
-import TaskSlideup from "@/components/dashboard/task_slideup";
-import TicketSlideup from "@/components/dashboard/ticket_slideup";
-import type { DashboardView } from "@/components/dashboard/dashboard_status";
-import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
-import { useDashboardView } from "@/components/dashboard/dashboard_view";
+} from "@/components/dashboard/task-ticket-list";
+import TaskSlideup from "@/components/dashboard/task-slideup";
+import TicketSlideup from "@/components/dashboard/ticket-slideup";
+import type { DashboardView } from "@/components/dashboard/dashboard-data";
+import { useDashboardFetching } from "@/components/dashboard/dashboard-fetching";
+import { useDashboardView } from "@/components/dashboard/dashboard-view";
 
 export default function Dashboard() {
   const {

@@ -25,7 +25,7 @@ import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 import { Toggle } from "@/components/dashboard/overview";
 
 type Tab = "ticket" | "task";

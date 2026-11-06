@@ -13,7 +13,7 @@ import Icon from "@/components/icon";
 import {
   isMissingItem,
   type DashboardView,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 
 // ==========================================================
 // Links

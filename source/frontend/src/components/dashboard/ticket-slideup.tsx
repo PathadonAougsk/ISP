@@ -8,7 +8,7 @@ import Icon from "@/components/icon";
 import {
   ticketStatusIcon,
   ticketStatusText,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 import {
   RequestTableButton,
   SlideupDescription,
@@ -16,12 +16,12 @@ import {
   SlideupEdited,
   SlideupError,
   SlideupMeta,
-} from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-utils";
 import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 
 export default function TicketSlideup({
   ticket,

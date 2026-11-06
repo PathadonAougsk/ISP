@@ -14,14 +14,14 @@ import {
   ticketStatusIcon,
   ticketStatusText,
   type GroupState,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 import {
   ListMessage,
   ListPanel,
   ListRow,
   ListSection,
   useListOverflow,
-} from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-utils";
 
 // same props for every section
 const sectionProps = (group: GroupState) => ({

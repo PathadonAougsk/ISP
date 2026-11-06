@@ -1,11 +1,11 @@
-import type { DashboardGroups } from "@/components/dashboard/dashboard_fetching";
+import type { DashboardGroups } from "@/components/dashboard/dashboard-fetching";
 import {
   countDueBuckets,
   getDueBucketLimits,
   type DashboardItem,
   type DashboardView,
   type GroupState,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 
 // what the dashboard show now: items, overflow, flags and due counts
 // summary, overview and list all use same items

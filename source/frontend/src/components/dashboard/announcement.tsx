@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Icon from "@/components/icon";
-import { renderWithLinks } from "@/components/dashboard/dashboard_utils";
+import { renderWithLinks } from "@/components/dashboard/dashboard-utils";
 
 export default function Announcement() {
   const description =

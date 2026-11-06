@@ -11,8 +11,8 @@ import {
   type BucketCounts,
   type DashboardItem,
   type DashboardView,
-} from "@/components/dashboard/dashboard_status";
-import { ListMessage } from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-data";
+import { ListMessage } from "@/components/dashboard/dashboard-utils";
 
 // View and scope toggles
 

@@ -11,7 +11,7 @@ import {
   type DashboardItem,
   type DashboardLimits,
   type GroupState,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 
 // limit of each list at first load
 const INITIAL_LIMITS: DashboardLimits = {

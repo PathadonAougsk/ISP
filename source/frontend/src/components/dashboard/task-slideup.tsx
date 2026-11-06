@@ -11,12 +11,12 @@ import {
   SlideupEdited,
   SlideupError,
   SlideupMeta,
-} from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-utils";
 import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 
 export default function TaskSlideup({
   task,
