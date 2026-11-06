@@ -6,7 +6,6 @@ import { ticketStatusIcon } from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
   isPastDate,
-  RequestListRow,
   RequestTableFrame,
 } from "@/components/request-table/RequestList";
 
@@ -22,12 +21,12 @@ const titles = [
 ];
 
 // full class string, tailwind need to see it
-const gridClassName = "grid-cols-[0.2fr_2fr_1.2fr_1fr_1.2fr_1fr_1fr_1fr]";
+const gridClassName = "grid-cols-[0.2fr_1.4fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr_1fr]";
 
 const statusOptions = [
   { value: "pending", label: "Pending" },
-  { value: "accepted", label: "Accepted" },
   { value: "rejected", label: "Rejected" },
+  { value: "accepted", label: "Accepted" },
 ];
 
 export default function TicketTable({
@@ -81,45 +80,38 @@ export default function TicketTable({
       onPageChange={onPageChange}
       titles={titles}
       gridClassName={gridClassName}
-    >
-      {(rows) =>
-        rows.map((ticket) => {
-          // only pending ticket can be overdue
-          const overdue =
-            ticket.status === "Pending" && isPastDate(ticket.dueDateValue);
+      onSelect={onSelect}
+      getRow={(ticket) => {
+        // only pending ticket can be overdue
+        const overdue =
+          ticket.status === "Pending" && isPastDate(ticket.dueDateValue);
 
-          return (
-            <RequestListRow
-              key={ticket.id}
-              overdue={overdue}
-              spacingClassName="pl-1.5 pr-3.5 gap-5"
-              gridClassName={gridClassName}
-              lead={
-                <Icon
-                  src={
-                    overdue
-                      ? "/alert.svg"
-                      : ticketStatusIcon[ticket.status.toLowerCase()]
-                  }
-                  className="h-4 w-auto shrink-0"
-                  alt={ticket.status}
-                />
+        return {
+          overdue,
+          spacingClassName: "pl-1.5 pr-3.5 gap-5",
+          lead: (
+            <Icon
+              src={
+                overdue
+                  ? "/alert.svg"
+                  : ticketStatusIcon[ticket.status.toLowerCase()]
               }
-              cells={[
-                ticket.id,
-                ticket.title,
-                ticket.category,
-                ticket.status,
-                ticket.createdBy,
-                formatDueDate(ticket),
-                ticket.createdDate,
-                ticket.lastUpdate,
-              ]}
-              onClick={() => onSelect(ticket)}
+              className="h-4 w-auto shrink-0"
+              alt={ticket.status}
             />
-          );
-        })
-      }
-    </RequestTableFrame>
+          ),
+          cells: [
+            ticket.id,
+            ticket.title,
+            ticket.category,
+            ticket.status,
+            ticket.createdBy,
+            formatDueDate(ticket),
+            ticket.createdDate,
+            ticket.lastUpdate,
+          ],
+        };
+      }}
+    />
   );
 }

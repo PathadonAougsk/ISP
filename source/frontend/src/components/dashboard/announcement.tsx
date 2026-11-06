@@ -9,19 +9,18 @@ export default function Announcement() {
   return (
     <div className="min-h-25 max-h-75 w-full overflow-hidden rounded-[30px] bg-(--panel-bg)">
       <div className="flex h-full flex-col p-5 pb-0">
-        <h1 className="text-3xl font-bold text-black line-clamp-2">
-          Test Topic Announcement 001 and show Line wrapping Test Topic
-          Announcement 001 and show Line wrapping
+        <h1 className="text-2xl font-bold text-black line-clamp-2">
+          Test Topic Announcement 001 and show Line wrapping and also Test Topic Announcement 001 and show Line wrapping
         </h1>
 
         <div className="mt-2 flex items-center gap-12 text-sm text-gray-600">
           <div className="flex items-center gap-2">
-            <Icon src="/user.svg" alt="" className="h-4 w-auto" />
-            <span>Pasin Mclaren</span>
-          </div>
-          <div className="flex items-center gap-2">
             <Icon src="/clock.svg" alt="" className="h-4 w-auto" />
             <span>Friday 28 August 2026, 09:47</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Icon src="/user.svg" alt="" className="h-4 w-auto" />
+            <span>Pasin Mclaren</span>
           </div>
         </div>
 

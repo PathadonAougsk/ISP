@@ -75,7 +75,7 @@ export const listGridClass =
 // loading, error or empty text for a list
 export function ListMessage({ children }: { children: ReactNode }) {
   return (
-    <p className="py-6 text-center text-base font-medium text-gray-500">
+    <p className="py-6 text-center text-base font-medium text-gray-400">
       {children}
     </p>
   );
@@ -156,7 +156,7 @@ export function ListRow({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
+      className={`tile-button flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
         overdue
           ? "border-(--primary-red) text-red-700"
           : "border-transparent text-black"
@@ -284,7 +284,7 @@ export function RequestTableButton({
         router.push(`/request-table?type=${type}&id=${id}`);
       }}
       disabled={redirecting}
-      className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
+      className={`flex h-7.5 w-50 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
         redirecting
           ? "cursor-wait bg-gray-700"
           : "cursor-pointer bg-black hover:bg-gray-700"
@@ -297,19 +297,16 @@ export function RequestTableButton({
 
 // id + category + created date row. children are extra items added at the end
 export function SlideupMeta({
-  id,
   categoryName,
   createdDate,
   children,
 }: {
-  id: number;
   categoryName: string;
   createdDate: string | null;
   children?: ReactNode;
 }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
-      <span className="font-bold">#{id}</span>
       <div className="flex items-center gap-2">
         <Icon src="/header_donut_gray.svg" />
         <span>{categoryName}</span>

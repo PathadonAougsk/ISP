@@ -33,7 +33,7 @@ function autoSlash(raw: string) {
 }
 
 // today in local time as yyyy-MM-dd
-function todayIso() {
+export function todayIso() {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
@@ -81,13 +81,13 @@ export default function DateInput({
         onChange={(e) => handleType(e.target.value)}
         // Half-typed or invalid text goes back to the last valid date
         onBlur={() => setDraft(toDisplay(value))}
-        className={`${className} pr-10`}
+        className={`${className} pr-10 placeholder:text-gray-400`}
       />
 
       <button
         type="button"
         onClick={() => pickerRef.current?.showPicker()}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 cursor-pointer"
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-800"
         aria-label="Open calendar"
       >
         <img src="/calendar.svg" alt="" className="w-5 h-5" />

@@ -7,7 +7,7 @@ import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
 import { clearAllApiCache } from "@/lib/cache/cache";
 
-const mainNavigation = ["dashboard", "request-table", "report"];
+const mainNavigation = ["dashboard", "request-table"];
 const bottomNavigation = ["announcement"];
 
 function getItemClass(active = false) {
@@ -66,17 +66,31 @@ export default function Sidebar() {
   const pathname = usePathname();
   const currentPath = pathname.split("/")[1];
   const { openSettings } = useSettings();
+
   const [expanded, setExpanded] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const [hasExpanded, setHasExpanded] = useState(false);
 
   useEffect(() => {
     if (expanded) setHasExpanded(true);
   }, [expanded]);
 
-  // Collapse sidebar after selecting a navigation item.
+  // Close and unpin
   const handleNavigationClick = () => {
     setExpanded(false);
+    setPinned(false);
   };
+
+  const renderItems = (names: string[]) =>
+    names.map((name) => (
+      <NavigationItem
+        key={name}
+        name={name}
+        active={currentPath === name}
+        expanded={expanded}
+        onClick={handleNavigationClick}
+      />
+    ));
 
   return (
     <div className="sticky top-0 left-0 z-50 flex h-screen w-15 shrink-0 flex-col justify-between bg-(--primary-color-2)">
@@ -89,43 +103,38 @@ export default function Sidebar() {
 
       <div
         className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-56 sidebar-expand" : hasExpanded ? "w-15 sidebar-collapse" : "w-15"}`}
+        onMouseOver={(event) => {
+          // Skip if hover on toggle button
+          const onToggle = (event.target as Element).closest(
+            "[data-sidebar-toggle]",
+          );
+          if (!expanded && !onToggle) setExpanded(true);
+        }}
+        onMouseLeave={() => !pinned && setExpanded(false)}
       >
         <div className="flex h-fit w-full flex-col items-center justify-evenly">
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
+          <div
+            data-sidebar-toggle
+            onClick={() => {
+              setPinned(!pinned);
+              setExpanded(!pinned);
+            }}
             className={getItemClass()}
           >
             <NavigationIcon name="sidebar" />
-          </button>
+          </div>
 
-          {mainNavigation.map((name) => (
-            <NavigationItem
-              key={name}
-              name={name}
-              active={currentPath === name}
-              expanded={expanded}
-              onClick={handleNavigationClick}
-            />
-          ))}
+          {renderItems(mainNavigation)}
         </div>
 
         <div className="flex h-fit w-full flex-col items-center select-none">
-          {bottomNavigation.map((name) => (
-            <NavigationItem
-              key={name}
-              name={name}
-              active={currentPath === name}
-              expanded={expanded}
-              onClick={handleNavigationClick}
-            />
-          ))}
+          {renderItems(bottomNavigation)}
 
           {/* Settings */}
           <button
             type="button"
             onClick={() => {
-              setExpanded(false);
+              handleNavigationClick();
               openSettings();
             }}
             className={getItemClass()}

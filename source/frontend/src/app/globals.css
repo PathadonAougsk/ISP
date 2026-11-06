@@ -38,6 +38,23 @@ h1 {
 
 button {
   cursor: pointer;
+  transition: transform 50ms ease;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.965);
+}
+
+button.tile-button {
+  transition: transform 50ms ease;
+}
+
+button.tile-button:active:not(:disabled) {
+  transform: scale(0.997, 0.965);
 }
 
 p,

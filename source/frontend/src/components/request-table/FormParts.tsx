@@ -10,10 +10,11 @@ import {
   SlideupFrame,
   useSlideupClose,
 } from "@/components/modal-slideup";
+import { renderWithLinks } from "@/components/dashboard/dashboard-utils";
 
 // field look. white modal, so field use panel color
 export const fieldClass =
-  "w-full rounded-[20px] bg-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-300";
+  "w-full px-3 py-2 rounded-[20px] bg-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-300";
 
 // title + one field. children is input, select, or read only box
 export function FormField({
@@ -27,7 +28,7 @@ export function FormField({
 }) {
   return (
     <div className={className}>
-      <p className="mb-1 text-sm font-bold text-black">{label}</p>
+      <p className="mb-1 text-base font-bold text-black">{label}</p>
       {children}
     </div>
   );
@@ -36,14 +37,16 @@ export function FormField({
 // same look as field, but no edit
 export function ReadOnlyBox({
   className = "",
+  extend = false,
   children,
 }: {
   className?: string;
+  extend?: boolean;
   children: ReactNode;
 }) {
   return (
     <p
-      className={`max-h-20 overflow-y-auto rounded-[20px] bg-gray-100 px-3 py-2 text-sm wrap-break-word ${className}`}
+      className={`${extend ? "h-full" : "max-h-20"} overflow-y-auto scrollbar-thin px-3 py-2 rounded-[20px] bg-gray-100 text-sm wrap-break-word ${className}`}
     >
       {children}
     </p>
@@ -75,7 +78,7 @@ export function FormFooter({
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-end gap-3 border-t border-gray-300 px-6 py-4">
+    <div className="flex items-center justify-end gap-3">
       {error && <p className="mr-auto text-sm text-red-500">{error}</p>}
       {children}
     </div>
@@ -96,12 +99,14 @@ export function FormButton({
   color,
   className = "",
   ...props
-}: { color: keyof typeof buttonColors } & ButtonHTMLAttributes<HTMLButtonElement>) {
+}: {
+  color: keyof typeof buttonColors;
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
       {...props}
-      className={`h-8 min-w-25 cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${buttonColors[color]} ${className}`}
+      className={`h-10 min-w-40 px-5 rounded-full text-base font-bold cursor-pointer disabled:cursor-default disabled:opacity-50 ${buttonColors[color]} ${className}`}
     />
   );
 }
@@ -145,25 +150,25 @@ export function FormModal({
   const { isClosing, handleClose } = useSlideupClose(onClose);
 
   return (
-    <SlideupFrame isClosing={isClosing} onClose={handleClose}>
-      <div className="flex flex-col h-full min-h-0">
-        <FormHeader title={title} onClose={handleClose} />
+    <SlideupFrame
+      isClosing={isClosing}
+      onClose={handleClose}
+      className="flex flex-col"
+    >
+      <FormHeader title={title} onClose={handleClose} />
 
-        <div className="flex gap-6 flex-1 min-h-0 overflow-y-auto">
-          {children}
-        </div>
-
-        <FormFooter error={error}>{footer(handleClose)}</FormFooter>
+      <div className="flex flex-1 min-h-0 gap-6 overflow-y-auto scrollbar-thin pb-4">
+        {children}
       </div>
+
+      <FormFooter error={error}>{footer(handleClose)}</FormFooter>
     </SlideupFrame>
   );
 }
 
 // left column of the modal body. fields stack here
 export function FormColumn({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-4 pb-4">{children}</div>
-  );
+  return <div className="flex flex-col flex-1 min-w-0 gap-4">{children}</div>;
 }
 
 // text input. readOnly show the box, onChange not needed then
@@ -172,24 +177,27 @@ export function TextField({
   value,
   onChange,
   readOnly = false,
+  placeholder,
   className,
 }: {
   label: string;
   value: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
+  placeholder?: string;
   className?: string;
 }) {
   return (
     <FormField label={label} className={className}>
       {readOnly ? (
-        <ReadOnlyBox>{value}</ReadOnlyBox>
+        <ReadOnlyBox>{renderWithLinks(value)}</ReadOnlyBox>
       ) : (
         <input
           type="text"
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
-          className={fieldClass}
+          placeholder={placeholder}
+          className={`${fieldClass} placeholder:text-gray-400`}
         />
       )}
     </FormField>
@@ -241,7 +249,7 @@ export function SelectField({
           <img
             src="/dropdown_arrow.svg"
             alt=""
-            className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2"
+            className="absolute right-2 top-1/2 w-4 h-4 -translate-y-1/2 pointer-events-none"
           />
         </div>
       )}
@@ -282,26 +290,34 @@ export function TextAreaField({
   value,
   onChange,
   readOnly = false,
+  placeholder,
   className = "",
 }: {
   label: string;
   value: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
+  placeholder?: string;
   className?: string;
 }) {
   return (
     <FormField
       label={label}
-      className={`${readOnly ? "" : "flex flex-1 flex-col"} ${className}`}
+      className={`${label === "Description" ? "flex flex-col flex-1 min-h-0" : ""} ${className}`}
     >
       {readOnly ? (
-        <ReadOnlyBox className="min-h-24 max-h-40!">{value}</ReadOnlyBox>
+        <ReadOnlyBox
+          extend={label === "Description"}
+          className="flex-1 min-h-0"
+        >
+          <span className="whitespace-pre-line">{renderWithLinks(value)}</span>
+        </ReadOnlyBox>
       ) : (
         <textarea
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
-          className={`${fieldClass} min-h-24 flex-1 resize-none scrollbar-none`}
+          placeholder={placeholder}
+          className={`${fieldClass} flex-1 min-h-24 resize-none scrollbar-thin placeholder:text-gray-400`}
         />
       )}
     </FormField>
@@ -339,9 +355,9 @@ export function MemberPanel({
   }
 
   return (
-    <div className="w-72 shrink-0 self-start rounded-[20px] bg-(--panel-bg) p-3">
+    <div className="w-9/40 shrink-0 self-stretch min-h-0 flex flex-col p-3 rounded-[20px] bg-(--panel-bg)">
       <div
-        className={`flex items-center justify-between ${hint ? "mb-2" : "mb-3"}`}
+        className={`flex items-center justify-between shrink-0 ${hint ? "mb-2" : "mb-3"}`}
       >
         <p className="text-base font-bold text-black">
           Members <span className="text-green-800">{members.length}</span>
@@ -350,7 +366,7 @@ export function MemberPanel({
           type="button"
           onClick={toggleAll}
           disabled={members.length === 0}
-          className="cursor-pointer rounded-full bg-(--primary-color-2) px-3 py-1 text-xs font-semibold text-white hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+          className="px-3 py-1 rounded-full bg-(--primary-color-2) text-xs font-semibold text-white cursor-pointer hover:bg-(--primary-color-2-hover) disabled:opacity-50"
         >
           {members.length > 0 && selectedIds.length === members.length
             ? "Clear all"
@@ -358,15 +374,17 @@ export function MemberPanel({
         </button>
       </div>
 
-      {hint && <p className="mb-3 text-xs text-gray-500">{hint}</p>}
+      {hint && <p className="mb-3 text-xs text-gray-500 shrink-0">{hint}</p>}
 
-      <div className="max-h-64 space-y-2 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 min-h-0 space-y-2 overflow-y-auto scrollbar-thin">
         {loading && (
           <div className="text-xs text-gray-400">Loading members…</div>
         )}
+
         {error && !loading && (
           <div className="text-xs text-red-500">{error}</div>
         )}
+
         {!loading &&
           !error &&
           members.map((member) => (
@@ -375,9 +393,11 @@ export function MemberPanel({
                 type="checkbox"
                 checked={selectedIds.includes(member.id)}
                 onChange={() => toggle(member.id)}
-                className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
+                className="w-4 h-4 shrink-0 accent-(--primary-color-2)"
               />
-              <Icon src="/profile.svg" className="h-6 w-auto shrink-0" />
+
+              <Icon src="/profile.svg" className="w-auto h-6 shrink-0" />
+
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium leading-tight text-gray-800">
                   {member.name}

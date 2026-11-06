@@ -1,12 +1,10 @@
 "use client";
-import type { TaskRow } from "@/lib/task";
-import type { TaskStatus } from "@/lib/task";
+import type { TaskRow, TaskStatus } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
 import {
   formatDueDate,
   isPastDate,
-  RequestListRow,
   RequestTableFrame,
 } from "@/components/request-table/RequestList";
 
@@ -23,7 +21,8 @@ const titles = [
 ];
 
 // full class string, tailwind need to see it
-const gridClassName = "grid-cols-[0.2fr_2fr_1.2fr_1fr_1.2fr_1.2fr_1fr_1fr_1fr]";
+const gridClassName =
+  "grid-cols-[0.2fr_1.2fr_0.67fr_0.67fr_0.67fr_0.8fr_0.8fr_1fr_1fr]";
 
 const statusOptions = [
   { value: "in_progress", label: "In progress" },
@@ -82,46 +81,39 @@ export default function TaskTable({
       onPageChange={onPageChange}
       titles={titles}
       gridClassName={gridClassName}
-    >
-      {(rows) =>
-        rows.map((task) => {
-          const completed = task.status === "Completed";
-          // only unfinished task can be overdue
-          const overdue = !completed && isPastDate(task.dueDateValue);
+      onSelect={onSelect}
+      getRow={(task) => {
+        const completed = task.status === "Completed";
+        // only unfinished task can be overdue
+        const overdue = !completed && isPastDate(task.dueDateValue);
 
-          return (
-            <RequestListRow
-              key={task.id}
-              overdue={overdue}
-              spacingClassName="pl-2.5 pr-3.5 gap-6"
-              gridClassName={gridClassName}
-              lead={
-                <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    overdue
-                      ? "bg-(--primary-red)"
-                      : completed
-                        ? "bg-(--primary-color-1)"
-                        : "bg-(--primary-blue)"
-                  }`}
-                />
-              }
-              cells={[
-                task.id,
-                task.title,
-                task.category,
-                task.status,
-                task.assignedTo,
-                task.createdBy,
-                formatDueDate(task),
-                task.createdDate,
-                task.lastUpdate,
-              ]}
-              onClick={() => onSelect(task)}
+        return {
+          overdue,
+          spacingClassName: "pl-2.5 pr-3.5 gap-6",
+          lead: (
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${
+                overdue
+                  ? "bg-(--primary-red)"
+                  : completed
+                    ? "bg-(--primary-color-1)"
+                    : "bg-(--primary-blue)"
+              }`}
             />
-          );
-        })
-      }
-    </RequestTableFrame>
+          ),
+          cells: [
+            task.id,
+            task.title,
+            task.category,
+            task.status,
+            task.assignedTo,
+            task.createdBy,
+            formatDueDate(task),
+            task.createdDate,
+            task.lastUpdate,
+          ],
+        };
+      }}
+    />
   );
 }

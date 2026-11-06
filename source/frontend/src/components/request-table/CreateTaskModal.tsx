@@ -82,6 +82,7 @@ export default function CreateTaskModal({
           label="Title"
           value={newTaskTitle}
           onChange={setNewTaskTitle}
+          placeholder="Enter a title"
         />
         <SelectField
           label="Category"
@@ -98,6 +99,7 @@ export default function CreateTaskModal({
           label="Description"
           value={newTaskDescription}
           onChange={setNewTaskDescription}
+          placeholder="Add more details"
         />
       </FormColumn>
 

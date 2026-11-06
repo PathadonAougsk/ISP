@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { putTask, type TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
@@ -48,7 +49,15 @@ export default function TaskDetailModal({
 
   const isAdmin = userRole === "Lab Admin";
 
-  // submit and unsubmit only flip the status, other fields stay as saved
+  const hasChanges =
+    editTaskTitle.trim() !== task.title ||
+    editTaskCategoryId !== task.categoryId ||
+    (editTaskDescription || "") !== (task.description || "") ||
+    (editTaskDueDate || "") !== (task.dueDateValue || "") ||
+    JSON.stringify([...editTaskAssignedIds].sort()) !==
+      JSON.stringify([...task.assigneeIds].sort());
+
+  // Submit and unsubmit only flip the status; other fields stay as saved.
   async function handleSetStatus(
     status: "completed" | "in_progress",
     close: () => void,
@@ -74,6 +83,8 @@ export default function TaskDetailModal({
   }
 
   async function handleUpdateTask(close: () => void) {
+    if (!hasChanges) return;
+
     if (!editTaskTitle.trim() || editTaskCategoryId === "") {
       setError("Title and category are required.");
       return;
@@ -109,7 +120,7 @@ export default function TaskDetailModal({
             <FormButton
               color="green"
               onClick={() => handleUpdateTask(close)}
-              disabled={saving}
+              disabled={saving || !hasChanges}
             >
               {saving ? "Saving…" : "Save Changes"}
             </FormButton>
@@ -141,6 +152,7 @@ export default function TaskDetailModal({
           label="Title"
           value={editTaskTitle}
           onChange={setEditTaskTitle}
+          placeholder="Enter a title"
           readOnly={!isAdmin}
         />
 
@@ -154,12 +166,23 @@ export default function TaskDetailModal({
             readOnly={!isAdmin}
             readOnlyText={task.category}
           />
+
           <TextField
             label="Status"
             className="flex-1 min-w-0"
             value={task.status}
             readOnly
           />
+        </div>
+
+        <div className="flex gap-4">
+          <TextField
+            label="Created By"
+            className="flex-1 min-w-0"
+            value={task.createdBy}
+            readOnly
+          />
+
           <DateField
             label="Due Date"
             className="flex-1 min-w-0"
@@ -170,19 +193,18 @@ export default function TaskDetailModal({
           />
         </div>
 
-        <TextField label="Created By" value={task.createdBy} readOnly />
-
         <TextAreaField
           label="Description"
           value={editTaskDescription}
           onChange={setEditTaskDescription}
+          placeholder="Add more details"
           readOnly={!isAdmin}
         />
 
         {!isAdmin && (
           <TextField
             label="Assigned"
-            value={task.assignedTo || "—"}
+            value={task.assignedTo || "Unassigned"}
             readOnly
           />
         )}

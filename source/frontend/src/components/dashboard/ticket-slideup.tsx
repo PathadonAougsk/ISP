@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -16,6 +17,7 @@ import {
   SlideupEdited,
   SlideupError,
   SlideupMeta,
+  renderWithLinks,
 } from "@/components/dashboard/dashboard-utils";
 import {
   SlideupCloseButton,
@@ -76,7 +78,7 @@ export default function TicketSlideup({
   }
 
   const judgeButtonClass = (color: string) =>
-    `flex h-7.5 w-25 items-center justify-center rounded-full text-sm font-semibold text-white ${
+    `flex h-10 w-40 items-center justify-center rounded-full text-lg font-bold text-white ${
       submitting ? "cursor-not-allowed bg-gray-200" : `cursor-pointer ${color}`
     }`;
 
@@ -86,52 +88,33 @@ export default function TicketSlideup({
       onClose={handleClose}
       className="flex flex-col"
     >
-      <div className="flex justify-end gap-4 pb-2">
-        <RequestTableButton
-          type="ticket"
-          id={ticket.id}
-          label={
-            isMyRejectedTicket
-              ? "Revise in Request-table"
-              : isMyPendingTicket
-                ? "Edit in Request-table"
-                : "Open in Request-table"
-          }
-        />
-        {canJudge && (
-          <>
-            {error && <SlideupError message={error} className="self-center" />}
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleJudge("rejected")}
-              className={judgeButtonClass(
-                "bg-(--primary-red) hover:bg-(--primary-red-hover)",
-              )}
-            >
-              Rejected
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleJudge("accepted")}
-              className={judgeButtonClass(
-                "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)",
-              )}
-            >
-              Accepted
-            </button>
-          </>
-        )}
-        <SlideupCloseButton onClose={handleClose} />
+      <div className="flex items-center justify-between gap-4 pb-2">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-2xl font-bold text-black">Ticket</h1>
+          <h1 className="text-xl font-semibold text-gray-500">#{ticket.id}</h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <RequestTableButton
+            type="ticket"
+            id={ticket.id}
+            label={
+              isMyRejectedTicket
+                ? "Revise in Request-table"
+                : isMyPendingTicket
+                  ? "Edit in Request-table"
+                  : "Open in Request-table"
+            }
+          />
+          <SlideupCloseButton onClose={handleClose} />
+        </div>
       </div>
 
-      <h1 className="min-w-0 wrap-break-word text-3xl font-bold text-black">
-        {ticket.name}
+      <h1 className="min-w-0 wrap-break-word text-xl font-bold text-black">
+        {renderWithLinks(ticket.name)}
       </h1>
 
       <SlideupMeta
-        id={ticket.id}
         categoryName={categoryMap[ticket.category_id] ?? "-"}
         createdDate={ticket.created}
       >
@@ -154,6 +137,32 @@ export default function TicketSlideup({
       />
 
       <SlideupDescription description={ticket.description} />
+
+      {canJudge && (
+        <div className="mt-2 flex h-10 justify-end gap-2">
+          {error && <SlideupError message={error} />}
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => handleJudge("rejected")}
+            className={judgeButtonClass(
+              "bg-(--primary-red) hover:bg-(--primary-red-hover)",
+            )}
+          >
+            Rejected
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => handleJudge("accepted")}
+            className={judgeButtonClass(
+              "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)",
+            )}
+          >
+            Accepted
+          </button>
+        </div>
+      )}
     </SlideupFrame>
   );
 }
