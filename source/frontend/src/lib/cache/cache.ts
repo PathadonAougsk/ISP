@@ -1,15 +1,15 @@
-import { getUserId } from "@/lib/cache-utils";
+import { getUserId } from "@/lib/cache/cache-utils";
+import { resolveFamilyExpiry } from "@/lib/cache/cache-family";
 import {
   getCache,
-  getFamilyExpiry,
   getKey,
   isFresh,
   readResult,
-  saveFamilyExpiry,
   saveResult,
-} from "@/lib/cache-storage";
+  type CacheContext,
+} from "@/lib/cache/cache-storage";
 
-export { withoutPagination } from "@/lib/cache-utils";
+export { withoutPagination } from "@/lib/cache/cache-utils";
 
 type Entry<T> = {
   promise: Promise<T>;
@@ -76,92 +76,57 @@ export function cached<A extends unknown[], T>(
         await clearing;
 
         const cache = await getCache(cacheName);
-        const request = cache && ttlMs > 0 ? getKey(key) : null;
 
-        const guard = {
-          isActive: () =>
-            pending.get(key) === entry && generation === startedGeneration,
-          isSameGeneration: () => generation === startedGeneration,
+        const ctx: CacheContext = {
+          cache,
+          request: cache && ttlMs > 0 ? getKey(key) : null,
+          guard: {
+            isActive: () =>
+              pending.get(key) === entry && generation === startedGeneration,
+            isSameGeneration: () => generation === startedGeneration,
+          },
         };
+
+        const fetchFresh = () => fn(...args);
 
         // read cache, else fetch and save
         const readOrFetch = async (
           isValid: (response: Response) => boolean,
           expiresAt?: number,
         ): Promise<T> => {
-          const cached = await readResult<T>(cache, request, isValid);
+          const cached = await readResult<T>(ctx, isValid);
 
           if (cached.hit) return cached.value as T;
 
-          const result = await fn(...args);
+          const result = await fetchFresh();
 
-          await saveResult(cache, request, result, guard, expiresAt);
+          await saveResult(ctx, result, expiresAt);
 
           return result;
         };
 
         const runFamily = async (familyKey: string): Promise<T> => {
-          let expiresAt = await getFamilyExpiry(
-            cache,
-            familyExpirations,
-            familyKey,
-          );
-
           // First request establishes the shared expiration
-          if (expiresAt === null) {
-            let initialization = familyInitializations.get(familyKey);
-
-            if (!initialization) {
-              let resolveInitialization!: (value: number) => void;
-              let rejectInitialization!: (reason: unknown) => void;
-
-              initialization = new Promise<number>((resolve, reject) => {
-                resolveInitialization = resolve;
-                rejectInitialization = reject;
-              });
-
-              familyInitializations.set(familyKey, initialization);
-
-              try {
-                const result = await fn(...args);
-                expiresAt = Date.now() + ttlMs;
-
-                if (generation === startedGeneration) {
-                  await saveFamilyExpiry(
-                    cache,
-                    familyExpirations,
-                    familyKey,
-                    expiresAt,
-                  );
-                }
-
-                resolveInitialization(expiresAt);
-                entry.expiresAt = expiresAt;
-
-                await saveResult(cache, request, result, guard, expiresAt);
-
-                return result;
-              } catch (error) {
-                rejectInitialization(error);
-                throw error;
-              } finally {
-                if (familyInitializations.get(familyKey) === initialization) {
-                  familyInitializations.delete(familyKey);
-                }
-              }
-            }
-
-            expiresAt = await initialization;
-          }
+          const { expiresAt, fresh } = await resolveFamilyExpiry({
+            ...ctx,
+            familyKey,
+            ttlMs,
+            expirations: familyExpirations,
+            initializations: familyInitializations,
+            fetchFresh,
+          });
 
           entry.expiresAt = expiresAt;
 
-          const sharedExpiry = expiresAt;
+          if (fresh) {
+            await saveResult(ctx, fresh.value, expiresAt);
+            return fresh.value;
+          }
 
           // Try the exact request cache entry
           return readOrFetch(
-            (response) => isFresh(response, ttlMs, sharedExpiry),
-            sharedExpiry,
+            (response) => isFresh(response, ttlMs, expiresAt),
+            expiresAt,
           );
         };
 
