@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
-import { cached } from "@/lib/cache";
+import { cached } from "@/lib/cache/cache";
 
 const CACHE_TTL = 30 * 60 * 1000;
 

@@ -5,7 +5,7 @@ import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached, withoutPagination } from "@/lib/cache";
+import { cached, withoutPagination } from "@/lib/cache/cache";
 import { pageParams, splitPage } from "@/lib/pagination";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});

@@ -3,7 +3,7 @@
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
-import { cached } from "@/lib/cache";
+import { cached } from "@/lib/cache/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 

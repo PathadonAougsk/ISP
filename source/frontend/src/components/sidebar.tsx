@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
-import { clearAllApiCache } from "@/lib/cache";
+import { clearAllApiCache } from "@/lib/cache/cache";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
 const bottomNavigation = ["announcement"];

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMe, type Account } from "@/lib/account";
 import Icon from "@/components/icon";
-import { clearAllApiCache } from "@/lib/cache";
+import { clearAllApiCache } from "@/lib/cache/cache";
 
 export default function Topbar() {
   const pathname = usePathname().replace("/", "");
