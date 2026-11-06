@@ -19,8 +19,29 @@ import {
 // Links
 // ==========================================================
 
-const urlRegex =
-  /(?<![\w.-])((?:https?:\/\/|www\.)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?::\d+)?(?:\/(?:[^\s]*[^\s.,!?;:])?)?)/g;
+// bare domain (no http or www) only linked when its tld is in this list
+const BARE_TLDS = [
+  "com",
+  "net",
+  "org",
+  "edu",
+  "gov",
+  "io",
+  "co",
+  "dev",
+  "app",
+  "ai",
+  "info",
+  "me",
+  "th",
+];
+
+// one capture group only, because renderWithLinks use split
+// http(s):// or www. = any tld. bare domain = tld in the list above
+const urlRegex = new RegExp(
+  String.raw`(?<![\w.@-])((?:(?:https?:\/\/|www\.)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+|[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.(?:${BARE_TLDS.join("|")})(?![a-zA-Z0-9-]|\.[a-zA-Z0-9]))(?::\d+)?(?:\/(?:[^\s]*[^\s.,!?;:])?)?)`,
+  "g",
+);
 
 // make plain text into text with clickable links
 export function renderWithLinks(text: string): ReactNode {
@@ -30,7 +51,7 @@ export function renderWithLinks(text: string): ReactNode {
     index % 2 === 1 ? (
       <a
         key={index}
-        href={part.startsWith("http") ? part : `https://${part}`}
+        href={/^https?:\/\//.test(part) ? part : `https://${part}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-blue-800 italic underline"
@@ -295,7 +316,7 @@ export function SlideupMeta({
       </div>
       <div className="flex items-center gap-2">
         <Icon src="/clock.svg" />
-        <span>{formatFullDateTime(createdDate)}</span>
+        <span>{formatFullDateTime(createdDate, "created")}</span>
       </div>
       {children}
     </div>
@@ -303,6 +324,7 @@ export function SlideupMeta({
 }
 
 // shows nothing when the item was never edited
+// updated within 500ms of created = same save, not an edit
 export function SlideupEdited({
   created,
   updated,
@@ -310,13 +332,37 @@ export function SlideupEdited({
   created: string | null;
   updated: string | null;
 }) {
-  if (updated === created) return null;
+  if (
+    created === null ||
+    updated === null ||
+    Math.abs(new Date(updated).getTime() - new Date(created).getTime()) <= 500
+  ) {
+    return null;
+  }
 
   return (
     <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
       <span className="font-semibold italic">Edited</span>
       <span>{formatFullDateTime(updated)}</span>
     </div>
+  );
+}
+
+// red error text for a slideup action. className is for the position
+export function SlideupError({
+  message,
+  className = "",
+}: {
+  message: string;
+  className?: string;
+}) {
+  return (
+    <p
+      role="alert"
+      className={`text-sm font-semibold text-red-700 ${className}`}
+    >
+      {message}
+    </p>
   );
 }
 

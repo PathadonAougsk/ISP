@@ -30,6 +30,15 @@ class TaskRequest(BaseModel):
     assignees: list[uuid.UUID] | None = None
 
 
+class TaskUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    status: TaskStatus | None = None
+    category_id: int | None = None
+    due_date: datetime | None = None
+    assignees: list[uuid.UUID] | None = None
+
+
 taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get_current_auth_user)])
 
 # Filter params here are optional. If given none, then get all.
@@ -146,7 +155,7 @@ async def update_task(
     auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)],
     task_id: int,
     session: Annotated[AsyncSession, Depends(getSession)],
-    body: TaskRequest
+    body: TaskUpdate
 ):
     task = await session.scalar(
         select(Task)

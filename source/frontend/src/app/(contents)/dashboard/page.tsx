@@ -19,25 +19,9 @@ import TaskTicketList, {
 } from "@/components/dashboard/task_ticket_list";
 import TaskSlideup from "@/components/dashboard/task_slideup";
 import TicketSlideup from "@/components/dashboard/ticket_slideup";
-import type {
-  DashboardGroup,
-  DashboardItem,
-  DashboardLimits,
-  DashboardView,
-} from "@/components/dashboard/dashboard_status";
+import type { DashboardView } from "@/components/dashboard/dashboard_status";
 import { useDashboardFetching } from "@/components/dashboard/dashboard_fetching";
-
-// limit increment when clicking Load More button
-const INCREMENT = 10;
-
-const INITIAL_LIMITS: DashboardLimits = {
-  myTasks: 10,
-  otherTasks: 10,
-  myRejectedTickets: 10,
-  myPendingTickets: 10,
-  otherRejectedTickets: 10,
-  otherPendingTickets: 10,
-};
+import { useDashboardView } from "@/components/dashboard/dashboard_view";
 
 export default function Dashboard() {
   const {
@@ -46,43 +30,16 @@ export default function Dashboard() {
     error: accountError,
   } = useCurrentAccount();
 
-  const [limits, setLimits] = useState<DashboardLimits>(INITIAL_LIMITS);
-
   const {
-    myTasks,
-    myRejectedTickets,
-    myPendingTickets,
-    shownMyTasks,
-    shownOtherTasks,
-    shownMyRejectedTickets,
-    shownMyPendingTickets,
-    shownOtherRejectedTickets,
-    shownOtherPendingTickets,
-    overflowItems,
-    refreshing,
-    taskCounts,
-    ticketCounts,
+    groups,
     categories,
     usernames,
     creatorRoles,
-    loadingMyTasks,
-    loadingOtherTasks,
     loadingCategories,
-    loadingMyTickets,
-    loadingOtherTickets,
-    errorMyTasks,
-    errorOtherTasks,
     errorCategories,
-    errorMyTickets,
-    errorOtherTickets,
     reloadTasks,
     reloadTickets,
-  } = useDashboardFetching(
-    currentAccount,
-    accountLoading,
-    accountError,
-    limits,
-  );
+  } = useDashboardFetching(currentAccount, accountLoading, accountError);
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -97,47 +54,14 @@ export default function Dashboard() {
   const showScope = currentAccount !== null && !isLabUser;
   const isAllScope = showScope && scope === "all";
 
-  const isTicketView = view === "ticket";
-
-  const handleLoadMore = (group: DashboardGroup) =>
-    setLimits((prev) => ({ ...prev, [group]: prev[group] + INCREMENT }));
-
   // summary and overview use same items as the list. mine first, others after
-  const viewItems = isTicketView
-    ? [
-        ...shownMyRejectedTickets,
-        ...shownMyPendingTickets,
-        ...(isAllScope
-          ? [...shownOtherRejectedTickets, ...shownOtherPendingTickets]
-          : []),
-      ]
-    : [...shownMyTasks, ...(isAllScope ? shownOtherTasks : [])];
-
-  // extra item of each list in the same scope, for the "+" sign
-  const viewOverflowItems = (
-    isTicketView
-      ? [
-          overflowItems.myRejectedTickets,
-          overflowItems.myPendingTickets,
-          ...(isAllScope
-            ? [
-                overflowItems.otherRejectedTickets,
-                overflowItems.otherPendingTickets,
-              ]
-            : []),
-        ]
-      : [
-          overflowItems.myTasks,
-          ...(isAllScope ? [overflowItems.otherTasks] : []),
-        ]
-  ).filter((item): item is DashboardItem => item !== null);
-
-  const loadingViewItems = isTicketView
-    ? loadingMyTickets || (isAllScope && loadingOtherTickets)
-    : loadingMyTasks || (isAllScope && loadingOtherTasks);
-  const errorViewItems = isTicketView
-    ? errorMyTickets || (isAllScope && errorOtherTickets)
-    : errorMyTasks || (isAllScope && errorOtherTasks);
+  const {
+    items: viewItems,
+    overflowItems: viewOverflowItems,
+    loading: loadingViewItems,
+    error: errorViewItems,
+    bucketCounts,
+  } = useDashboardView(view, isAllScope, groups);
 
   return (
     <main className="flex min-h-full w-full min-w-0 flex-col gap-5 overflow-x-auto bg-(--background) px-5 pt-5 max-[600px]:min-w-150 min-[1000px]:flex-row">
@@ -154,12 +78,13 @@ export default function Dashboard() {
           <Summary
             items={viewItems}
             overflowItems={viewOverflowItems}
+            counts={bucketCounts.total}
             loading={loadingViewItems || errorViewItems}
             view={view}
           />
 
           <Overview
-            items={viewItems}
+            categoryCounts={bucketCounts.byCategory}
             loadingTasks={loadingViewItems || loadingCategories}
             errorTasks={errorViewItems}
             errorCategories={errorCategories}
@@ -174,12 +99,9 @@ export default function Dashboard() {
         {/* empty:hidden so no gap when Missing render nothing */}
         <div className="order-first empty:hidden min-[1000px]:order-0">
           <Missing
-            myTasks={myTasks}
-            myPendingTickets={myPendingTickets}
-            myRejectedTickets={myRejectedTickets}
-            loadingMyTasks={loadingMyTasks || errorMyTasks}
-            loadingMyTickets={loadingMyTickets || errorMyTickets}
-            limits={limits}
+            myTasks={groups.myTasks}
+            myPendingTickets={groups.myPendingTickets}
+            myRejectedTickets={groups.myRejectedTickets}
           />
         </div>
 
@@ -187,36 +109,20 @@ export default function Dashboard() {
         <div className="order-last flex h-200 min-w-0 flex-col min-[1000px]:order-0 min-[1000px]:h-auto min-[1000px]:min-h-0 min-[1000px]:flex-1">
           <TaskTicketList>
             <TaskList
-              myTasks={shownMyTasks}
-              otherTasks={shownOtherTasks}
-              loadingMyTasks={loadingMyTasks}
-              loadingOtherTasks={loadingOtherTasks}
-              errorMyTasks={errorMyTasks}
-              errorOtherTasks={errorOtherTasks}
+              myTasks={groups.myTasks}
+              otherTasks={groups.otherTasks}
               categoryMap={categoryMap}
               usernames={usernames}
               isLabUser={isLabUser}
-              counts={taskCounts}
-              overflowItems={overflowItems}
-              refreshing={refreshing}
-              onLoadMore={handleLoadMore}
               onSelectTask={setSelectedTask}
             />
             <TicketList
-              myRejectedTickets={shownMyRejectedTickets}
-              myPendingTickets={shownMyPendingTickets}
-              otherRejectedTickets={shownOtherRejectedTickets}
-              otherPendingTickets={shownOtherPendingTickets}
-              loadingMyTickets={loadingMyTickets}
-              loadingOtherTickets={loadingOtherTickets}
-              errorMyTickets={errorMyTickets}
-              errorOtherTickets={errorOtherTickets}
+              myRejectedTickets={groups.myRejectedTickets}
+              myPendingTickets={groups.myPendingTickets}
+              otherRejectedTickets={groups.otherRejectedTickets}
+              otherPendingTickets={groups.otherPendingTickets}
               categoryMap={categoryMap}
               isLabUser={isLabUser}
-              counts={ticketCounts}
-              overflowItems={overflowItems}
-              refreshing={refreshing}
-              onLoadMore={handleLoadMore}
               onSelectTicket={setSelectedTicket}
             />
           </TaskTicketList>

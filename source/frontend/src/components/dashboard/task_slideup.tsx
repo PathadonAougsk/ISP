@@ -9,6 +9,7 @@ import {
   SlideupDescription,
   SlideupDueRow,
   SlideupEdited,
+  SlideupError,
   SlideupMeta,
 } from "@/components/dashboard/dashboard_utils";
 import {
@@ -37,6 +38,7 @@ export default function TaskSlideup({
   // local copy, task prop never change after putTask
   const [status, setStatus] = useState(task.status);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isAssignedToMe = task.assignees.some((a) => a.id === currentUserId);
   const isCompleted = status === "completed";
@@ -45,23 +47,16 @@ export default function TaskSlideup({
     const next = isCompleted ? "in_progress" : "completed";
     const action = isCompleted ? "unsubmit" : "submit";
 
+    setError(null);
     setSubmitting(true);
 
     try {
-      // send due_date as it is
-      await putTask(task.id, {
-        name: task.name,
-        category_id: task.category_id,
-        description: task.description,
-        status: next,
-        due_date: task.due_date,
-        assignees: task.assignees.map((a) => a.id),
-      });
+      await putTask(task.id, { status: next });
 
       setStatus(next);
       onUpdated();
     } catch {
-      console.error(`Fail to ${action}`);
+      setError(`Failed to ${action}`);
     } finally {
       setSubmitting(false);
     }
@@ -141,6 +136,10 @@ export default function TaskSlideup({
               </div>
             </div>
           </div>
+
+          {error && (
+            <SlideupError message={error} className="mt-2 text-center" />
+          )}
 
           {isAssignedToMe && (
             <button
