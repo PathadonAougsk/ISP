@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type { Category } from "@/lib/category";
 import Icon from "@/components/icon";
 import {
@@ -56,8 +56,11 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   status,
   onStatusChange,
   statusOptions,
+  search,
+  onSearch,
   page,
   hasNext,
+  totalPages,
   onPageChange,
   titles,
   gridClassName,
@@ -77,8 +80,11 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   status: string;
   onStatusChange: (status: string) => void;
   statusOptions: { value: string; label: string }[];
+  search: string;
+  onSearch: (term: string) => void;
   page: number;
   hasNext: boolean;
+  totalPages: number;
   onPageChange: (page: number) => void;
   titles: string[];
   gridClassName: string;
@@ -90,21 +96,12 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
     spacingClassName: string;
   };
 }) {
-  // Search only looks at the rows on the current page
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const term = searchTerm.toLowerCase();
-  const filteredRows = rows.filter(
-    (row) =>
-      row.title.toLowerCase().includes(term) ||
-      row.id.toLowerCase().includes(term),
-  );
+  // Draft only, search run on Enter. Start from saved search
+  const [draft, setDraft] = useState(search);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   // header need more right space when scrollbar show
-  const { listRef, hasOverflow } = useListOverflow([
-    filteredRows.length,
-    loading,
-  ]);
+  const { listRef, hasOverflow } = useListOverflow([rows.length, loading]);
 
   const filters: Filter[] = [
     {
@@ -145,13 +142,32 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
         <div className="flex items-center gap-2 h-9">
           {/* searchbox */}
-          <input
-            type="text"
-            placeholder="Search this page"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`${controlClass} w-100`}
-          />
+          <div className="relative w-100">
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSearch(draft.trim());
+              }}
+              className={`${controlClass} w-full pr-10`}
+            />
+            {draft && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft("");
+                  searchRef.current?.focus();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <Icon src="/close.svg" className="h-3 w-3" />
+              </button>
+            )}
+          </div>
 
           {/* category filter and status filter*/}
           {filters.map((f) => (
@@ -205,7 +221,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
           {/* rows hide while loading, so old page dont show */}
           {!loading &&
             !error &&
-            filteredRows.map((row) => {
+            rows.map((row) => {
               const { cells, lead, overdue, spacingClassName } = getRow(row);
 
               return (
@@ -241,7 +257,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
               Couldn't load {noun}: {error}
             </ListMessage>
           )}
-          {!loading && !error && filteredRows.length === 0 && (
+          {!loading && !error && rows.length === 0 && (
             <ListMessage>No {noun} match your search.</ListMessage>
           )}
         </div>
@@ -250,6 +266,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
       {/* footer for page selection */}
       <Pagination
         page={page}
+        totalPages={totalPages}
         hasNext={hasNext}
         loading={loading}
         onChange={onPageChange}

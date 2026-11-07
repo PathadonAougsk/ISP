@@ -71,9 +71,11 @@ export default function RequestTable() {
   const [ticketCategoryId, setTicketCategoryId] = useState<number | "All">(
     "All",
   );
+  const [ticketSearch, setTicketSearch] = useState("");
   const [taskPage, setTaskPage] = useState(1);
   const [taskStatus, setTaskStatus] = useState<TaskStatus | "All">("All");
   const [taskCategoryId, setTaskCategoryId] = useState<number | "All">("All");
+  const [taskSearch, setTaskSearch] = useState("");
 
   const {
     loading: meLoading,
@@ -84,6 +86,7 @@ export default function RequestTable() {
   const {
     tickets,
     ticketsHasNext,
+    ticketsTotalPages,
     ticketsLoading,
     ticketsError,
     setTicketsReloadKey,
@@ -94,18 +97,26 @@ export default function RequestTable() {
     {
       status: ticketStatus === "All" ? undefined : ticketStatus,
       categoryId: ticketCategoryId === "All" ? undefined : ticketCategoryId,
+      search: ticketSearch || undefined,
     },
     tab === "ticket",
   );
-  const { tasks, tasksHasNext, tasksLoading, tasksError, setTasksReloadKey } =
-    useTasks(
-      taskPage,
-      {
-        status: taskStatus === "All" ? undefined : taskStatus,
-        categoryId: taskCategoryId === "All" ? undefined : taskCategoryId,
-      },
-      tab === "task",
-    );
+  const {
+    tasks,
+    tasksHasNext,
+    tasksTotalPages,
+    tasksLoading,
+    tasksError,
+    setTasksReloadKey,
+  } = useTasks(
+    taskPage,
+    {
+      status: taskStatus === "All" ? undefined : taskStatus,
+      categoryId: taskCategoryId === "All" ? undefined : taskCategoryId,
+      search: taskSearch || undefined,
+    },
+    tab === "task",
+  );
   const { members, membersLoading, membersError } = useMembers();
   const { categories } = useCategories();
 
@@ -179,8 +190,14 @@ export default function RequestTable() {
               setTicketCategoryId(id);
               setTicketPage(1);
             }}
+            search={ticketSearch}
+            onSearch={(s) => {
+              setTicketSearch(s);
+              setTicketPage(1);
+            }}
             page={ticketPage}
             hasNext={ticketsHasNext}
+            totalPages={ticketsTotalPages}
             onPageChange={setTicketPage}
             onSelect={setSelectedTicket}
             onCreate={() => setIsCreatingTicket(true)}
@@ -203,8 +220,14 @@ export default function RequestTable() {
               setTaskCategoryId(id);
               setTaskPage(1);
             }}
+            search={taskSearch}
+            onSearch={(s) => {
+              setTaskSearch(s);
+              setTaskPage(1);
+            }}
             page={taskPage}
             hasNext={tasksHasNext}
+            totalPages={tasksTotalPages}
             onPageChange={setTaskPage}
             onSelect={setSelectedTask}
             onCreate={() => setIsCreatingTask(true)}

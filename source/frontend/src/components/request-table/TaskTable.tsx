@@ -39,8 +39,11 @@ export default function TaskTable({
   onStatusChange,
   categoryId,
   onCategoryChange,
+  search,
+  onSearch,
   page,
   hasNext,
+  totalPages,
   onPageChange,
   onSelect,
   onCreate,
@@ -54,8 +57,11 @@ export default function TaskTable({
   onStatusChange: (status: TaskStatus | "All") => void;
   categoryId: number | "All";
   onCategoryChange: (id: number | "All") => void;
+  search: string;
+  onSearch: (term: string) => void;
   page: number;
   hasNext: boolean;
+  totalPages: number;
   onPageChange: (page: number) => void;
   onSelect: (task: TaskRow) => void;
   onCreate: () => void;
@@ -76,8 +82,11 @@ export default function TaskTable({
       status={status}
       onStatusChange={(s) => onStatusChange(s as TaskStatus | "All")}
       statusOptions={statusOptions}
+      search={search}
+      onSearch={onSearch}
       page={page}
       hasNext={hasNext}
+      totalPages={totalPages}
       onPageChange={onPageChange}
       titles={titles}
       gridClassName={gridClassName}

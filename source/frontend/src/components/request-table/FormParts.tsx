@@ -157,7 +157,7 @@ export function FormModal({
     >
       <FormHeader title={title} onClose={handleClose} />
 
-      <div className="flex flex-1 min-h-0 gap-6 overflow-y-auto scrollbar-thin pb-4">
+      <div className="flex flex-1 min-h-0 gap-6 overflow-y-auto scrollbar-thin pb-2">
         {children}
       </div>
 

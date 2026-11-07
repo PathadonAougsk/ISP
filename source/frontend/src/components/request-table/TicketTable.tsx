@@ -38,8 +38,11 @@ export default function TicketTable({
   onStatusChange,
   categoryId,
   onCategoryChange,
+  search,
+  onSearch,
   page,
   hasNext,
+  totalPages,
   onPageChange,
   onSelect,
   onCreate,
@@ -53,8 +56,11 @@ export default function TicketTable({
   onStatusChange: (status: TicketStatus | "All") => void;
   categoryId: number | "All";
   onCategoryChange: (id: number | "All") => void;
+  search: string;
+  onSearch: (term: string) => void;
   page: number;
   hasNext: boolean;
+  totalPages: number;
   onPageChange: (page: number) => void;
   onSelect: (ticket: TicketRow) => void;
   onCreate: () => void;
@@ -75,8 +81,11 @@ export default function TicketTable({
       status={status}
       onStatusChange={(s) => onStatusChange(s as TicketStatus | "All")}
       statusOptions={statusOptions}
+      search={search}
+      onSearch={onSearch}
       page={page}
       hasNext={hasNext}
+      totalPages={totalPages}
       onPageChange={onPageChange}
       titles={titles}
       gridClassName={gridClassName}

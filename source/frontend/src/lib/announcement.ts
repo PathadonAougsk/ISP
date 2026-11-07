@@ -42,7 +42,7 @@ export async function fetchAnnouncements(
   );
 }
 
-const ANNOUNCEMENTS_CACHE_TTL = 1 * 60 * 1000;
+const ANNOUNCEMENTS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
 export const getAnnouncements = cached(
