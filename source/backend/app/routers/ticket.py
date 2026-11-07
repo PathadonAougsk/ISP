@@ -3,7 +3,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, case, update
+from sqlalchemy import select, case, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
@@ -48,6 +48,7 @@ async def retrieve_tickets(
     due_before: dt.datetime | None = None,
     onlyOwned: bool = False,
     notOwned: bool = False,
+    get_count: bool = False,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=0, ge=0)
 ):
@@ -81,6 +82,9 @@ async def retrieve_tickets(
     elif notOwned:
         query = query.where(Ticket.created_by != me.id)
 
+    if get_count:
+        ticket_count = await session.scalar(select(func.count()).select_from(query.subquery()))
+
     status_order = case(
         (Ticket.status == TicketStatus.PENDING, 1),
         (Ticket.status == TicketStatus.REJECTED, 2),
@@ -105,7 +109,10 @@ async def retrieve_tickets(
 
     result = await session.scalars(query)
 
-    return {"Tickets": result.all()}
+    if get_count:
+        return {"Tickets": result.all(), "TicketCount": ticket_count}
+    else:
+        return {"Tickets": result.all()}
 
 
 @ticketRouter.post("/", tags=["Tickets"])
