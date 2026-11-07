@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
 import { clearAllApiCache } from "@/lib/cache/cache";
 
 const mainNavigation = ["dashboard", "request-table"];
 const bottomNavigation = ["announcement"];
+
+const expandDelay = 300;
 
 function getItemClass(active = false) {
   const color = active
@@ -71,12 +73,19 @@ export default function Sidebar() {
   const [pinned, setPinned] = useState(false);
   const [hasExpanded, setHasExpanded] = useState(false);
 
+  const expandTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (expanded) setHasExpanded(true);
   }, [expanded]);
 
   // Close and unpin
   const handleNavigationClick = () => {
+    if (expandTimeout.current) {
+      clearTimeout(expandTimeout.current);
+      expandTimeout.current = null;
+    }
+
     setExpanded(false);
     setPinned(false);
   };
@@ -103,19 +112,41 @@ export default function Sidebar() {
 
       <div
         className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-56 sidebar-expand" : hasExpanded ? "w-15 sidebar-collapse" : "w-15"}`}
-        onMouseOver={(event) => {
+        onMouseEnter={(event) => {
           // Skip if hover on toggle button
           const onToggle = (event.target as Element).closest(
             "[data-sidebar-toggle]",
           );
-          if (!expanded && !onToggle) setExpanded(true);
+
+          if (!expanded && !pinned && !onToggle) {
+            if (expandTimeout.current) {
+              clearTimeout(expandTimeout.current);
+            }
+
+            expandTimeout.current = setTimeout(() => {
+              setExpanded(true);
+              expandTimeout.current = null;
+            }, expandDelay);
+          }
         }}
-        onMouseLeave={() => !pinned && setExpanded(false)}
+        onMouseLeave={() => {
+          if (expandTimeout.current) {
+            clearTimeout(expandTimeout.current);
+            expandTimeout.current = null;
+          }
+
+          if (!pinned) setExpanded(false);
+        }}
       >
         <div className="flex h-fit w-full flex-col items-center justify-evenly">
           <div
             data-sidebar-toggle
             onClick={() => {
+              if (expandTimeout.current) {
+                clearTimeout(expandTimeout.current);
+                expandTimeout.current = null;
+              }
+
               setPinned(!pinned);
               setExpanded(!pinned);
             }}
