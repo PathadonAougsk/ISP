@@ -115,7 +115,7 @@ function AuthForm() {
         >
           {deactivated && !error && (
             <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-              [ ERROR ] Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
+              Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
             </div>
           )}
 
