@@ -27,12 +27,13 @@ import {
   useSlideupClose,
 } from "@/components/modal-slideup";
 import { Toggle } from "@/components/dashboard/overview";
+import { usePathname } from "next/navigation";
 
 type Tab = "ticket" | "task";
 
-// remove ?type=&id= from url, so refresh dont reopen the modal
+// remove /type/id from url, so refresh dont reopen the modal
 function clearLinkParams() {
-  window.history.replaceState(null, "", window.location.pathname);
+  window.history.replaceState(null, "", "/request-table");
 }
 
 // shown when the id from the url cant be fetched
@@ -108,13 +109,15 @@ export default function RequestTable() {
   const { members, membersLoading, membersError } = useMembers();
   const { categories } = useCategories();
 
+  const pathname = usePathname();
+
   // open modal from link such as /request-table?type=task&id=12
   useEffect(() => {
     if (meLoading) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get("type");
-    const id = Number(params.get("id"));
+    const segments = pathname.split("/");
+    const type = segments[2];
+    const id = Number(segments[3]);
 
     if (
       (type !== "task" && type !== "ticket") ||
@@ -145,7 +148,7 @@ export default function RequestTable() {
     return () => {
       cancelled = true;
     };
-  }, [meLoading, userRole]);
+  }, [meLoading, userRole, pathname]);
 
   return (
     <div className="flex h-full w-full flex-col gap-3 bg-white px-5 pt-5 text-gray-900">

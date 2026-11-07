@@ -281,7 +281,7 @@ export function RequestTableButton({
       type="button"
       onClick={() => {
         setRedirecting(true);
-        router.push(`/request-table?type=${type}&id=${id}`);
+        router.push(`/request-table/${type}/${id}`);
       }}
       disabled={redirecting}
       className={`flex h-7.5 w-50 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
