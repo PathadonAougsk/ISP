@@ -61,6 +61,7 @@ export default function Settings({
       >
         <Sidebar
           username={account?.username}
+          role={account?.role}
           active={active}
           onSelect={setActive}
         />

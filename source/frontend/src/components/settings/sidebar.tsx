@@ -9,10 +9,12 @@ import Nav, { accountNav } from "./nav";
 
 export default function Sidebar({
   username,
+  role,
   active,
   onSelect,
 }: {
   username?: string;
+  role?: string;
   active: string;
   onSelect: (label: string) => void;
 }) {
@@ -25,14 +27,8 @@ export default function Sidebar({
       <div className="flex items-stretch gap-3 pl-2">
         <Avatar name={username} className="size-12" />
         <div className="flex flex-col justify-center">
-          <p className="font-bold">{username ?? "..."}</p>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 text-sm text-[#444] hover:text-black"
-          >
-            Edit Profiles
-            <Icon src="/pencil.svg" className="size-3" />
-          </button>
+          <p className="text-lg font-bold">{username ?? "..."}</p>
+          <p className="text-sm font-normal text-gray-500">{role ?? "..."}</p>
         </div>
       </div>
 
