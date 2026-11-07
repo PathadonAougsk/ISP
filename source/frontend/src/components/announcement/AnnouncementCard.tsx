@@ -22,7 +22,7 @@ export default function AnnouncementCard({
         selected ? "ring-2 ring-inset ring-(--primary-color-2)" : ""
       }`}
     >
-      <h1 className="text-2xl font-bold text-black text-justify line-clamp-2">
+      <h1 className="text-2xl font-bold text-black text-justify line-clamp-2 pb-1">
         {renderWithLinks(announcement.name)}
       </h1>
 

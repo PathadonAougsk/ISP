@@ -1,23 +1,26 @@
 import type { Announcement } from "@/lib/announcement";
-import AnnouncementCard from "./AnnouncementCard";
+import AnnouncementCard from "@/components/announcement/AnnouncementCard";
+import { ListMessage } from "@/components/dashboard/dashboard-utils";
 
 export default function AnnouncementList({
   announcements,
   selectedId,
   getAuthorName,
   onSelect,
+  emptyMessage = "No announcements yet.",
 }: {
   announcements: Announcement[];
   selectedId: number | null;
   getAuthorName: (id: string) => string;
   onSelect: (id: number) => void;
+  emptyMessage?: string;
 }) {
   return (
     <div className="flex h-full flex-col">
       {/* scrollable announcement list */}
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden rounded-t-[15px] scrollbar-none">
         {announcements.length === 0 ? (
-          <p className="text-sm text-gray-500">No announcements yet.</p>
+          <ListMessage>{emptyMessage}</ListMessage>
         ) : (
           announcements.map((item) => (
             <AnnouncementCard

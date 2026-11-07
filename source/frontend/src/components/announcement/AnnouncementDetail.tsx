@@ -15,7 +15,7 @@ export default function AnnouncementDetail({
 }) {
   if (!announcement) {
     return (
-      <div className="flex h-full items-center justify-center rounded-t-[15px] bg-white text-sm text-gray-500">
+      <div className="flex h-full items-center justify-center rounded-t-[15px] bg-white text-base font-medium text-gray-400">
         Select an announcement to read it.
       </div>
     );
