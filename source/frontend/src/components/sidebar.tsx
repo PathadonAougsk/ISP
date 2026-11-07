@@ -10,7 +10,7 @@ import { clearAllApiCache } from "@/lib/cache/cache";
 const mainNavigation = ["dashboard", "request-table"];
 const bottomNavigation = ["announcement"];
 
-const expandDelay = 300;
+const expandDelay = 100;
 
 function getItemClass(active = false) {
   const color = active
@@ -112,17 +112,13 @@ export default function Sidebar() {
 
       <div
         className={`absolute top-0 left-0 flex h-screen flex-col justify-between bg-(--primary-color-2) ${expanded ? "z-50 w-56 sidebar-expand" : hasExpanded ? "w-15 sidebar-collapse" : "w-15"}`}
-        onMouseEnter={(event) => {
+        onMouseOver={(event) => {
           // Skip if hover on toggle button
           const onToggle = (event.target as Element).closest(
             "[data-sidebar-toggle]",
           );
 
-          if (!expanded && !pinned && !onToggle) {
-            if (expandTimeout.current) {
-              clearTimeout(expandTimeout.current);
-            }
-
+          if (!expanded && !pinned && !onToggle && !expandTimeout.current) {
             expandTimeout.current = setTimeout(() => {
               setExpanded(true);
               expandTimeout.current = null;
