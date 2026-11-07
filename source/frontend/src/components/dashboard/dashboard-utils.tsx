@@ -156,7 +156,7 @@ export function ListRow({
     <button
       type="button"
       onClick={onClick}
-      className={`tile-button flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
+      className={`flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
         overdue
           ? "border-(--primary-red) text-red-700"
           : "border-transparent text-black"

@@ -210,7 +210,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
                   key={row.id}
                   type="button"
                   onClick={() => onSelect(row)}
-                  className={`tile-button flex items-center w-full h-8 shrink-0 border-2 rounded-[20px] bg-white text-left cursor-pointer hover:bg-gray-100 ${spacingClassName} ${
+                  className={`flex items-center w-full h-8 shrink-0 border-2 rounded-[20px] bg-white text-left cursor-pointer hover:bg-gray-100 ${spacingClassName} ${
                     overdue
                       ? "border-(--primary-red) text-red-700"
                       : "border-transparent text-black"

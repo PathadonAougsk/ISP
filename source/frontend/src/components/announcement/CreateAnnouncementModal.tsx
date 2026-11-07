@@ -50,27 +50,20 @@ export default function CreateAnnouncementModal({
         <SlideupCloseButton onClose={handleClose} />
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-4 flex h-[calc(100%-3rem)] flex-col gap-4">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-4 flex h-[calc(100%-3rem)] flex-col gap-4"
+      >
         <div className="flex gap-6">
           <label className="flex flex-1 flex-col gap-1 text-xs font-medium">
             Title
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="Enter a title"
               maxLength={255}
               className="rounded-full bg-gray-200 px-4 py-2 text-sm font-normal outline-none"
             />
-          </label>
-
-          {/* TODO: lab not in model yet, disabled for now */}
-          <label className="flex w-1/4 flex-col gap-1 text-xs font-medium">
-            Lab
-            <select
-              disabled
-              className="rounded-full bg-gray-200 px-4 py-2 text-sm font-normal text-gray-500 outline-none"
-            >
-              <option>Coming soon</option>
-            </select>
           </label>
         </div>
 
@@ -79,7 +72,7 @@ export default function CreateAnnouncementModal({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="flex-1 resize-none rounded-3xl bg-gray-200 p-4 text-sm font-normal outline-none"
+            className="flex-1 resize-none rounded-[30px] bg-gray-200 p-4 text-sm font-normal outline-none"
           />
         </label>
 

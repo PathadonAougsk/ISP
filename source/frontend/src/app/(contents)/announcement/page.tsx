@@ -59,7 +59,7 @@ export default function Annoucment() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4.5rem)] min-h-0 flex-1 gap-4 p-4">
+    <div className="flex h-full w-full flex-1 gap-5 px-5 pt-5">
       <div className="w-2/5 shrink-0 overflow-y-auto">
         <AnnouncementList
           announcements={announcements}
