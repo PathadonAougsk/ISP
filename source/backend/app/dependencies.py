@@ -12,3 +12,4 @@ if (not url or not key):
     raise ValueError("SUPABASE_URL or SUPABASE_KEY is missing from .env")
 
 supabase: Client = create_client(url, key)
+password_check: Client = create_client(url, key)

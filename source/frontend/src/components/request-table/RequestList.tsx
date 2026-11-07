@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import type { Category } from "@/lib/category";
 import Icon from "@/components/icon";
-import { ListMessage } from "@/components/dashboard/dashboard_utils";
+import { ListMessage } from "@/components/dashboard/dashboard-utils";
 import Pagination from "@/components/request-table/Pagination";
 import { formatShortDate, truncateLabel } from "@/lib/format";
 

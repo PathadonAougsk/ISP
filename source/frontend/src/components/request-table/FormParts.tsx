@@ -3,13 +3,13 @@
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
-import Icon from "@/components/icon";
+import Avatar from "@/components/avatar";
 import DateInput from "@/components/request-table/DateInput";
 import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 
 // field look. white modal, so field use panel color
 export const fieldClass =
@@ -377,7 +377,7 @@ export function MemberPanel({
                 onChange={() => toggle(member.id)}
                 className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
               />
-              <Icon src="/profile.svg" className="h-6 w-auto shrink-0" />
+              <Avatar name={member.name} className="h-6 w-auto shrink-0" />
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium leading-tight text-gray-800">
                   {member.name}
