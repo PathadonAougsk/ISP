@@ -26,6 +26,16 @@ type CachedFunction<A extends unknown[], T> = ((...args: A) => Promise<T>) & {
 
 const cacheClearers = new Set<() => Promise<void>>();
 
+let cacheInitialization: Promise<void> | null = null;
+
+export function initializeApiCache(): Promise<void> {
+  if (!cacheInitialization) {
+    cacheInitialization = clearAllApiCache();
+  }
+
+  return cacheInitialization;
+}
+
 export async function clearAllApiCache(): Promise<void> {
   await Promise.all(Array.from(cacheClearers, (clear) => clear()));
 }
@@ -48,6 +58,7 @@ export function cached<A extends unknown[], T>(
   let clearing: Promise<void> = Promise.resolve();
 
   const wrapped: CachedFunction<A, T> = async (...args: A): Promise<T> => {
+    await initializeApiCache();
     // no session = no cache, so nothing can leak to next user
     const userId = await getUserId();
     if (!userId) return fn(...args);

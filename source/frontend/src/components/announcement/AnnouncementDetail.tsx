@@ -1,6 +1,10 @@
 import Icon from "@/components/icon";
 import type { Announcement } from "@/lib/announcement";
 import { formatFullDateTime } from "@/lib/format";
+import {
+  renderWithLinks,
+  SlideupDescription,
+} from "@/components/dashboard/dashboard-utils";
 
 export default function AnnouncementDetail({
   announcement,
@@ -11,36 +15,31 @@ export default function AnnouncementDetail({
 }) {
   if (!announcement) {
     return (
-      <div className="flex h-full items-center justify-center rounded-3xl bg-gray-200 text-sm text-gray-500">
+      <div className="flex h-full items-center justify-center rounded-t-[15px] bg-white text-base font-medium text-gray-400">
         Select an announcement to read it.
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto rounded-3xl bg-gray-200 p-6">
-      <h2 className="text-2xl font-bold break-words">{announcement.name}</h2>
+    <div className="flex h-full flex-col overflow-y-auto rounded-t-[15px] bg-white p-4">
+      <h2 className="text-2xl font-bold wrap-break-word">
+        {renderWithLinks(announcement.name)}
+      </h2>
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-600">
-        {/* TODO: lab not in model yet, placeholder only */}
-        <span className="flex items-center gap-2">
-          <Icon src="/file.svg" className="h-auto w-4 shrink-0" />
-          Lab TBD
-        </span>
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-600">
         <span className="flex items-center gap-2">
           <Icon src="/user.svg" className="h-auto w-4 shrink-0" />
           {authorName}
         </span>
+
         <span className="flex items-center gap-2">
           <Icon src="/clock.svg" className="h-auto w-4 shrink-0" />
           {formatFullDateTime(announcement.created)}
         </span>
       </div>
 
-      {/* TODO: make links clickable */}
-      <p className="text-sm whitespace-pre-wrap break-words text-gray-700">
-        {announcement.description}
-      </p>
+      <SlideupDescription description={announcement.description} />
     </div>
   );
 }

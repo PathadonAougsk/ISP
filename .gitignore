@@ -3,6 +3,9 @@ __pycache__
 .env
 .vscode/
 
+*.patch
+*.diff
+
 node_modules
 /.pnp
 .pnp.*

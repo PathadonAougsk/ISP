@@ -4,6 +4,7 @@ import "../globals.css";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
 import SettingsProvider from "@/components/setting-provider";
+import CacheInitializer from "@/components/cache-init";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -35,12 +36,15 @@ export default function RootLayout({ children }: LayoutProps) {
         className="h-screen overflow-hidden flex flex-row"
       >
         <SettingsProvider>
+          <CacheInitializer />
           <Sidebar />
 
           <div className="flex flex-1 min-w-0 h-screen flex-col">
             <Topbar />
 
-            <main className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">{children}</main>
+            <main className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+              {children}
+            </main>
           </div>
         </SettingsProvider>
       </body>

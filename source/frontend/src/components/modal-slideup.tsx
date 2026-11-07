@@ -122,7 +122,7 @@ export function SlideupFrame({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className={`slideup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] p-5 rounded-t-[30px] bg-white outline-none ${className} ${isClosing ? "slidedown-panel" : ""}`}
+        className={`slideup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] px-5 pt-5 pb-2 rounded-t-[30px] bg-white outline-none ${className} ${isClosing ? "slidedown-panel" : ""}`}
       >
         {children}
       </div>

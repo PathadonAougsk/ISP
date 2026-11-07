@@ -34,7 +34,7 @@ export type GetTicketsParams = {
   status?: TicketStatus;
   category_id?: number;
   due_after?: string;
-  /** ISO 8601 string, e.g. new Date().toISOString() — FastAPI parses it into a datetime. */
+  /** ISO 8601 string, e.g. new Date().toISOString() - FastAPI parses it into a datetime. */
   due_before?: string;
   onlyOwned?: boolean;
   notOwned?: boolean;
@@ -152,10 +152,8 @@ export function mapBackendTicket(
     lastUpdate: formatShortDateTime(bt.updated, "updated"),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     description: bt.description ?? "",
-    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
-    assignedTo: bt.assigned_id
-      ? (accountById.get(bt.assigned_id) ?? bt.assigned_id)
-      : "",
+    createdBy: accountById.get(bt.created_by) ?? "-",
+    assignedTo: bt.assigned_id ? (accountById.get(bt.assigned_id) ?? "-") : "",
     categoryId: bt.category_id,
     createdById: bt.created_by,
   };

@@ -7,7 +7,7 @@ import Avatar from "@/components/avatar";
 import { clearAllApiCache } from "@/lib/cache/cache";
 
 export default function Topbar() {
-  const pathname = usePathname().replace("/", "");
+  const pathname = usePathname().split("/")[1];
   const [account, setAccount] = useState<Account | undefined>();
   const [isLoading, setIsLoading] = useState(true);
 

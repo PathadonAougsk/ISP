@@ -50,32 +50,47 @@ export default function Annoucment() {
     await load();
   };
 
-  if (loading) {
-    return <p className="p-6 text-sm text-gray-500">Loading...</p>;
-  }
-
-  if (error) {
-    return <p className="p-6 text-sm text-red-600">{error}</p>;
-  }
-
   return (
-    <div className="flex h-[calc(100vh-4.5rem)] min-h-0 flex-1 gap-4 p-4">
-      <div className="w-2/5 shrink-0 overflow-y-auto">
-        <AnnouncementList
-          announcements={announcements}
-          selectedId={selected?.id ?? null}
-          getAuthorName={getAuthorName}
-          onSelect={setSelectedId}
-          canCreate={isAdmin}
-          onCreate={() => setCreating(true)}
-        />
-      </div>
+    <div className="flex h-full w-full flex-col gap-4 bg-white px-5 pt-5 text-gray-900">
+      {/* only admin / owner can create */}
+      {!loading && !error && isAdmin && (
+        <div className="flex shrink-0 items-center gap-3 pl-3">
+          <span className="text-lg font-semibold">Create new announcement</span>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            aria-label="Create new announcement"
+            className="flex items-center justify-center text-2xl font-semibold w-9 h-9 rounded-full bg-(--primary-color-2) text-white hover:bg-(--primary-color-2-hover)"
+          >
+            +
+          </button>
+        </div>
+      )}
 
-      <div className="min-w-0 flex-1">
-        <AnnouncementDetail
-          announcement={selected}
-          authorName={selected ? getAuthorName(selected.created_by) : ""}
-        />
+      {/* green panel hold list + detail */}
+      <div className="flex min-h-0 flex-1 gap-3 rounded-t-[30px] bg-(--panel-bg) pt-4 px-4">
+        <div className="w-2/5 shrink-0 overflow-y-auto">
+          <AnnouncementList
+            announcements={loading || error ? [] : announcements}
+            selectedId={selected?.id ?? null}
+            getAuthorName={getAuthorName}
+            onSelect={setSelectedId}
+            emptyMessage={
+              loading
+                ? "Loading announcements..."
+                : error
+                  ? "Failed to load announcements"
+                  : "No announcements yet."
+            }
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <AnnouncementDetail
+            announcement={loading || error ? null : selected}
+            authorName={selected ? getAuthorName(selected.created_by) : ""}
+          />
+        </div>
       </div>
 
       {creating && (

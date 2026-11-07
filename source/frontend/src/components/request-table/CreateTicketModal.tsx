@@ -73,22 +73,26 @@ export default function CreateTicketModal({
           label="Title"
           value={newTicketTitle}
           onChange={setNewTicketTitle}
+          placeholder="Enter a title"
         />
-        <SelectField
-          label="Category"
-          value={newTicketCategoryId}
-          onChange={setNewTicketCategoryId}
-          categories={categories}
-        />
-        <DateField
-          label="Due Date"
-          value={newTicketDueDate}
-          onChange={setNewTicketDueDate}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <SelectField
+            label="Category"
+            value={newTicketCategoryId}
+            onChange={setNewTicketCategoryId}
+            categories={categories}
+          />
+          <DateField
+            label="Due Date"
+            value={newTicketDueDate}
+            onChange={setNewTicketDueDate}
+          />
+        </div>
         <TextAreaField
           label="Description"
           value={newTicketDescription}
           onChange={setNewTicketDescription}
+          placeholder="Add more details"
         />
       </FormColumn>
     </FormModal>
