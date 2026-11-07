@@ -116,16 +116,18 @@ async def create_ticket(data: TicketCreate,
     if await session.get(Category, data.category_id) is None:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    if me.quota is not None and me.quota < 0:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "Ticket quota exhausted",
-                "code": "quota_exhausted",
-                "quota": 0
-            }
-        )
-    else:
+    # A NULL quota means no cap. Otherwise the decrement is itself the gate:
+    # it only matches while there is something left, so a spent quota matches
+    # no row, returns nothing, and the ticket is refused.
+    #
+    # Gating on me.quota instead would not work. It can never be negative
+    # (account_quota_check keeps it at 0 or above), so the old `< 0` test never
+    # fired and a spent trial could keep filing tickets. It is also a value
+    # read before this request started, so two tickets sent at once off a
+    # quota of 1 would both pass it.
+    new_quota: int | None = None
+
+    if me.quota is not None:
         new_quota = await session.scalar(
             update(Account)
             .where(
@@ -136,6 +138,16 @@ async def create_ticket(data: TicketCreate,
                 quota=Account.quota - 1
             )
             .returning(Account.quota))
+
+        if new_quota is None:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "message": "Ticket quota exhausted",
+                    "code": "quota_exhausted",
+                    "quota": 0
+                }
+            )
 
     ticket = Ticket(
         name=data.name,
@@ -162,7 +174,7 @@ async def create_ticket(data: TicketCreate,
 
     session.add(ticket_audit)
 
-    if me.quota is not None and new_quota:
+    if new_quota is not None:
         quota_audit = AuditLog(
             from_table="account",
             row_id=str(me.id),

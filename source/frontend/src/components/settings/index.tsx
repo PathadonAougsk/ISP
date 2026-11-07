@@ -27,10 +27,13 @@ export default function Settings({
   onClose: () => void;
 }) {
   const [active, setActive] = useState("Account");
-  const { account, loading, isAdmin } = useCurrentAccount(open);
+  const { account, loading, isAdmin, reload } = useCurrentAccount(open);
 
   const panels: Record<string, React.ReactNode> = {
-    Account: <AccountPanel account={account} loading={loading} />,
+    // reload so a new username lands in the sidebar too, not just in the row that was edited.
+    Account: (
+      <AccountPanel account={account} loading={loading} onChanged={reload} />
+    ),
     Category: <Categories isAdmin={isAdmin} />,
     Member: <Member account={account} isAdmin={isAdmin} />,
     Log: <Log isAdmin={isAdmin} accountLoading={loading} />,
@@ -53,11 +56,12 @@ export default function Settings({
       <div
         role="dialog"
         aria-modal="true"
-        className="flex h-[92vh] w-[92vw] overflow-hidden border border-[#9a6fc9] bg-[#ececec] text-[#1a1a1a] shadow-xl"
+        className="flex h-[92vh] w-[92vw] overflow-hidden border border-(--primary-color-2) bg-[#ececec] text-[#1a1a1a] shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <Sidebar
           username={account?.username}
+          role={account?.role}
           active={active}
           onSelect={setActive}
         />

@@ -1,8 +1,9 @@
+import enum
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +28,50 @@ class AssignRoleRequest(BaseModel):
     role: AccountRole
 
 
+# 72 bytes is the bcrypt ceiling Supabase hashes with - anything longer is silently truncated, so reject it instead.
+MIN_PASSWORD = 8
+MAX_PASSWORD = 72
+
+
+class ChangeEmailRequest(BaseModel):
+    email: EmailStr
+    # Not for identity - the token settled that. It stops someone at an unlocked browser pointing the login at their own address.
+    password: str = Field(min_length=1)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=MIN_PASSWORD, max_length=MAX_PASSWORD)
+
+
+class UserKind(str, enum.Enum):
+    """How much the new member is allowed to do. A `member` is uncapped; a
+    `trial` gets a ticket quota that counts down as they file tickets."""
+
+    MEMBER = "member"
+    TRIAL = "trial"
+
+
+# What a trial starts with when the admin does not say.
+DEFAULT_TRIAL_QUOTA = 10
+
+
+class CreateUserRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=100)
+    # Supabase keys a login on the email address, and signing in is email plus
+    # password, so there is nothing to fall back on if this is missing.
+    email: EmailStr
+    password: str = Field(min_length=MIN_PASSWORD, max_length=MAX_PASSWORD)
+    kind: UserKind = UserKind.MEMBER
+    # Trial only, and ignored for a plain member - they have no cap at all.
+    quota: int | None = Field(default=None, ge=0)
+
+
 @accountRouter.get("/", tags=["Account"])
-async def retrieve_accounts(session : Annotated[AsyncSession, Depends(getSession)]):
+async def retrieve_accounts(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    _me: Annotated[Account, Depends(account_service.get_current_account)],
+):
     accounts = await session.scalars(select(Account))
     return { "Accounts" : accounts.all()}
 
@@ -38,8 +81,9 @@ async def create_my_account(
     session: Annotated[AsyncSession, Depends(getSession)],
     auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)],
 ):
-    """Claim the account row for the signed in user. This is how an invited
-    member picks their username - the row does not exist until they do."""
+    """Claim the account row for the signed in user. A user who has a login
+    but no account row picks their username here - the row does not exist
+    until they do."""
     username = body.username.strip()
     if not username:
         raise HTTPException(
@@ -68,9 +112,8 @@ async def create_my_account(
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="That username is already taken",
+        raise account_service.account_conflict(
+            exc, "That username is already taken"
         ) from exc
 
     await session.refresh(account)
@@ -124,7 +167,12 @@ async def update_account(
 
     changed: list[str] = []
 
-    if me.role is not AccountRole.LAB_OWNER and target.role is AccountRole.LAB_ADMIN:
+    # Your own row is always yours; without the self check a Lab Admin could not even rename themselves.
+    if (
+        target.id != me.id
+        and me.role is not AccountRole.LAB_OWNER
+        and target.role is AccountRole.LAB_ADMIN
+    ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Only Lab Owner could change details of other Admin"
         )
@@ -177,13 +225,86 @@ async def update_account(
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="That username is already taken",
+        raise account_service.account_conflict(
+            exc, "That username is already taken"
         ) from exc
 
     await session.refresh(target)
     return {"Account": target, "Message": f"Updated {', '.join(changed)}"}
+
+@accountRouter.put("/{account_id}/email", tags=["Account"])
+async def change_email(
+    account_id: uuid.UUID,
+    body: ChangeEmailRequest,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
+):
+    """Point a login at a different address, moving the Supabase login and the account row that mirrors it together.
+
+    Your own, or one belonging to somebody you outrank. `password` is always the caller's own, never the target's - an admin resetting a member has no way of knowing theirs."""
+    target = await account_service.resolve_login_target(session, me, account_id)
+
+    email = body.email.strip().lower()
+    previous = target.email
+
+    if email == previous:
+        return {"Account": target, "Message": "Nothing to update"}
+
+    await account_service.assert_email_available(session, email, target.id)
+    await account_service.verify_password(me.email, body.password)
+
+    # Confirmed on the spot - nothing is emailed anywhere in this app, and without it they could not sign in again.
+    await account_service.update_auth_user(
+        target.id, {"email": email, "email_confirm": True}
+    )
+
+    account_service.audit_account(session, target.id, "email", previous, email, me.id)
+    target.email = email
+
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        # The login already moved, so put it back rather than leave them signing in with an address we never stored.
+        await account_service.update_auth_user(
+            target.id, {"email": previous, "email_confirm": True}
+        )
+        raise account_service.account_conflict(
+            exc, "That email address is already taken"
+        ) from exc
+
+    await session.refresh(target)
+    return {"Account": target, "Message": f"Email changed to {email}"}
+
+@accountRouter.put("/{account_id}/password", tags=["Account"])
+async def change_password(
+    account_id: uuid.UUID,
+    body: ChangePasswordRequest,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
+):
+    """Change a password - your own, or that of somebody you outrank.
+
+    `current_password` is always the caller's own, so an admin resetting a member confirms with theirs rather than the one they are replacing. Supabase does not revoke sessions on a password change, so nobody is bounced to the login page."""
+    target = await account_service.resolve_login_target(session, me, account_id)
+
+    # Only meaningful on your own row; against someone else it would be refusing to reuse a password they never had.
+    if target.id == me.id and body.new_password == body.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="That is already your password",
+        )
+
+    await account_service.verify_password(me.email, body.current_password)
+    await account_service.update_auth_user(
+        target.id, {"password": body.new_password}
+    )
+
+    # Both values stay None on purpose - that it changed is worth logging, the passwords are not ours to write down.
+    account_service.audit_account(session, target.id, "password", None, None, me.id)
+    await session.commit()
+
+    return {"Account": target, "Message": "Password changed"}
 
 @accountRouter.delete("/{account_id}", tags=["Account"])
 async def delete_account(
@@ -222,16 +343,93 @@ async def delete_account(
             ),
         ) from exc
 
+    # The row is only the mirror - auth.users is what reserves the address, and
+    # the cascade only runs the other way. Left behind, the login keeps the
+    # email forever and nothing here can see why it is refused next time.
+    #
+    # After the commit on purpose: deleting the login cascades into the account
+    # row, which would hit the RESTRICT above inside Supabase instead of as the
+    # 409 that tells the admin to deactivate.
+    if not await account_service.delete_auth_user(target.id):
+        return {
+            "Message": (
+                f"Deleted {target.username}, but their Supabase login is still "
+                f"there. Remove {target.email} from the Supabase dashboard, or "
+                "that address cannot be used again."
+            )
+        }
+
     return {"Message": f"Successfully deleted {target.username}"}
 
-@accountRouter.post("/admin", tags=["Admin"])
+@accountRouter.post("/admin", tags=["Admin"], status_code=status.HTTP_201_CREATED)
 async def admin_create_account(
+    body: CreateUserRequest,
+    session: Annotated[AsyncSession, Depends(getSession)],
     me: Annotated[Account, Depends(account_service.require_admin)],
 ):
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Inviting an account is not implemented yet",
+    """Create a user outright. Nothing is emailed and there is nothing for
+    them to accept: the admin picks the username, email and password, and
+    passes the credentials on however they like. The address is marked
+    confirmed on the spot so the new member can sign in right away.
+
+    Unlike POST /account/, which a user calls for themselves, this creates both
+    halves at once: the Supabase login and the account row behind it.
+
+    `kind` picks which sort of member it is. A `member` is left with no quota,
+    which the rest of the app reads as unlimited. A `trial` is capped at
+    `quota` tickets, counted down by create_ticket.
+
+    Everyone created here starts as a Lab User. Promoting them is a separate,
+    deliberate step through PUT /account/{id}/role, so creating a user can
+    never hand out admin in one go."""
+    username = body.username.strip()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username cannot be blank",
+        )
+
+    quota = (
+        (DEFAULT_TRIAL_QUOTA if body.quota is None else body.quota)
+        if body.kind is UserKind.TRIAL
+        else None
     )
+
+    email = body.email.strip().lower()
+
+    await account_service.assert_login_available(session, username, email)
+
+    user_id = await account_service.create_auth_user(email, body.password, username)
+
+    account = Account(
+        id=user_id,
+        username=username,
+        email=email,
+        role=AccountRole.LAB_USER,
+        quota=quota,
+    )
+    session.add(account)
+
+    account_service.audit_account(session, user_id, "created", None, username, me.id)
+    if quota is not None:
+        account_service.audit_account(session, user_id, "quota", None, quota, me.id)
+
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        # The login is live but has no account row, and the id only exists in
+        # this request, so nobody could find it again to clean it up.
+        await account_service.delete_auth_user(user_id)
+        raise account_service.account_conflict(
+            exc, "That username or email is already taken"
+        ) from exc
+
+    await session.refresh(account)
+    return {
+        "Account": account,
+        "Message": f"Created {username} as a {body.kind.value}",
+    }
 
 @accountRouter.put("/{account_id}/role", tags=["Admin"])
 async def assign_role(

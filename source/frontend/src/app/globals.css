@@ -15,6 +15,8 @@
   --primary-color-1-hover: #87b7b9;
   --primary-color-2-hover: #acd6c1;
   --primary-color-3-hover: #d0edb4;
+  /* Same green family, dark enough to read as text - 1, 2 and 3 are fills only. */
+  --primary-color-deep: #2f6b4f;
 
   --primary-red: #ff4d4d;
   --primary-orange: #ffa259;

@@ -3,7 +3,7 @@
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
-import Icon from "@/components/icon";
+import Avatar from "@/components/avatar";
 import DateInput from "@/components/request-table/DateInput";
 import {
   SlideupCloseButton,
@@ -398,9 +398,7 @@ export function MemberPanel({
                 onChange={() => toggle(member.id)}
                 className="w-4 h-4 shrink-0 accent-(--primary-color-2)"
               />
-
-              <Icon src="/profile.svg" className="w-auto h-6 shrink-0" />
-
+              <Avatar name={member.name} className="h-6 w-auto shrink-0" />
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium leading-tight text-gray-800">
                   {member.name}

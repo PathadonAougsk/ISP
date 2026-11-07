@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
+import Avatar from "@/components/avatar";
 import Icon from "@/components/icon";
 import {
   RequestTableButton,
@@ -133,7 +134,10 @@ export default function TaskSlideup({
               <div className="flex flex-col gap-2">
                 {sortedAssignees.map((assignee) => (
                   <div key={assignee.id} className="flex items-center gap-2">
-                    <Icon src="/profile.svg" className="h-5 w-auto shrink-0" />
+                    <Avatar
+                      name={assignee.username}
+                      className="h-5 w-auto shrink-0"
+                    />
                     <span className="truncate text-base font-normal text-gray-800">
                       {assignee.username}
                       {assignee.id === currentUserId && " (You)"}

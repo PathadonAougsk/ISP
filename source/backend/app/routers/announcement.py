@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,8 +24,17 @@ announcementRouter = APIRouter(prefix="/announcement", dependencies=[Depends(acc
 
 
 @announcementRouter.get("/", tags=["Announcement"])
-async def retrieve_announcements(session: Annotated[AsyncSession, Depends(getSession)]):
-    announcements = await session.scalars(select(Announcement).order_by(Announcement.created.desc()))
+async def retrieve_announcements(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=0, ge=0)
+):
+    query = select(Announcement).order_by(Announcement.created.desc()).offset(offset)
+
+    if limit:
+        query = query.limit(limit)
+
+    announcements = await session.scalars(query)
 
     return {"Announcements": announcements.all()}
 
