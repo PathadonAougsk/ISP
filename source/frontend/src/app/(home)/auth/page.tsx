@@ -73,26 +73,26 @@ function AuthForm() {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-xs uppercase text-gray-600">
+          <label className="flex flex-col gap-1 text-base uppercase text-gray-600 ">
             Email
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none "
+              className="bg-white px-3 py-2 text-black outline-none border-1 border-gray-300 rounded-xl focus:border-black"
               placeholder="you@example.com"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-xs uppercase text-gray-600">
+          <label className="flex flex-col gap-1 text-base uppercase text-gray-600">
             Password
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none focus:border-black"
+              className="bg-white px-3 py-2 text-black outline-none focus:border-black border-1 border-gray-300 rounded-xl"
               placeholder="••••••••"
             />
           </label>
@@ -107,13 +107,13 @@ function AuthForm() {
         </form>
 
         {deactivated && !error && (
-          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-xs text-red-600">
+          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
             [ ERROR ] Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
           </div>
         )}
 
         {error && (
-          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-xs text-red-600">
+          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
             [ ERROR ] {error}
           </div>
         )}
