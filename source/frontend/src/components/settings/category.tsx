@@ -8,6 +8,19 @@ import {
   type Category,
 } from "@/lib/category";
 import { useCallback, useEffect, useState } from "react";
+import {
+  BTN,
+  DANGER,
+  ERROR,
+  FIELD,
+  HEAD,
+  LIST_PANEL,
+  MESSAGE,
+  MUTED,
+  ROW,
+  SAVE,
+  TITLE,
+} from "./settings-style";
 
 export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -80,11 +93,11 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <section className="flex flex-col gap-7">
-      <h2 className="text-[28px] leading-tight">Category</h2>
+      <h1 className={TITLE}>Category</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p>Categories For Tickets And Tasks</p>
-        <p className="text-[#8a8a8a]">
+        <p className="font-semibold">Categories For Tickets And Tasks</p>
+        <p className={MUTED}>
           Categories group the tickets and tasks your lab handles. Renaming one
           updates it everywhere it is already in use.
         </p>
@@ -96,55 +109,48 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="New category name"
-            className="h-10 flex-1 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
+            className={`${FIELD} flex-1`}
           />
-          <button
-            type="submit"
-            className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
-            disabled={!newName.trim()}
-          >
+          <button type="submit" className={SAVE} disabled={!newName.trim()}>
             Add
           </button>
         </form>
       ) : (
-        <p className="text-[#8a8a8a]">
+        <p className={MUTED}>
           Only a Lab Owner or Lab Admin can add, rename or delete categories.
         </p>
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg">All Categories</p>
+        <p className="text-lg font-semibold">All Categories</p>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name"
-          className="h-10 w-62.5 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
+          className={`${FIELD} w-62.5`}
         />
       </div>
 
-      {error && <p className="text-[#b3261e]">{error}</p>}
+      {error && <p className={ERROR}>{error}</p>}
 
-      <div className="flex flex-col">
-        <div className="flex items-center gap-3 border-b border-[#d0d0d0] pb-2 text-sm text-[#8a8a8a] uppercase">
+      <div className={LIST_PANEL}>
+        <div className={HEAD}>
           <span className="w-15">ID</span>
           <span className="flex-1">Name</span>
         </div>
 
         {loading ? (
-          <p className="py-4 text-[#8a8a8a]">Loading...</p>
+          <p className={MESSAGE}>Loading...</p>
         ) : visible.length === 0 ? (
-          <p className="py-4 text-[#8a8a8a]">
+          <p className={MESSAGE}>
             {categories.length === 0
               ? "No categories yet."
               : "No categories match that search."}
           </p>
         ) : (
           visible.map((category) => (
-            <div
-              key={category.id}
-              className="flex items-center gap-3 border-b border-[#e0e0e0] py-3"
-            >
-              <span className="w-15 text-[#8a8a8a]">{category.id}</span>
+            <div key={category.id} className={ROW}>
+              <span className="w-15 text-gray-500">{category.id}</span>
 
               {isAdmin && editingId === category.id ? (
                 <input
@@ -156,7 +162,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                     if (e.key === "Enter") handleRename(category.id);
                     if (e.key === "Escape") setEditingId(null);
                   }}
-                  className="h-10 flex-1 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none"
+                  className={`${FIELD} flex-1`}
                 />
               ) : (
                 <span className="flex-1">{category.name}</span>
@@ -170,7 +176,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                       setEditingId(category.id);
                       setEditingName(category.name);
                     }}
-                    className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+                    className={`${BTN} w-25`}
                   >
                     Edit
                   </button>
@@ -182,7 +188,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                         `Could not delete "${category.name}".`,
                       )
                     }
-                    className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+                    className={`${DANGER} w-25`}
                   >
                     Delete
                   </button>

@@ -4,6 +4,18 @@ import { useEffect, useRef, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
 import { formatShortDateTime } from "@/lib/format";
+import {
+  BTN,
+  ERROR,
+  FIELD,
+  HEAD,
+  LIST_PANEL,
+  MESSAGE,
+  MUTED,
+  ROW,
+  SELECT,
+  TITLE,
+} from "./settings-style";
 
 // The log is written by hand, one row per changed column, by whichever endpoint
 // made the change so these are the only tables that can show up.
@@ -119,29 +131,29 @@ export default function Log({
 
   return (
     <section className="flex flex-col gap-7">
-      <h2 className="text-[28px] leading-tight">Log</h2>
+      <h1 className={TITLE}>Log</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p>Every Change Made In Your Lab</p>
-        <p className="text-[#8a8a8a]">
+        <p className="font-semibold">Every Change Made In Your Lab</p>
+        <p className={MUTED}>
           One line per changed column, newest first. Nothing here can be edited
           or removed.
         </p>
       </div>
 
       {accountLoading ? (
-        <p className="text-[#8a8a8a]">Loading...</p>
+        <p className={MUTED}>Loading...</p>
       ) : !isAdmin ? (
-        <p className="text-[#8a8a8a]">
+        <p className={MUTED}>
           Only a Lab Owner or Lab Admin can read the log.
         </p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-lg">
+            <p className="text-lg font-semibold">
               All Entries
               {!loading && !error && (
-                <span className="text-[#8a8a8a]">
+                <span className={MUTED}>
                   {" "}
                   ({entries.length}
                   {hasMore ? "+" : ""})
@@ -153,7 +165,7 @@ export default function Log({
               <select
                 value={table}
                 onChange={(e) => setTable(e.target.value)}
-                className="h-10 w-32.5 border border-[#d0d0d0] bg-[#dedede] px-2 outline-none"
+                className={`${SELECT} w-32.5`}
               >
                 <option value="">All tables</option>
                 {TABLES.map((name) => (
@@ -167,18 +179,18 @@ export default function Log({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search this page"
-                className="h-10 w-62.5 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
+                className={`${FIELD} w-62.5`}
               />
             </div>
           </div>
 
-          {error && <p className="text-[#b3261e]">{error}</p>}
+          {error && <p className={ERROR}>{error}</p>}
 
-          {/* Six columns in 700px of monospace, hence text-sm rows and a title
-              on every column that can truncate. Only account row_ids are
-              UUIDs - category, ticket and task ids are small integers. */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-3 border-b border-[#d0d0d0] pb-2 text-sm text-[#8a8a8a] uppercase">
+          {/* Six columns, hence text-sm rows and a title on every column that
+              can truncate. Only account row_ids are UUIDs - category, ticket
+              and task ids are small integers. */}
+          <div className={LIST_PANEL}>
+            <div className={HEAD}>
               <span className="w-15 shrink-0">Row</span>
               <span className="w-50 shrink-0">When</span>
               <span className="w-27.5 shrink-0">Who</span>
@@ -188,19 +200,16 @@ export default function Log({
             </div>
 
             {loading ? (
-              <p className="py-4 text-[#8a8a8a]">Loading...</p>
+              <p className={MESSAGE}>Loading...</p>
             ) : visible.length === 0 ? (
-              <p className="py-4 text-[#8a8a8a]">
+              <p className={MESSAGE}>
                 {entries.length === 0
                   ? "Nothing has been logged yet."
                   : "No entries match that search."}
               </p>
             ) : (
               visible.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-3 border-b border-[#e0e0e0] py-3 text-sm"
-                >
+                <div key={entry.id} className={`${ROW} text-sm`}>
                   <span
                     className="w-15 shrink-0 truncate"
                     title={entry.row_id ?? undefined}
@@ -215,7 +224,7 @@ export default function Log({
                     title={entry.by_username ?? undefined}
                   >
                     {entry.by_username ?? (
-                      <span className="text-[#8a8a8a]">Deleted account</span>
+                      <span className="text-gray-500">Deleted account</span>
                     )}
                   </span>
                   <span className="w-20 shrink-0">{entry.from_table}</span>
@@ -229,10 +238,10 @@ export default function Log({
                     className="flex-1 truncate"
                     title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
                   >
-                    <span className="text-[#8a8a8a]">
+                    <span className="text-gray-500">
                       {valueOf(entry.old_value)}
                     </span>
-                    <span className="px-2 text-[#8a8a8a]">&rarr;</span>
+                    <span className="px-2 text-gray-500">&rarr;</span>
                     {valueOf(entry.new_value)}
                   </span>
                 </div>
@@ -245,7 +254,7 @@ export default function Log({
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="h-10 w-full bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+              className={`${BTN} w-full`}
             >
               {loadingMore ? "Loading..." : "Load more"}
             </button>

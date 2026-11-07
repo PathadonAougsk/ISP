@@ -9,15 +9,10 @@ import {
   type Account,
 } from "@/lib/account";
 import Row, { EditButton } from "./row";
+import { ERROR, FIELD, LABEL, MUTED, SAVE, TITLE } from "./settings-style";
 
 // Matches MIN_PASSWORD on the backend; Supabase says so in `detail` if its own minimum is stricter.
 const MIN_PASSWORD = 8;
-
-const FIELD =
-  "h-10 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a] disabled:opacity-50";
-const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
-const SAVE =
-  "h-10 w-25 bg-(--primary-color-2) text-base text-white enabled:hover:bg-(--primary-color-2-hover) disabled:opacity-50";
 
 type Field = "username" | "email" | "password";
 
@@ -150,8 +145,8 @@ export default function AccountPanel({
 
   return (
     <>
-      <section className="flex flex-col gap-7">
-        <h2 className="text-[28px] leading-tight">Account Info</h2>
+      <section className="flex flex-col gap-4">
+        <h1 className={TITLE}>Account Info</h1>
         <Row
           label="Username"
           value={account?.username ?? placeholder}
@@ -174,7 +169,7 @@ export default function AccountPanel({
               <button
                 type="submit"
                 disabled={busy || !username.trim()}
-                className={SAVE}
+                className={`${SAVE} self-start`}
               >
                 {busy ? "Saving..." : "Save"}
               </button>
@@ -189,7 +184,7 @@ export default function AccountPanel({
         >
           {open === "email" && (
             <form onSubmit={submitEmail} className="flex flex-col gap-5">
-              <p className="text-[#8a8a8a]">
+              <p className={MUTED}>
                 There will be no email sent for verification, so double check
                 your email before save or else you will need to contact admin.
               </p>
@@ -222,7 +217,7 @@ export default function AccountPanel({
               <button
                 type="submit"
                 disabled={busy || !email.trim() || !emailPassword}
-                className={SAVE}
+                className={`${SAVE} self-start`}
               >
                 {busy ? "Saving..." : "Save"}
               </button>
@@ -231,14 +226,14 @@ export default function AccountPanel({
         </Row>
       </section>
 
-      <hr className="my-12 border-[#d0d0d0]" />
+      <hr className="my-10 border-gray-200" />
 
-      <section className="flex flex-col gap-7">
-        <h2 className="text-[28px] leading-tight">Password & Security</h2>
+      <section className="flex flex-col gap-4">
+        <h1 className={TITLE}>Password & Security</h1>
         <Row label="Password" action={editAction("password")}>
           {open === "password" && (
             <form onSubmit={submitPassword} className="flex flex-col gap-5">
-              <p className="text-[#8a8a8a]">
+              <p className={MUTED}>
                 Please remember your password, if forgot you will need to
                 contact admin for resetting password.
               </p>
@@ -293,7 +288,7 @@ export default function AccountPanel({
                 </button>
                 {newPassword.length > 0 &&
                   newPassword.length < MIN_PASSWORD && (
-                    <span className="text-[#8a8a8a]">
+                    <span className={MUTED}>
                       {MIN_PASSWORD - newPassword.length} more character
                       {MIN_PASSWORD - newPassword.length === 1 ? "" : "s"} to
                       go.
@@ -305,7 +300,7 @@ export default function AccountPanel({
         </Row>
       </section>
 
-      {error && <p className="mt-7 text-[#b3261e]">{error}</p>}
+      {error && <p className={`mt-7 ${ERROR}`}>{error}</p>}
       {done && !error && (
         <p className="mt-7 text-(--primary-color-deep)">{done}</p>
       )}

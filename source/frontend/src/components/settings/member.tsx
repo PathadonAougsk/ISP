@@ -18,6 +18,20 @@ import {
 } from "@/lib/account";
 import { maskEmail } from "@/lib/format";
 import CreateUser from "./create_user";
+import {
+  BTN,
+  DANGER,
+  ERROR,
+  FIELD,
+  HEAD,
+  LABEL,
+  LIST_PANEL,
+  MESSAGE,
+  MUTED,
+  SAVE,
+  SELECT,
+  TITLE,
+} from "./settings-style";
 
 // Lab Owner first, then Lab Admin, then Lab User
 const ROLE_ORDER: Record<AccountRole, number> = {
@@ -29,10 +43,6 @@ const ROLE_ORDER: Record<AccountRole, number> = {
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
 
 const MIN_PASSWORD = 8;
-
-const FIELD =
-  "h-10 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a] disabled:opacity-50";
-const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
 
 function byRoleThenName(a: Account, b: Account) {
   return (
@@ -208,34 +218,34 @@ export default function Member({
 
   return (
     <section className="flex flex-col gap-7">
-      <h2 className="text-[28px] leading-tight">Member</h2>
+      <h1 className={TITLE}>Member</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p>People In Your Lab</p>
-        <p className="text-[#8a8a8a]">Everyone is here!</p>
+        <p className="font-semibold">People In Your Lab</p>
+        <p className={MUTED}>Everyone is here!</p>
       </div>
 
       {isAdmin && <CreateUser onCreated={refresh} />}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg">
+        <p className="text-lg font-semibold">
           All Members
           {!loading && !error && (
-            <span className="text-[#8a8a8a]"> ({members.length})</span>
+            <span className={MUTED}> ({members.length})</span>
           )}
         </p>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or email"
-          className="h-10 w-62.5 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
+          className={`${FIELD} w-62.5`}
         />
       </div>
 
-      {error && <p className="text-[#b3261e]">{error}</p>}
+      {error && <p className={ERROR}>{error}</p>}
 
-      <div className="flex flex-col">
-        <div className="flex items-center gap-3 border-b border-[#d0d0d0] pb-2 text-sm text-[#8a8a8a] uppercase">
+      <div className={LIST_PANEL}>
+        <div className={HEAD}>
           <span className="flex-1">Username</span>
           <span className="flex-1">Email</span>
           <span className="w-25 shrink-0">Role</span>
@@ -246,9 +256,9 @@ export default function Member({
         </div>
 
         {loading ? (
-          <p className="py-4 text-[#8a8a8a]">Loading...</p>
+          <p className={MESSAGE}>Loading...</p>
         ) : visible.length === 0 ? (
-          <p className="py-4 text-[#8a8a8a]">
+          <p className={MESSAGE}>
             {members.length === 0
               ? "No members yet."
               : "No members match that search."}
@@ -257,13 +267,13 @@ export default function Member({
           visible.map((member) => (
             <div
               key={member.id}
-              className="flex flex-col border-b border-[#e0e0e0]"
+              className="flex flex-col rounded-[20px] bg-white px-4"
             >
-              <div className="flex items-center gap-3 py-3">
+              <div className="flex items-center gap-3 py-2">
                 <span className="flex-1 truncate">
                   {member.username}
                   {member.id === account?.id && (
-                    <span className="text-[#8a8a8a]"> (You)</span>
+                    <span className={MUTED}> (You)</span>
                   )}
                 </span>
                 <span className="flex-1 truncate">{emailOf(member)}</span>
@@ -276,7 +286,7 @@ export default function Member({
                         assignRole(member.id, e.target.value as AccountRole),
                       )
                     }
-                    className="h-10 w-25 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 outline-none disabled:opacity-50"
+                    className={`${SELECT} w-25 shrink-0`}
                   >
                     {ASSIGNABLE_ROLES.map((role) => (
                       <option key={role} value={role}>
@@ -305,7 +315,7 @@ export default function Member({
                         if (e.key === "Escape") setQuotaEditId(null);
                       }}
                       placeholder="No cap"
-                      className="h-10 w-20 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 text-right outline-none placeholder:text-[#8a8a8a]"
+                      className={`${SELECT} w-20 shrink-0 text-right placeholder:text-gray-400`}
                     />
                   ) : (
                     <button
@@ -313,7 +323,7 @@ export default function Member({
                       disabled={busyId === member.id}
                       onClick={() => startQuotaEdit(member)}
                       title="Ticket quota. Leave it blank for no cap."
-                      className="h-10 w-20 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                      className={`${BTN} w-20 shrink-0`}
                     >
                       {member.quota ?? "No cap"}
                     </button>
@@ -333,7 +343,7 @@ export default function Member({
                         updateAccount(member.id, { active: !member.active }),
                       )
                     }
-                    className="h-10 w-25 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                    className={`${BTN} w-25 shrink-0`}
                   >
                     {member.active ? "Deactivate" : "Activate"}
                   </button>
@@ -351,7 +361,7 @@ export default function Member({
                         disabled={busyId === member.id}
                         onClick={() => openReset(member)}
                         title="Set a new email or password for this member."
-                        className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                        className={`${BTN} w-25`}
                       >
                         {resetId === member.id ? "Cancel" : "Reset"}
                       </button>
@@ -366,7 +376,7 @@ export default function Member({
                         type="button"
                         disabled={busyId === member.id}
                         onClick={() => handleDelete(member)}
-                        className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                        className={`${DANGER} w-25`}
                       >
                         Delete
                       </button>
@@ -378,9 +388,9 @@ export default function Member({
               {resetId === member.id && (
                 <form
                   onSubmit={(e) => submitReset(e, member)}
-                  className="flex flex-col gap-5 pb-5"
+                  className="flex flex-col gap-5 border-t border-gray-200 py-4"
                 >
-                  <p className="text-[#8a8a8a]">
+                  <p className={MUTED}>
                     Sets {member.username}&apos;s login directly. Nothing is
                     emailed, so pass the new credentials on yourself. Leave a
                     field blank to keep it as it is.
@@ -430,7 +440,7 @@ export default function Member({
                     <button
                       type="submit"
                       disabled={busyId === member.id}
-                      className="h-10 w-25 bg-(--primary-color-2) text-base text-white enabled:hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                      className={SAVE}
                     >
                       {busyId === member.id ? "Saving..." : "Save"}
                     </button>
@@ -438,7 +448,7 @@ export default function Member({
                       type="button"
                       onClick={closeReset}
                       disabled={busyId === member.id}
-                      className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                      className={`${BTN} w-25`}
                     >
                       Cancel
                     </button>

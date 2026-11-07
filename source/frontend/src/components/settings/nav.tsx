@@ -24,14 +24,16 @@ export default function Nav({
   onSelect: (label: string) => void;
 }) {
   return (
-    <nav className="mt-3 flex flex-col gap-0.5">
+    <nav className="mt-3 flex flex-col gap-1">
       {items.map((item) => (
         <button
           key={item.label}
           type="button"
           onClick={() => onSelect(item.label)}
-          className={`flex w-full items-center gap-3 px-2 py-2 text-left ${
-            active === item.label ? "bg-[#d4d4d4]" : "hover:bg-[#e0e0e0]"
+          className={`flex w-full items-center gap-3 rounded-full px-4 py-2 text-left ${
+            active === item.label
+              ? "bg-white font-bold shadow-sm"
+              : "font-medium hover:bg-(--panel-bg-hover)"
           }`}
         >
           <Icon src={`/${item.icon}.svg`} className="size-5 shrink-0" />

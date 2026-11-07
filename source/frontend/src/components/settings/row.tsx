@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { maskEmail } from "@/lib/format";
+import { BTN, CARD } from "./settings-style";
 
 export function EditButton({
   onClick,
@@ -18,7 +19,7 @@ export function EditButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+      className={`${BTN} w-25`}
     >
       {open ? "Cancel" : "Edit"}
     </button>
@@ -44,9 +45,9 @@ export default function Row({
   const [shown, setShown] = useState(false);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={CARD}>
       <div className="flex items-center gap-3">
-        <span className="flex-1">{label}</span>
+        <span className="flex-1 font-semibold">{label}</span>
         {value && <span>{reveal && !shown ? maskEmail(value) : value}</span>}
         {reveal && value && (
           <button
