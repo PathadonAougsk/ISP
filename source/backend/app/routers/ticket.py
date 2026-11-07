@@ -38,18 +38,19 @@ ticketRouter = APIRouter(
 
 
 @ticketRouter.get("/", tags=["Tickets"])
-async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)],
-                           me: Annotated[Account, Depends(account_service.get_current_account)],
-                           ticket_id: int | None = None,
-                           status: TicketStatus | None = None,
-                           category_id: int | None = None,
-                           due_after: dt.datetime | None = None,
-                           due_before: dt.datetime | None = None,
-                           onlyOwned: bool = False,
-                           notOwned: bool = False,
-                           offset: int = Query(default=0, ge=0),
-                           limit: int = Query(default=0, ge=0)
-                           ):
+async def retrieve_tickets(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
+    ticket_id: int | None = None,
+    status: TicketStatus | None = None,
+    category_id: int | None = None,
+    due_after: dt.datetime | None = None,
+    due_before: dt.datetime | None = None,
+    onlyOwned: bool = False,
+    notOwned: bool = False,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=0, ge=0)
+):
     query = select(Ticket)
 
     if ticket_id:
@@ -108,11 +109,11 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
 
 
 @ticketRouter.post("/", tags=["Tickets"])
-async def create_ticket(data: TicketCreate,
-                        session: Annotated[AsyncSession, Depends(getSession)],
-                        me: Annotated[Account, Depends(
-                            account_service.get_current_account)]
-                        ):
+async def create_ticket(
+    data: TicketCreate,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)]
+):
     if await session.get(Category, data.category_id) is None:
         raise HTTPException(status_code=404, detail="Category not found")
 
@@ -163,16 +164,23 @@ async def create_ticket(data: TicketCreate,
     session.add(ticket)
     await session.flush()
 
-    ticket_audit = AuditLog(
-        from_table="ticket",
-        row_id=str(ticket.id),
-        column_name="status",
-        old_value=None,
-        new_value=TicketStatus.PENDING.value,
-        by_whom=me.id
-    )
+    audit_fields = {
+        "name": data.name,
+        "description": data.description,
+        "status": TicketStatus.PENDING.value,
+        "category_id": data.category_id,
+        "due_date": to_utc(data.due_date)
+    }
 
-    session.add(ticket_audit)
+    for col_name, new_value in audit_fields.items():
+        session.add(AuditLog(
+            from_table="ticket",
+            row_id=str(ticket.id),
+            column_name=col_name,
+            old_value=None,
+            new_value=str(new_value) if new_value is not None else None,
+            by_whom=me.id
+        ))
 
     if new_quota is not None:
         quota_audit = AuditLog(
@@ -192,10 +200,12 @@ async def create_ticket(data: TicketCreate,
 
 
 @ticketRouter.put("/{ticket_id}", tags=["Tickets"])
-async def update_ticket(ticket_id: int,
-                        data: TicketUpdate,
-                        session: Annotated[AsyncSession, Depends(getSession)]
-                        ):
+async def update_ticket(
+    ticket_id: int,
+    data: TicketUpdate,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)]
+):
     ticket = await session.get(Ticket, ticket_id)
 
     if ticket is None:
@@ -207,20 +217,58 @@ async def update_ticket(ticket_id: int,
         if category is None:
             raise HTTPException(status_code=404, detail="Category not found")
 
+    def update_ticket_log(col_name, old_val, new_val):
+        audit = AuditLog(
+            from_table="ticket",
+            row_id=str(ticket.id),
+            column_name=col_name,
+            old_value=str(old_val) if old_val is not None else None,
+            new_value=str(new_val) if new_val is not None else None,
+            by_whom=me.id
+        )
+
+        if audit.old_value == audit.new_value:
+            return None
+
+        return audit
+
+    audit_list = []
+
     if data.name is not None:
+        audit_list.append(
+            update_ticket_log("name", ticket.name, data.name)
+        )
         ticket.name = data.name
 
     if data.description is not None:
+        audit_list.append(
+            update_ticket_log("description", ticket.description, data.description)
+        )
         ticket.description = data.description
 
     if data.status is not None:
+        audit_list.append(
+            update_ticket_log("status", ticket.status, data.status)
+        )
         ticket.status = data.status
 
     if data.category_id is not None:
+        audit_list.append(
+            update_ticket_log("category_id", ticket.category_id, data.category_id)
+        )
         ticket.category_id = data.category_id
 
     if data.due_date is not None:
-        ticket.due_date = to_utc(data.due_date)
+        new_due_date = to_utc(data.due_date)
+
+        audit_list.append(
+            update_ticket_log("due_date", ticket.due_date, new_due_date)
+        )
+        ticket.due_date = new_due_date
+
+    for audit in audit_list:
+        if audit is not None:
+            session.add(audit)
 
     await session.commit()
     await session.refresh(ticket)
@@ -229,12 +277,33 @@ async def update_ticket(ticket_id: int,
 
 
 @ticketRouter.delete("/{ticket_id}", tags=["Tickets"])
-async def delete_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
-    result = await session.scalars(select(Ticket).where(Ticket.id == ticket_id))
-    ticket = result.first()
+async def delete_ticket(
+    ticket_id: int,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)]
+):
+    ticket = await session.get(Ticket, ticket_id)
 
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
+
+    audit_fields = {
+        "name": ticket.name,
+        "description": ticket.description,
+        "status": ticket.status,
+        "category_id": ticket.category_id,
+        "due_date": ticket.due_date
+    }
+
+    for col_name, old_value in audit_fields.items():
+        session.add(AuditLog(
+            from_table="ticket",
+            row_id=str(ticket.id),
+            column_name=col_name,
+            old_value=str(old_value) if old_value is not None else None,
+            new_value=None,
+            by_whom=me.id
+        ))
 
     await session.delete(ticket)
     await session.commit()

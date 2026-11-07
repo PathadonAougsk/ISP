@@ -1,6 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database import engine
 from app.dependencies import supabase
 from app.routers.account import accountRouter
 from app.routers.announcement import announcementRouter
@@ -9,7 +12,13 @@ from app.routers.category import categoryRouter
 from app.routers.task import taskRouter
 from app.routers.ticket import ticketRouter
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
