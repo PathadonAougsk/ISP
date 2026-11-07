@@ -4,10 +4,6 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const backgroundImageOpacity = 0.35;
-const backgroundImageUrl =
-  "https://photobay.ku.ac.th/img/thumbs/2023/06/30/20230630050558_8d8b6d60.webp";
-
 // useSearchParams needs a Suspense boundary above it during prerender.
 export default function AuthPage() {
   return (
@@ -54,21 +50,21 @@ function AuthForm() {
   return (
     <div className="relative flex h-full flex-1 flex-row items-center justify-center gap-10 overflow-hidden bg-white p-8 text-black">
       <div
-        aria-hidden="true"
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url("${backgroundImageUrl}")`,
-          opacity: backgroundImageOpacity,
+          backgroundImage: `url("https://photobay.ku.ac.th/img/thumbs/2023/06/30/20230630050558_8d8b6d60.webp")`,
+          opacity: 0.35,
         }}
       />
       <div className="relative z-10 w-full max-w-sm rounded-[30px] bg-white p-8 shadow-2xl">
         <div className="mb-6 flex">
           <div
             className={
-              "flex-1 py-2 text-sm tracking-wide bg-white text-gray-800 text-center"
+              "flex-1 py-4 text-sm tracking-wide bg-white text-gray-800 text-center"
             }
           >
-            <h1 className="font-bold text-3xl">Welcome back!</h1>
+            <h1 className="font-bold text-3xl">Welcome Back!</h1>
+            <h1 className="text-xs">Enter your credentials below to get started</h1>
             <div />
           </div>
         </div>
