@@ -38,18 +38,19 @@ ticketRouter = APIRouter(
 
 
 @ticketRouter.get("/", tags=["Tickets"])
-async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)],
-                           me: Annotated[Account, Depends(account_service.get_current_account)],
-                           ticket_id: int | None = None,
-                           status: TicketStatus | None = None,
-                           category_id: int | None = None,
-                           due_after: dt.datetime | None = None,
-                           due_before: dt.datetime | None = None,
-                           onlyOwned: bool = False,
-                           notOwned: bool = False,
-                           offset: int = Query(default=0, ge=0),
-                           limit: int = Query(default=0, ge=0)
-                           ):
+async def retrieve_tickets(
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
+    ticket_id: int | None = None,
+    status: TicketStatus | None = None,
+    category_id: int | None = None,
+    due_after: dt.datetime | None = None,
+    due_before: dt.datetime | None = None,
+    onlyOwned: bool = False,
+    notOwned: bool = False,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=0, ge=0)
+):
     query = select(Ticket)
 
     if ticket_id:
@@ -108,11 +109,11 @@ async def retrieve_tickets(session: Annotated[AsyncSession, Depends(getSession)]
 
 
 @ticketRouter.post("/", tags=["Tickets"])
-async def create_ticket(data: TicketCreate,
-                        session: Annotated[AsyncSession, Depends(getSession)],
-                        me: Annotated[Account, Depends(
-                            account_service.get_current_account)]
-                        ):
+async def create_ticket(
+    data: TicketCreate,
+    session: Annotated[AsyncSession, Depends(getSession)],
+    me: Annotated[Account, Depends(account_service.get_current_account)]
+):
     if await session.get(Category, data.category_id) is None:
         raise HTTPException(status_code=404, detail="Category not found")
 
@@ -192,10 +193,11 @@ async def create_ticket(data: TicketCreate,
 
 
 @ticketRouter.put("/{ticket_id}", tags=["Tickets"])
-async def update_ticket(ticket_id: int,
-                        data: TicketUpdate,
-                        session: Annotated[AsyncSession, Depends(getSession)]
-                        ):
+async def update_ticket(
+    ticket_id: int,
+    data: TicketUpdate,
+    session: Annotated[AsyncSession, Depends(getSession)]
+):
     ticket = await session.get(Ticket, ticket_id)
 
     if ticket is None:
@@ -229,7 +231,10 @@ async def update_ticket(ticket_id: int,
 
 
 @ticketRouter.delete("/{ticket_id}", tags=["Tickets"])
-async def delete_ticket(ticket_id: int, session: Annotated[AsyncSession, Depends(getSession)]):
+async def delete_ticket(
+    ticket_id: int,
+    session: Annotated[AsyncSession, Depends(getSession)]
+):
     result = await session.scalars(select(Ticket).where(Ticket.id == ticket_id))
     ticket = result.first()
 
