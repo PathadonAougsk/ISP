@@ -3,7 +3,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, case, update, func
+from sqlalchemy import select, case, update, func, or_, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
@@ -42,6 +42,7 @@ async def retrieve_tickets(
     session: Annotated[AsyncSession, Depends(getSession)],
     me: Annotated[Account, Depends(account_service.get_current_account)],
     ticket_id: int | None = None,
+    search: str | None = None,
     status: TicketStatus | None = None,
     category_id: int | None = None,
     due_after: dt.datetime | None = None,
@@ -56,6 +57,18 @@ async def retrieve_tickets(
 
     if ticket_id:
         query = query.where(Ticket.id == ticket_id)
+
+    if search and search.strip():
+        search = search.strip()
+
+        conditions = [
+            Ticket.name.ilike(f"%{search}%")
+        ]
+
+        if search.isdecimal():
+            conditions.append(cast(Ticket.id, String).ilike(f"%{search}%"))
+
+        query = query.where(or_(*conditions))
 
     if status:
         query = query.where(Ticket.status == status)
