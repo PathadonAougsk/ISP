@@ -9,9 +9,17 @@ import {
 export default function AnnouncementDetail({
   announcement,
   authorName,
+  canEdit = false,
+  canDelete = false,
+  onEdit,
+  onDelete,
 }: {
   announcement: Announcement | null;
   authorName: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   if (!announcement) {
     return (
@@ -27,7 +35,7 @@ export default function AnnouncementDetail({
         {renderWithLinks(announcement.name)}
       </h2>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-600">
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-2">
           <Icon src="/user.svg" className="h-auto w-4 shrink-0" />
           {authorName}
@@ -37,6 +45,30 @@ export default function AnnouncementDetail({
           <Icon src="/clock.svg" className="h-auto w-4 shrink-0" />
           {formatFullDateTime(announcement.created)}
         </span>
+
+        {(canEdit || canDelete) && (
+          <div className="ml-auto flex items-center gap-2">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="flex h-6 w-15 cursor-pointer items-center justify-center rounded-full bg-(--primary-color-2) px-4 text-sm font-semibold text-white hover:bg-(--primary-color-2-hover)"
+              >
+                Edit
+              </button>
+            )}
+
+            {canDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex h-6 w-15 cursor-pointer items-center justify-center rounded-full bg-(--primary-red) px-4 text-sm font-semibold text-white hover:bg-(--primary-red-hover)"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <SlideupDescription description={announcement.description} />

@@ -114,9 +114,9 @@ async def update_announcement(
     audit_list = []
 
     if data.name is not None:
-        audit_list.append(
-            update_announcement_log("name", announcement.name, data.name)
-        )
+        name_changed = update_announcement_log("name", announcement.name, data.name)
+        if name_changed:
+            audit_list.append(name_changed)
         announcement.name = data.name
 
     description_changed = update_announcement_log("description", announcement.description, data.description)

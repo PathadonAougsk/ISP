@@ -96,10 +96,10 @@ export function LoadMoreButton({
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className={`relative z-10 rounded-full border border-gray-300 bg-white px-4 py-1 text-sm font-medium text-gray-500 ${
+        className={`relative z-10 rounded-full border border-gray-300 px-4 py-1 text-sm font-medium text-gray-500 ${
           disabled
-            ? "cursor-wait opacity-60"
-            : "cursor-pointer hover:bg-gray-100"
+            ? "cursor-wait bg-gray-100"
+            : "cursor-pointer bg-white hover:bg-gray-100"
         }`}
       >
         Load More

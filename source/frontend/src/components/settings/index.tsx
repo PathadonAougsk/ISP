@@ -82,7 +82,7 @@ export default function Settings({
       <div
         role="dialog"
         aria-modal="true"
-        className={`flex h-[92vh] w-[92vw] overflow-hidden rounded-[30px] bg-white text-black shadow-2xl transition duration-150 ease-out starting:scale-95 starting:opacity-0 ${
+        className={`flex h-[92vh] w-[92vw] overflow-hidden rounded-[30px] bg-white text-black transition duration-150 ease-out starting:scale-95 starting:opacity-0 ${
           closing ? "scale-95 opacity-0" : ""
         }`}
         onClick={(e) => e.stopPropagation()}

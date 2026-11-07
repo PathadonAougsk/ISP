@@ -1,18 +1,29 @@
 import type { Announcement } from "@/lib/announcement";
 import AnnouncementCard from "@/components/announcement/AnnouncementCard";
-import { ListMessage } from "@/components/dashboard/dashboard-utils";
+import {
+  ListMessage,
+  LoadMoreButton,
+} from "@/components/dashboard/dashboard-utils";
 
 export default function AnnouncementList({
   announcements,
   selectedId,
   getAuthorName,
   onSelect,
+  hasMore = false,
+  loadingMore = false,
+  loadMoreError = false,
+  onLoadMore,
   emptyMessage = "No announcements yet.",
 }: {
   announcements: Announcement[];
   selectedId: number | null;
   getAuthorName: (id: string) => string;
   onSelect: (id: number) => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  loadMoreError?: boolean;
+  onLoadMore: () => void;
   emptyMessage?: string;
 }) {
   return (
@@ -32,6 +43,15 @@ export default function AnnouncementList({
             />
           ))
         )}
+
+        {loadMoreError && (
+          <ListMessage>Failed to load more announcement</ListMessage>
+        )}
+
+        {hasMore && (
+          <LoadMoreButton disabled={loadingMore} onClick={onLoadMore} />
+        )}
+        <div className="h-50 shrink-0"></div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CreateAnnouncementInput } from "@/lib/announcement";
+import type { Announcement, CreateAnnouncementInput } from "@/lib/announcement";
 import {
   FormButton,
   FormColumn,
@@ -12,18 +12,22 @@ import {
 } from "@/components/request-table/FormParts";
 
 export default function CreateAnnouncementModal({
+  announcement,
   onClose,
   onSubmit,
 }: {
+  announcement?: Announcement;
   onClose: () => void;
   onSubmit: (input: CreateAnnouncementInput) => Promise<void>;
 }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  // announcement given = edit mode, prefill
+  const [name, setName] = useState(announcement?.name ?? "");
+  const [description, setDescription] = useState(
+    announcement?.description ?? "",
+  );
   const { saving, error, setError, run } = useFormSubmit();
 
   async function handleCreate(close: () => void) {
-    // TODO: better validation
     if (!name.trim()) {
       setError("Title is required.");
       return;
@@ -39,7 +43,7 @@ export default function CreateAnnouncementModal({
 
   return (
     <FormModal
-      title="Create new announcement"
+      title={announcement ? "Edit announcement" : "Create new announcement"}
       onClose={onClose}
       error={error}
       footer={(close) => (

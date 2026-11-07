@@ -106,7 +106,7 @@ export function FormButton({
     <button
       type="button"
       {...props}
-      className={`h-10 min-w-40 px-5 rounded-full text-base font-bold cursor-pointer disabled:cursor-default disabled:opacity-50 ${buttonColors[color]} ${className}`}
+      className={`h-10 min-w-40 px-5 rounded-full text-lg font-semibold cursor-pointer disabled:cursor-default disabled:opacity-50 ${buttonColors[color]} ${className}`}
     />
   );
 }

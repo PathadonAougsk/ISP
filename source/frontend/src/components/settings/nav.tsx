@@ -32,7 +32,7 @@ export default function Nav({
           onClick={() => onSelect(item.label)}
           className={`flex w-full items-center gap-3 rounded-full px-4 py-2 text-left ${
             active === item.label
-              ? "bg-white font-bold shadow-sm"
+              ? "bg-white font-bold"
               : "font-medium hover:bg-(--panel-bg-hover)"
           }`}
         >
