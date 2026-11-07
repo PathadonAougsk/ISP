@@ -1,67 +1,74 @@
-import type { Task } from "@/lib/task";
-import type { Ticket } from "@/lib/ticket";
 import {
-  formatCount,
   isMissingItem,
-} from "@/components/dashboard/dashboard_status";
+  type GroupState,
+} from "@/components/dashboard/dashboard-data";
+
+// "+" when the list still have more to load
+const withMore = (value: number, more: boolean) =>
+  more ? `${value}+` : String(value);
 
 export default function Missing({
   myTasks,
   myPendingTickets,
   myRejectedTickets,
-  loadingMyTasks,
-  loadingMyTickets,
-  maxTask,
-  maxTicket,
 }: {
-  myTasks: Task[];
-  myPendingTickets: Ticket[];
-  myRejectedTickets: Ticket[];
-  loadingMyTasks: boolean;
-  loadingMyTickets: boolean;
-  maxTask: number;
-  maxTicket: number;
+  myTasks: GroupState;
+  myPendingTickets: GroupState;
+  myRejectedTickets: GroupState;
 }) {
+  // hide while loading, or when load fail and nothing to show
+  const loadingMyTasks =
+    myTasks.loading || (myTasks.error && myTasks.all.length === 0);
+
+  const loadingMyTickets =
+    myPendingTickets.loading ||
+    myRejectedTickets.loading ||
+    ((myPendingTickets.error || myRejectedTickets.error) &&
+      myPendingTickets.all.length === 0 &&
+      myRejectedTickets.all.length === 0);
+
+  if (loadingMyTasks || loadingMyTickets) {
+    return null;
+  }
+
   const now = new Date();
 
-  const overdueTasks = myTasks.filter((task) =>
+  const overdueTasks = myTasks.items.filter((task) =>
     isMissingItem(task, ["in_progress"], now),
   ).length;
 
-  const pastDueTickets = myPendingTickets.filter((ticket) =>
+  const overduePendingTickets = myPendingTickets.items.filter((ticket) =>
     isMissingItem(ticket, ["pending"], now),
   ).length;
 
-  const rejectedTickets = myRejectedTickets.length;
+  // the extra item can be overdue too
+  const moreTasks =
+    myTasks.overflow !== null &&
+    isMissingItem(myTasks.overflow, ["in_progress"], now);
+
+  const morePendingTickets =
+    myPendingTickets.overflow !== null &&
+    isMissingItem(myPendingTickets.overflow, ["pending"], now);
 
   const sections = [
     {
       label: "Overdue Tasks",
-      count: overdueTasks,
-      max: maxTask,
-      loading: loadingMyTasks,
-    },
-    {
-      label: "Past Due Tickets",
-      count: pastDueTickets,
-      max: maxTicket,
-      loading: loadingMyTickets,
+      value: withMore(overdueTasks, moreTasks),
+      visible: overdueTasks > 0 || moreTasks,
     },
     {
       label: "Rejected Tickets",
-      count: rejectedTickets,
-      max: maxTicket,
-      loading: loadingMyTickets,
+      value: myRejectedTickets.count,
+      visible: myRejectedTickets.all.length > 0,
+    },
+    {
+      label: "Overdue Pending Tickets",
+      value: withMore(overduePendingTickets, morePendingTickets),
+      visible: overduePendingTickets > 0 || morePendingTickets,
     },
   ];
 
-  const visibleSections = sections.filter(
-    (section) => section.loading || section.count > 0,
-  );
-
-  if (visibleSections.length === 0) {
-    return null;
-  }
+  const visibleSections = sections.filter((section) => section.visible);
 
   return (
     <div className="flex w-full divide-x divide-white rounded-[30px] bg-(--primary-red)">
@@ -74,7 +81,7 @@ export default function Missing({
             {section.label}
           </h1>
           <h1 className="text-5xl font-extrabold text-white">
-            {section.loading ? "-" : formatCount(section.count, section.max)}
+            {section.value}
           </h1>
         </div>
       ))}

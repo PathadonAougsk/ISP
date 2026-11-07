@@ -4,11 +4,39 @@ export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
 export type DashboardView = "task" | "ticket";
 
+// the six lists in dashboard
+export type DashboardGroup =
+  | "myTasks"
+  | "otherTasks"
+  | "myRejectedTickets"
+  | "myPendingTickets"
+  | "otherRejectedTickets"
+  | "otherPendingTickets";
+
+export type DashboardLimits = Record<DashboardGroup, number>;
+
 // fields that task and ticket share
 export type DashboardItem = {
   status: string;
   category_id: number;
   due_date: string | null;
+};
+
+// one list in dashboard, made by useGroup
+export type GroupState<T extends DashboardItem = DashboardItem> = {
+  // cut to the limit, for the UI
+  items: T[];
+  // full list with the extra item
+  all: T[];
+  // the extra item, null = nothing more to load
+  overflow: T | null;
+  // ready-to-show count string, "{max}+" when list is overflow
+  count: string;
+  loading: boolean;
+  error: boolean;
+  // any fetch running. only for disable Load More, never show loading text
+  refreshing: boolean;
+  loadMore: () => void;
 };
 
 export const dueBucketColor: Record<DueBucketKey, string> = {
@@ -29,6 +57,8 @@ export const dueBucketMeta: {
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type BucketCounts = Record<DueBucketKey, number>;
 
 export function emptyBucketCounts(): Record<DueBucketKey, number> {
   return { missing: 0, thisWeek: 0, nextWeek: 0, later: 0 };
@@ -92,6 +122,28 @@ export function getDueBucket(
   return "later";
 }
 
+// one pass over items. total for summary, byCategory for overview
+export function countDueBuckets(
+  items: DashboardItem[],
+  limits: DueBucketLimits,
+) {
+  const total = emptyBucketCounts();
+  const byCategory: Record<number, BucketCounts> = {};
+
+  for (const item of items) {
+    const bucket = getDueBucket(item.due_date, limits);
+
+    if (!byCategory[item.category_id]) {
+      byCategory[item.category_id] = emptyBucketCounts();
+    }
+
+    total[bucket] += 1;
+    byCategory[item.category_id][bucket] += 1;
+  }
+
+  return { total, byCategory };
+}
+
 export const ticketStatusText: Record<string, string> = {
   pending: "Pending",
   accepted: "Accepted",
@@ -107,9 +159,4 @@ export const ticketStatusIcon: Record<string, string> = {
 // count pass the max, show "{max}+"
 export function formatCount(count: number, max: number) {
   return count > max ? `${max}+` : String(count);
-}
-
-// room left after used items take their part. never below 0
-export function getRoom(max: number, ...used: number[]) {
-  return Math.max(max - used.reduce((sum, count) => sum + count, 0), 0);
 }

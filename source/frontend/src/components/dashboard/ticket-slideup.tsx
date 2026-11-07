@@ -8,19 +8,20 @@ import Icon from "@/components/icon";
 import {
   ticketStatusIcon,
   ticketStatusText,
-} from "@/components/dashboard/dashboard_status";
+} from "@/components/dashboard/dashboard-data";
 import {
   RequestTableButton,
   SlideupDescription,
   SlideupDueRow,
   SlideupEdited,
+  SlideupError,
   SlideupMeta,
-} from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-utils";
 import {
   SlideupCloseButton,
   SlideupFrame,
   useSlideupClose,
-} from "@/components/modal_slideup";
+} from "@/components/modal-slideup";
 
 export default function TicketSlideup({
   ticket,
@@ -43,6 +44,7 @@ export default function TicketSlideup({
 }) {
   const { isClosing, handleClose } = useSlideupClose(onClose);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMyRejectedTicket =
     ticket.status === "rejected" && ticket.created_by === currentUserId;
   const isMyPendingTicket =
@@ -58,6 +60,7 @@ export default function TicketSlideup({
     outranks(currentRole, creatorRole);
 
   async function handleJudge(status: "accepted" | "rejected") {
+    setError(null);
     setSubmitting(true);
 
     try {
@@ -66,7 +69,7 @@ export default function TicketSlideup({
       onUpdated();
       handleClose();
     } catch {
-      console.error(`Fail to ${status === "accepted" ? "accept" : "reject"}`);
+      setError(`Failed to ${status === "accepted" ? "accept" : "reject"}`);
     } finally {
       setSubmitting(false);
     }
@@ -97,6 +100,7 @@ export default function TicketSlideup({
         />
         {canJudge && (
           <>
+            {error && <SlideupError message={error} className="self-center" />}
             <button
               type="button"
               disabled={submitting}

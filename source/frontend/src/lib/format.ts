@@ -1,115 +1,59 @@
 const TIME_ZONE = "Asia/Bangkok";
 
-// formatShortDate("2026-08-28T02:47:00Z") -> "Fri 28 Aug 2026"
-export function formatShortDate(iso: string | null) {
-  if (iso === null) return "No due date";
+// "Fri 28 Aug 2026" (short) or "Friday 28 August 2026" (long), Bangkok time
+function datePart(d: Date, style: "short" | "long") {
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    d.toLocaleDateString("en-US", { ...options, timeZone: TIME_ZONE });
 
-  const d = new Date(iso);
-  const weekday = d.toLocaleDateString("en-US", {
-    weekday: "short",
-    timeZone: TIME_ZONE,
-  });
-  const day = d.toLocaleDateString("en-US", {
-    day: "numeric",
-    timeZone: TIME_ZONE,
-  });
-  const month = d.toLocaleDateString("en-US", {
-    month: "short",
-    timeZone: TIME_ZONE,
-  });
-  const year = d.toLocaleDateString("en-US", {
-    year: "numeric",
-    timeZone: TIME_ZONE,
-  });
+  const weekday = part({ weekday: style });
+  const day = part({ day: "numeric" });
+  const month = part({ month: style });
+  const year = part({ year: "numeric" });
 
   return `${weekday} ${day} ${month} ${year}`;
+}
+
+// "09:47", 24 hour, Bangkok time
+function timePart(d: Date) {
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: TIME_ZONE,
+  });
+}
+
+// formatShortDate("2026-08-28T02:47:00Z") -> "Fri 28 Aug 2026"
+// null -> "No {label} date", label default is "due"
+export function formatShortDate(iso: string | null, label = "due") {
+  if (iso === null) return `No ${label} date`;
+
+  return datePart(new Date(iso), "short");
 }
 
 // formatFullDate("2026-08-28T02:47:00Z") -> "Friday 28 August 2026"
-export function formatFullDate(iso: string | null) {
-  if (iso === null) return "No due date";
+export function formatFullDate(iso: string | null, label = "due") {
+  if (iso === null) return `No ${label} date`;
 
-  const d = new Date(iso);
-  const weekday = d.toLocaleDateString("en-US", {
-    weekday: "long",
-    timeZone: TIME_ZONE,
-  });
-  const day = d.toLocaleDateString("en-US", {
-    day: "numeric",
-    timeZone: TIME_ZONE,
-  });
-  const month = d.toLocaleDateString("en-US", {
-    month: "long",
-    timeZone: TIME_ZONE,
-  });
-  const year = d.toLocaleDateString("en-US", {
-    year: "numeric",
-    timeZone: TIME_ZONE,
-  });
-
-  return `${weekday} ${day} ${month} ${year}`;
+  return datePart(new Date(iso), "long");
 }
 
 // formatShortDateTime("2026-08-28T02:47:00Z") -> "Fri 28 Aug 2026, 09:47"
-export function formatShortDateTime(iso: string | null) {
-  if (iso === null) return "No due date";
+export function formatShortDateTime(iso: string | null, label = "due") {
+  if (iso === null) return `No ${label} date`;
 
   const d = new Date(iso);
-  const weekday = d.toLocaleDateString("en-US", {
-    weekday: "short",
-    timeZone: TIME_ZONE,
-  });
-  const day = d.toLocaleDateString("en-US", {
-    day: "numeric",
-    timeZone: TIME_ZONE,
-  });
-  const month = d.toLocaleDateString("en-US", {
-    month: "short",
-    timeZone: TIME_ZONE,
-  });
-  const year = d.toLocaleDateString("en-US", {
-    year: "numeric",
-    timeZone: TIME_ZONE,
-  });
-  const time = d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: TIME_ZONE,
-  });
 
-  return `${weekday} ${day} ${month} ${year}, ${time}`;
+  return `${datePart(d, "short")}, ${timePart(d)}`;
 }
 
 // formatFullDateTime("2026-08-28T02:47:00Z") -> "Friday 28 August 2026, 09:47"
-export function formatFullDateTime(iso: string | null) {
-  if (iso === null) return "No due date";
+export function formatFullDateTime(iso: string | null, label = "due") {
+  if (iso === null) return `No ${label} date`;
 
   const d = new Date(iso);
-  const weekday = d.toLocaleDateString("en-US", {
-    weekday: "long",
-    timeZone: TIME_ZONE,
-  });
-  const day = d.toLocaleDateString("en-US", {
-    day: "numeric",
-    timeZone: TIME_ZONE,
-  });
-  const month = d.toLocaleDateString("en-US", {
-    month: "long",
-    timeZone: TIME_ZONE,
-  });
-  const year = d.toLocaleDateString("en-US", {
-    year: "numeric",
-    timeZone: TIME_ZONE,
-  });
-  const time = d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: TIME_ZONE,
-  });
 
-  return `${weekday} ${day} ${month} ${year}, ${time}`;
+  return `${datePart(d, "long")}, ${timePart(d)}`;
 }
 
 // truncateLabel("This is a very long label") -> "This is a very long…"

@@ -13,59 +13,52 @@ import {
   isMissingItem,
   ticketStatusIcon,
   ticketStatusText,
-} from "@/components/dashboard/dashboard_status";
+  type GroupState,
+} from "@/components/dashboard/dashboard-data";
 import {
   ListMessage,
   ListPanel,
   ListRow,
   ListSection,
   useListOverflow,
-} from "@/components/dashboard/dashboard_utils";
+} from "@/components/dashboard/dashboard-utils";
 
-// ready-to-show count string
-export type TaskListCounts = {
-  myTasks: string;
-  otherTasks: string;
-};
-
-export type TicketListCounts = {
-  myRejectedTickets: string;
-  myPendingTickets: string;
-  otherRejectedTickets: string;
-  otherPendingTickets: string;
-};
+// same props for every section
+const sectionProps = (group: GroupState) => ({
+  count: group.count,
+  busy: group.refreshing,
+  onLoadMore: group.overflow ? group.loadMore : undefined,
+});
 
 export function TaskList({
   myTasks,
   otherTasks,
-  loadingMyTasks,
-  loadingOtherTasks,
-  errorMyTasks,
-  errorOtherTasks,
   categoryMap,
   usernames,
   isLabUser,
-  counts,
   onSelectTask,
 }: {
-  myTasks: Task[];
-  otherTasks: Task[];
-  loadingMyTasks: boolean;
-  loadingOtherTasks: boolean;
-  errorMyTasks: boolean;
-  errorOtherTasks: boolean;
+  myTasks: GroupState<Task>;
+  otherTasks: GroupState<Task>;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   isLabUser: boolean;
-  counts: TaskListCounts;
   onSelectTask: (task: Task) => void;
 }) {
   const limits = getDueBucketLimits(new Date());
 
-  const hasMyTasks = !loadingMyTasks && myTasks.length > 0;
-  const hasOtherTasks = otherTasks.length > 0;
+  const hasMyTasks = myTasks.items.length > 0;
+  const hasOtherTasks = otherTasks.items.length > 0;
 
-  const { listRef, hasOverflow } = useListOverflow([myTasks, otherTasks]);
+  const loadingMyTasks = myTasks.loading;
+  const loadingOtherTasks = otherTasks.loading;
+  const errorMyTasks = myTasks.error;
+  const errorOtherTasks = otherTasks.error;
+
+  const { listRef, hasOverflow } = useListOverflow([
+    myTasks.items,
+    otherTasks.items,
+  ]);
 
   const renderTask = (task: Task) => (
     <ListRow
@@ -102,14 +95,14 @@ export function TaskList({
       }
     >
       {hasMyTasks && (
-        <ListSection title="My tasks" count={counts.myTasks}>
-          {myTasks.map(renderTask)}
+        <ListSection title="My tasks" {...sectionProps(myTasks)}>
+          {myTasks.items.map(renderTask)}
         </ListSection>
       )}
 
       {hasOtherTasks && (
-        <ListSection title="Others' tasks" count={counts.otherTasks}>
-          {otherTasks.map(renderTask)}
+        <ListSection title="Others' tasks" {...sectionProps(otherTasks)}>
+          {otherTasks.items.map(renderTask)}
         </ListSection>
       )}
 
@@ -133,41 +126,38 @@ export function TicketList({
   myPendingTickets,
   otherRejectedTickets,
   otherPendingTickets,
-  loadingMyTickets,
-  loadingOtherTickets,
-  errorMyTickets,
-  errorOtherTickets,
   categoryMap,
   isLabUser,
-  counts,
   onSelectTicket,
 }: {
-  myRejectedTickets: Ticket[];
-  myPendingTickets: Ticket[];
-  otherRejectedTickets: Ticket[];
-  otherPendingTickets: Ticket[];
-  loadingMyTickets: boolean;
-  loadingOtherTickets: boolean;
-  errorMyTickets: boolean;
-  errorOtherTickets: boolean;
+  myRejectedTickets: GroupState<Ticket>;
+  myPendingTickets: GroupState<Ticket>;
+  otherRejectedTickets: GroupState<Ticket>;
+  otherPendingTickets: GroupState<Ticket>;
   categoryMap: CategoryMap;
   isLabUser: boolean;
-  counts: TicketListCounts;
   onSelectTicket: (ticket: Ticket) => void;
 }) {
   const now = new Date();
 
-  const hasMyRejected = !loadingMyTickets && myRejectedTickets.length > 0;
-  const hasMyPending = !loadingMyTickets && myPendingTickets.length > 0;
-  // others wait for my tickets, so the list never jump around
-  const hasOtherRejected = !loadingMyTickets && otherRejectedTickets.length > 0;
-  const hasOtherTickets = !loadingMyTickets && otherPendingTickets.length > 0;
+  const hasMyRejected = myRejectedTickets.items.length > 0;
+  const hasMyPending = myPendingTickets.items.length > 0;
+  const hasOtherRejected = otherRejectedTickets.items.length > 0;
+  const hasOtherTickets = otherPendingTickets.items.length > 0;
+
+  const loadingMyTickets =
+    myRejectedTickets.loading || myPendingTickets.loading;
+  const loadingOtherTickets =
+    otherRejectedTickets.loading || otherPendingTickets.loading;
+  const errorMyTickets = myRejectedTickets.error || myPendingTickets.error;
+  const errorOtherTickets =
+    otherRejectedTickets.error || otherPendingTickets.error;
 
   const { listRef, hasOverflow } = useListOverflow([
-    myRejectedTickets,
-    myPendingTickets,
-    otherRejectedTickets,
-    otherPendingTickets,
+    myRejectedTickets.items,
+    myPendingTickets.items,
+    otherRejectedTickets.items,
+    otherPendingTickets.items,
   ]);
 
   const renderTicket = (ticket: Ticket) => {
@@ -209,39 +199,42 @@ export function TicketList({
           ? "Failed to load tickets"
           : loadingMyTickets || loadingOtherTickets
             ? "Loading tickets..."
-            : "Looks like everything's pretty peaceful around here. Hell yeah!"
+            : "Looks like everything's pretty peaceful around here. Yay!"
       }
     >
       {hasMyRejected && (
         <ListSection
           title="My rejected tickets"
-          count={counts.myRejectedTickets}
+          {...sectionProps(myRejectedTickets)}
         >
-          {myRejectedTickets.map(renderTicket)}
+          {myRejectedTickets.items.map(renderTicket)}
         </ListSection>
       )}
 
       {hasMyPending && (
-        <ListSection title="My pending tickets" count={counts.myPendingTickets}>
-          {myPendingTickets.map(renderTicket)}
+        <ListSection
+          title="My pending tickets"
+          {...sectionProps(myPendingTickets)}
+        >
+          {myPendingTickets.items.map(renderTicket)}
         </ListSection>
       )}
 
       {hasOtherRejected && (
         <ListSection
           title="Others' rejected tickets"
-          count={counts.otherRejectedTickets}
+          {...sectionProps(otherRejectedTickets)}
         >
-          {otherRejectedTickets.map(renderTicket)}
+          {otherRejectedTickets.items.map(renderTicket)}
         </ListSection>
       )}
 
       {hasOtherTickets && (
         <ListSection
           title="Others' pending tickets"
-          count={counts.otherPendingTickets}
+          {...sectionProps(otherPendingTickets)}
         >
-          {otherPendingTickets.map(renderTicket)}
+          {otherPendingTickets.items.map(renderTicket)}
         </ListSection>
       )}
 

@@ -3,7 +3,7 @@
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cached } from "@/lib/cache";
+import { cached } from "@/lib/cache/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -99,7 +99,11 @@ async function fetchAccounts(): Promise<AccountsResponse> {
   return res.json();
 }
 
-export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
+export const getAccounts = cached(
+  fetchAccounts,
+  ACCOUNTS_CACHE_TTL,
+  "accounts",
+);
 
 // Creates the caller's own row. A user who has a login but no account row
 // yet claims it here by picking a username, so this is step one of setup.
@@ -319,6 +323,8 @@ export type CurrentAccount = (
   | {
       signedIn: false;
       loading: boolean;
+      // set when the request failed. null with no account = really signed out
+      error: string | null;
       account: null;
       userRole: "Lab User";
       currentUserId: "";
@@ -327,6 +333,7 @@ export type CurrentAccount = (
   | {
       signedIn: true;
       loading: false;
+      error: null;
       account: Account;
       userRole: UserRole;
       currentUserId: string;
@@ -341,6 +348,7 @@ export type CurrentAccount = (
 const SIGNED_OUT = {
   signedIn: false,
   loading: false,
+  error: null,
   account: null,
   userRole: "Lab User",
   currentUserId: "",
@@ -385,9 +393,10 @@ function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
 
 // Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
 export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
-  const { data: account, loading, reload } = useFetched(getMe, enabled);
+  const { data: account, loading, error, reload } = useFetched(getMe, enabled);
 
-  if (!account) return { ...SIGNED_OUT, loading: enabled && loading, reload };
+  if (!account)
+    return { ...SIGNED_OUT, loading: enabled && loading, error, reload };
 
   // "Lab Owner" and "Lab Admin" both count as admin
   const admin = isAdminRole(account.role);
@@ -395,6 +404,7 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
   return {
     signedIn: true,
     loading: false,
+    error: null,
     account,
     userRole: admin ? "Lab Admin" : "Lab User",
     currentUserId: account.id,

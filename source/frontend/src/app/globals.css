@@ -38,6 +38,10 @@ h1 {
   font-family: var(--font-noto-sans-thai);
 }
 
+button {
+  cursor: pointer;
+}
+
 p,
 button,
 input,
