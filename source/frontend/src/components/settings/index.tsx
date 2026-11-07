@@ -104,14 +104,14 @@ export default function Settings({
               aria-label="Close settings"
               className="group flex items-center justify-center"
             >
-              <span className="flex size-9 items-center justify-center rounded-full border-2 border-gray-300 group-hover:bg-gray-200">
-                <Icon src="/close.svg" className="size-4" />
+              <span className="flex size-9 items-center justify-center rounded-full group-hover:bg-gray-200">
+                <Icon src="/close.svg" className="h-4 w-auto shrink-0" />
               </span>
             </button>
           </header>
 
           <div className="flex-1 overflow-y-auto scrollbar-thin px-8">
-            <div className="mx-auto max-w-200 py-8">{panels[active]}</div>
+            <div className="mx-auto max-w-9/10 py-8">{panels[active]}</div>
           </div>
         </div>
       </div>

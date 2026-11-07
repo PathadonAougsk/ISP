@@ -3,7 +3,7 @@
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cached } from "@/lib/cache/cache";
+import { cached, clearAllApiCache } from "@/lib/cache/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -35,16 +35,17 @@ const ROLE_COOKIE_MAX_AGE = 60 * 60; // an hour, so a role change is picked up s
 // concurrent callers. Same lifetime as the role cookie.
 const ME_CACHE_TTL = ROLE_COOKIE_MAX_AGE * 1000;
 
-// Cache the promise + Cleared entry cant be re-cached by old request, it never writes here.
-let me: { promise: Promise<Account | undefined>; at: number } | null = null;
-
-function primeMeCache(account: Account | undefined) {
-  me = { promise: Promise.resolve(account), at: Date.now() };
-}
+// Cache API, not memory. Clear also drop old in-flight saves.
+const getMeCached = cached(fetchMe, ME_CACHE_TTL, "me");
 
 // Call after anything that can change the signed in user's own row.
 export function clearMeCache() {
-  me = null;
+  return getMeCached.clear();
+}
+
+// Drop every account related cache.
+export function clearAccountCache() {
+  return Promise.all([getMeCached.clear(), getAccounts.clear()]);
 }
 
 export function isAdminRole(role: AccountRole): boolean {
@@ -83,8 +84,7 @@ export function cacheRole(role: AccountRole) {
 }
 
 export function clearCachedRole() {
-  clearMeCache();
-  getAccounts.clear();
+  void clearAccountCache();
 
   if (typeof document === "undefined") return;
 
@@ -113,8 +113,7 @@ export async function createMyAccount(username: string): Promise<Account> {
 
   const { Account: account } = (await res.json()) as AccountResponse;
   cacheRole(account.role);
-  primeMeCache(account);
-  getAccounts.clear();
+  await clearAccountCache();
 
   return account;
 }
@@ -125,25 +124,17 @@ export async function getAccount(userId: string): Promise<Account | undefined> {
 
 // The signed in user's own account row, straight from /account/{account_id}.
 // Cached - pass { force: true } to go back to the network.
-export function getMe({ force = false }: { force?: boolean } = {}): Promise<
+export async function getMe({ force = false }: { force?: boolean } = {}): Promise<
   Account | undefined
 > {
-  if (force) clearMeCache();
+  if (force) await clearMeCache();
 
-  if (me && Date.now() - me.at < ME_CACHE_TTL) return me.promise;
-
-  const entry = { promise: fetchMe(), at: Date.now() };
-  me = entry;
-  // failed request should not stay cached
-  entry.promise.catch(() => {
-    if (me === entry) me = null;
-  });
-
-  return entry.promise;
+  return (await getMeCached()) ?? undefined;
 }
 
 async function endSession(search = "") {
   clearCachedRole();
+  await clearAllApiCache();
   await createClient().auth.signOut();
 
   if (typeof window !== "undefined") {
@@ -163,12 +154,12 @@ export function signOut() {
   return endSession();
 }
 
-async function fetchMe(): Promise<Account | undefined> {
+async function fetchMe(): Promise<Account | null> {
   const {
     data: { session },
   } = await createClient().auth.getSession();
 
-  if (!session) return undefined;
+  if (!session) return null;
 
   const res = await apiFetch(`/account/${session.user.id}`);
   let account: Account | undefined;
@@ -177,7 +168,7 @@ async function fetchMe(): Promise<Account | undefined> {
     account = ((await res.json()) as AccountResponse).Account;
   } else if (res.status === 403) {
     await signOutDeactivated();
-    return undefined;
+    return null;
   } else if (res.status === 404) {
     const { Accounts } = await getAccounts();
     account = Accounts.find((user) => user.email === session.user.email);
@@ -187,7 +178,7 @@ async function fetchMe(): Promise<Account | undefined> {
 
   if (account) cacheRole(account.role);
 
-  return account;
+  return account ?? null;
 }
 
 // Reads the cookie first, and only falls back to the network on a cold start.
@@ -229,8 +220,7 @@ export type AccountPatch = {
 // Cheaper to drop the cache than to work out whether this was our own row.
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
-  clearMeCache();
-  getAccounts.clear();
+  await clearAccountCache();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.

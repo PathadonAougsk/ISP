@@ -17,9 +17,11 @@ import {
   type AccountRole,
 } from "@/lib/account";
 import { maskEmail } from "@/lib/format";
+import Icon from "@/components/icon";
 import CreateUser from "./create_user";
 import {
   BTN,
+  BTN_THIN,
   DANGER,
   ERROR,
   FIELD,
@@ -43,6 +45,12 @@ const ROLE_ORDER: Record<AccountRole, number> = {
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
 
 const MIN_PASSWORD = 8;
+
+// fr cols. grid! because HEAD is flex. admin has 2 more action cols
+const COLS_ADMIN =
+  "grid! grid-cols-[2fr_2fr_1.25fr_minmax(80px,0.75fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)]";
+const COLS_USER =
+  "grid! grid-cols-[2fr_2fr_1.25fr_minmax(80px,0.75fr)_minmax(120px,1fr)]";
 
 function byRoleThenName(a: Account, b: Account) {
   return (
@@ -216,8 +224,11 @@ export default function Member({
       ? member.email
       : maskEmail(member.email);
 
+  // same grid for head and rows
+  const cols = isAdmin ? COLS_ADMIN : COLS_USER;
+
   return (
-    <section className="flex flex-col gap-7">
+    <section className="flex flex-col gap-5">
       <h1 className={TITLE}>Member</h1>
 
       <div className="flex flex-col gap-1.5">
@@ -238,21 +249,19 @@ export default function Member({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or email"
-          className={`${FIELD} w-62.5`}
+          className={`${FIELD} w-100`}
         />
       </div>
 
       {error && <p className={ERROR}>{error}</p>}
 
       <div className={LIST_PANEL}>
-        <div className={HEAD}>
-          <span className="flex-1">Username</span>
-          <span className="flex-1">Email</span>
-          <span className="w-25 shrink-0">Role</span>
-          <span className="w-20 shrink-0 text-right">Quota</span>
-          <span className="w-25 shrink-0 text-right">Status</span>
-          {isAdmin && <span className="w-25 shrink-0" />}
-          {isAdmin && <span className="w-25 shrink-0" />}
+        <div className={`${HEAD} ${cols}`}>
+          <span>Username</span>
+          <span>Email</span>
+          <span>Role</span>
+          <span className="text-right">Quota</span>
+          <span className="text-right">Status</span>
         </div>
 
         {loading ? (
@@ -269,33 +278,39 @@ export default function Member({
               key={member.id}
               className="flex flex-col rounded-[20px] bg-white px-4"
             >
-              <div className="flex items-center gap-3 py-2">
-                <span className="flex-1 truncate">
+              <div className={`${cols} items-center gap-3 py-2`}>
+                <span className="truncate">
                   {member.username}
                   {member.id === account?.id && (
                     <span className={MUTED}> (You)</span>
                   )}
                 </span>
-                <span className="flex-1 truncate">{emailOf(member)}</span>
+                <span className="truncate">{emailOf(member)}</span>
                 {isAdmin && canEdit(member) ? (
-                  <select
-                    value={member.role}
-                    disabled={busyId === member.id}
-                    onChange={(e) =>
-                      run(member, () =>
-                        assignRole(member.id, e.target.value as AccountRole),
-                      )
-                    }
-                    className={`${SELECT} w-25 shrink-0`}
-                  >
-                    {ASSIGNABLE_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={member.role}
+                      disabled={busyId === member.id}
+                      onChange={(e) =>
+                        run(member, () =>
+                          assignRole(member.id, e.target.value as AccountRole),
+                        )
+                      }
+                      className={`${SELECT} w-full appearance-none cursor-pointer pr-8`}
+                    >
+                      {ASSIGNABLE_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                    <Icon
+                      src="/dropdown_arrow.svg"
+                      className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 pointer-events-none"
+                    />
+                  </div>
                 ) : (
-                  <span className="w-25 shrink-0">{member.role}</span>
+                  <span>{member.role}</span>
                 )}
 
                 {isAdmin && canEdit(member) ? (
@@ -315,7 +330,7 @@ export default function Member({
                         if (e.key === "Escape") setQuotaEditId(null);
                       }}
                       placeholder="No cap"
-                      className={`${SELECT} w-20 shrink-0 text-right placeholder:text-gray-400`}
+                      className={`${SELECT} w-full text-right placeholder:text-gray-400`}
                     />
                   ) : (
                     <button
@@ -323,13 +338,13 @@ export default function Member({
                       disabled={busyId === member.id}
                       onClick={() => startQuotaEdit(member)}
                       title="Ticket quota. Leave it blank for no cap."
-                      className={`${BTN} w-20 shrink-0`}
+                      className={`${BTN_THIN} w-full`}
                     >
                       {member.quota ?? "No cap"}
                     </button>
                   )
                 ) : (
-                  <span className="w-20 shrink-0 text-right">
+                  <span className="text-right">
                     {member.quota ?? "-"}
                   </span>
                 )}
@@ -343,25 +358,25 @@ export default function Member({
                         updateAccount(member.id, { active: !member.active }),
                       )
                     }
-                    className={`${BTN} w-25 shrink-0`}
+                    className={`${BTN_THIN} w-full`}
                   >
                     {member.active ? "Deactivate" : "Activate"}
                   </button>
                 ) : (
-                  <span className="w-25 shrink-0 text-right">
+                  <span className="text-right">
                     {member.active ? "Active" : "Inactive"}
                   </span>
                 )}
 
                 {isAdmin && (
-                  <div className="flex w-25 shrink-0 justify-end">
+                  <div className="flex justify-end">
                     {canReset(member) && (
                       <button
                         type="button"
                         disabled={busyId === member.id}
                         onClick={() => openReset(member)}
                         title="Set a new email or password for this member."
-                        className={`${BTN} w-25`}
+                        className={`${BTN} w-full`}
                       >
                         {resetId === member.id ? "Cancel" : "Reset"}
                       </button>
@@ -370,13 +385,13 @@ export default function Member({
                 )}
 
                 {isAdmin && (
-                  <div className="flex w-25 shrink-0 justify-end">
+                  <div className="flex justify-end">
                     {canEdit(member) && (
                       <button
                         type="button"
                         disabled={busyId === member.id}
                         onClick={() => handleDelete(member)}
-                        className={`${DANGER} w-25`}
+                        className={`${DANGER} w-full`}
                       >
                         Delete
                       </button>

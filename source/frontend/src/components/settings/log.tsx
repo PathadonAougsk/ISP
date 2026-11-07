@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
 import { formatShortDateTime } from "@/lib/format";
+import Icon from "@/components/icon";
 import {
   BTN,
   ERROR,
@@ -22,7 +23,10 @@ import {
 const TABLES = ["account", "category", "ticket", "task"];
 
 // One screenful. The server caps `limit` at 500 either way.
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
+
+// fr cols. grid! because HEAD and ROW are flex
+const COLS = "grid! grid-cols-[0.6fr_1.6fr_1.1fr_1fr_0.9fr_4fr]";
 
 // A deleted account leaves by_whom null, and a create or a delete leaves one
 // side of the change null, so neither of those is an error worth shouting about.
@@ -75,7 +79,9 @@ export default function Log({
         if (requestId.current !== id) return;
         setEntries([]);
         setHasMore(false);
-        setError(err instanceof Error ? err.message : "Could not load the log.");
+        setError(
+          err instanceof Error ? err.message : "Could not load the log.",
+        );
       })
       .finally(() => {
         // Clears the loading state - on an error too, the message takes over.
@@ -130,7 +136,7 @@ export default function Log({
   );
 
   return (
-    <section className="flex flex-col gap-7">
+    <section className="flex flex-col gap-5">
       <h1 className={TITLE}>Log</h1>
 
       <div className="flex flex-col gap-1.5">
@@ -144,9 +150,7 @@ export default function Log({
       {accountLoading ? (
         <p className={MUTED}>Loading...</p>
       ) : !isAdmin ? (
-        <p className={MUTED}>
-          Only a Lab Owner or Lab Admin can read the log.
-        </p>
+        <p className={MUTED}>Only a Lab Owner or Lab Admin can read the log.</p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3">
@@ -161,11 +165,11 @@ export default function Log({
               )}
             </p>
 
-            <div className="flex items-center gap-3">
+            <div className="relative w-32.5">
               <select
                 value={table}
                 onChange={(e) => setTable(e.target.value)}
-                className={`${SELECT} w-32.5`}
+                className={`${SELECT} w-full appearance-none cursor-pointer pr-8`}
               >
                 <option value="">All tables</option>
                 {TABLES.map((name) => (
@@ -174,12 +178,9 @@ export default function Log({
                   </option>
                 ))}
               </select>
-
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search this page"
-                className={`${FIELD} w-62.5`}
+              <Icon
+                src="/dropdown_arrow.svg"
+                className="absolute right-2.5 top-1/2 h-4 w-auto shrink-0 -translate-y-1/2 pointer-events-none"
               />
             </div>
           </div>
@@ -190,13 +191,13 @@ export default function Log({
               can truncate. Only account row_ids are UUIDs - category, ticket
               and task ids are small integers. */}
           <div className={LIST_PANEL}>
-            <div className={HEAD}>
-              <span className="w-15 shrink-0">Row</span>
-              <span className="w-50 shrink-0">When</span>
-              <span className="w-27.5 shrink-0">Who</span>
-              <span className="w-20 shrink-0">Table</span>
-              <span className="w-22.5 shrink-0">Column</span>
-              <span className="flex-1">Change</span>
+            <div className={`${HEAD} ${COLS}`}>
+              <span>Row ID</span>
+              <span>When</span>
+              <span>Who</span>
+              <span>Table</span>
+              <span>Column</span>
+              <span>Change</span>
             </div>
 
             {loading ? (
@@ -209,33 +210,25 @@ export default function Log({
               </p>
             ) : (
               visible.map((entry) => (
-                <div key={entry.id} className={`${ROW} text-sm`}>
-                  <span
-                    className="w-15 shrink-0 truncate"
-                    title={entry.row_id ?? undefined}
-                  >
+                <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
+                  <span className="truncate" title={entry.row_id ?? undefined}>
                     {valueOf(entry.row_id)}
                   </span>
-                  <span className="w-50 shrink-0">
-                    {formatShortDateTime(entry.occurred_at)}
-                  </span>
+                  <span>{formatShortDateTime(entry.occurred_at)}</span>
                   <span
-                    className="w-27.5 shrink-0 truncate"
+                    className="truncate"
                     title={entry.by_username ?? undefined}
                   >
                     {entry.by_username ?? (
                       <span className="text-gray-500">Deleted account</span>
                     )}
                   </span>
-                  <span className="w-20 shrink-0">{entry.from_table}</span>
-                  <span
-                    className="w-22.5 shrink-0 truncate"
-                    title={entry.column_name}
-                  >
+                  <span>{entry.from_table}</span>
+                  <span className="truncate" title={entry.column_name}>
                     {entry.column_name}
                   </span>
                   <span
-                    className="flex-1 truncate"
+                    className="truncate"
                     title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
                   >
                     <span className="text-gray-500">

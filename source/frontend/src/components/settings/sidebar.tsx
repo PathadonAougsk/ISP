@@ -32,14 +32,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      <label className="mt-4 flex items-center gap-3 rounded-full bg-white px-4 py-2.5 text-gray-400">
-        <Icon src="/search.svg" className="size-4 shrink-0" />
-        <input
-          placeholder="Search"
-          className="w-full bg-transparent text-black outline-none placeholder:text-gray-400"
-        />
-      </label>
-
       <Nav items={accountNav} active={active} onSelect={onSelect} />
 
       {/* mt-auto pins it to the bottom however short the nav is. */}
@@ -50,9 +42,9 @@ export default function Sidebar({
           void signOut();
         }}
         disabled={leaving}
-        className="mt-auto flex w-full items-center gap-3 rounded-full px-4 py-2 text-left font-semibold text-red-700 hover:bg-(--panel-bg-hover) disabled:opacity-50"
+        className="mt-auto flex w-full items-center gap-3 rounded-full px-4 py-2 text-left font-semibold text-black hover:bg-(--panel-bg-hover) disabled:opacity-50"
       >
-        <Icon src="/logout.svg" className="size-5 shrink-0" />
+        <Icon src="/logout.svg" className="h-5 w-auto shrink-0" />
         <span>{leaving ? "Logging out..." : "Logout"}</span>
       </button>
     </aside>

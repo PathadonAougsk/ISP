@@ -36,7 +36,7 @@ export default function Nav({
               : "font-medium hover:bg-(--panel-bg-hover)"
           }`}
         >
-          <Icon src={`/${item.icon}.svg`} className="size-5 shrink-0" />
+          <Icon src={`/${item.icon}.svg`} className="h-5 w-auto shrink-0" />
           <span>{item.label}</span>
         </button>
       ))}

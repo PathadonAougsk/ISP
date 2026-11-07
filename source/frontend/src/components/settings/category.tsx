@@ -92,7 +92,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   );
 
   return (
-    <section className="flex flex-col gap-7">
+    <section className="flex flex-col gap-5">
       <h1 className={TITLE}>Category</h1>
 
       <div className="flex flex-col gap-1.5">
@@ -127,7 +127,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name"
-          className={`${FIELD} w-62.5`}
+          className={`${FIELD} w-100`}
         />
       </div>
 

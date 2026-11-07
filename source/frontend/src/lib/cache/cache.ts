@@ -38,6 +38,20 @@ export function initializeApiCache(): Promise<void> {
 
 export async function clearAllApiCache(): Promise<void> {
   await Promise.all(Array.from(cacheClearers, (clear) => clear()));
+
+  // module not loaded yet never register, so sweep by prefix too
+  if (typeof window === "undefined" || !("caches" in window)) return;
+
+  try {
+    const names = await window.caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith(`${CACHE_PREFIX}-`))
+        .map((name) => window.caches.delete(name)),
+    );
+  } catch {
+    // best effort, never block sign out
+  }
 }
 
 export function cached<A extends unknown[], T>(
