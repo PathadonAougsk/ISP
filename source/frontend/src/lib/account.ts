@@ -48,6 +48,21 @@ export function clearAccountCache() {
   return Promise.all([getMeCached.clear(), getAccounts.clear()]);
 }
 
+// Listener, so a write refreshes them without a reload.
+const accountListeners = new Set<() => void>();
+
+export function onAccountChange(listener: () => void) {
+  accountListeners.add(listener);
+
+  return () => {
+    accountListeners.delete(listener);
+  };
+}
+
+function notifyAccountChange() {
+  accountListeners.forEach((listener) => listener());
+}
+
 export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
@@ -114,6 +129,7 @@ export async function createMyAccount(username: string): Promise<Account> {
   const { Account: account } = (await res.json()) as AccountResponse;
   cacheRole(account.role);
   await clearAccountCache();
+  notifyAccountChange();
 
   return account;
 }
@@ -221,6 +237,7 @@ export type AccountPatch = {
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
   await clearAccountCache();
+  notifyAccountChange();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.

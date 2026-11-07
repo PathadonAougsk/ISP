@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getMe, type Account } from "@/lib/account";
+import { getMe, onAccountChange, type Account } from "@/lib/account";
 import Avatar from "@/components/avatar";
 import { clearAllApiCache } from "@/lib/cache/cache";
 
@@ -12,10 +12,19 @@ export default function Topbar() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getMe()
-      .then(setAccount)
-      .catch(() => setAccount(undefined))
-      .finally(() => setIsLoading(false));
+    const load = () =>
+      getMe()
+        .then(setAccount)
+        .catch(() => setAccount(undefined))
+        .finally(() => setIsLoading(false));
+
+    load();
+    // refetch after account write, so username change show up
+    return onAccountChange(() => {
+      getMe({ force: true })
+        .then(setAccount)
+        .catch(() => setAccount(undefined));
+    });
   }, []);
 
   return (
