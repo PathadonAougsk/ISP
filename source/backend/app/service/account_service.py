@@ -1,5 +1,6 @@
 import logging
 import uuid
+from contextlib import suppress
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -13,7 +14,7 @@ from supabase_auth.errors import AuthApiError, AuthError
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
-from app.dependencies import supabase
+from app.dependencies import password_check, supabase
 from app.model import Account, AccountRole, AuditLog
 
 logger = logging.getLogger(__name__)
@@ -198,11 +199,107 @@ async def create_auth_user(email: str, password: str, username: str) -> uuid.UUI
 
 
 async def delete_auth_user(user_id: uuid.UUID) -> None:
-    """Undo create_auth_user. Only this request knows the new id, so if the
-    account insert fails we have to take the login back out here or it becomes
-    a user nobody can see in the member list or sign in as anybody."""
     try:
         await run_in_threadpool(supabase.auth.admin.delete_user, str(user_id))
     except Exception:
         # Already failing the request, so log and let the original error stand.
         logger.exception("Could not roll back orphaned auth user %s", user_id)
+
+
+WRONG_PASSWORD = HTTPException(
+    status_code=status.HTTP_403_FORBIDDEN,
+    detail="That is not your current password",
+)
+
+
+async def verify_password(email: str, password: str) -> None:
+    def attempt() -> None:
+        try:
+            response = password_check.auth.sign_in_with_password(
+                {"email": email, "password": password}
+            )
+        except AuthApiError as exc:
+            # 400 is "Invalid login credentials"; a rate limit or an outage is not a wrong password, so dont say it was.
+            if exc.status in (400, 401, 403):
+                raise WRONG_PASSWORD from exc
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Supabase could not check that password: {exc.message}",
+            ) from exc
+
+        session = response.session
+        if session is None:
+            return
+        # `local` and not the default `global`, which would sign them out of their own browser too.
+        with suppress(Exception):
+            password_check.auth.admin.sign_out(session.access_token, "local")
+
+    await run_in_threadpool(attempt)
+
+
+async def update_auth_user(user_id: uuid.UUID, attributes: dict) -> None:
+    """The Supabase half of changing an email or a password - the account table only ever mirrors the address."""
+    try:
+        response = await run_in_threadpool(
+            supabase.auth.admin.update_user_by_id, str(user_id), attributes
+        )
+    except AuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Supabase rejected that change: {exc.message}",
+        ) from exc
+
+    if response is None or response.user is None:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Supabase did not confirm the change",
+        )
+
+
+async def assert_email_available(
+    session: AsyncSession, email: str, account_id: uuid.UUID
+) -> None:
+    """Checked before the login is touched, so a clash cannot leave Supabase and the account row disagreeing."""
+    clash = await session.scalar(
+        select(Account).where(Account.email == email, Account.id != account_id)
+    )
+    if clash is None:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"{email} already belongs to {clash.username}",
+    )
+
+
+# Lab Owner outranks Lab Admin outranks Lab User.
+ROLE_RANK = {
+    AccountRole.LAB_USER: 0,
+    AccountRole.LAB_ADMIN: 1,
+    AccountRole.LAB_OWNER: 2,
+}
+
+
+def outranks(actor: Account, target: Account) -> bool:
+    return ROLE_RANK[actor.role] > ROLE_RANK[target.role]
+
+
+async def resolve_login_target(
+    session: AsyncSession, me: Account, account_id: uuid.UUID
+) -> Account:
+    """Your own login, or one belonging to somebody you outrank - strictly, so no admin can reset a peer or a Lab Owner."""
+    if account_id == me.id:
+        return me
+
+    target = await get_account_or_404(session, account_id)
+
+    if not is_admin(me) or not outranks(me, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Only someone above {target.role.value} can reset that login. "
+                "Your own is always yours to change."
+            ),
+        )
+
+    return target

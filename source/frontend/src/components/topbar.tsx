@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMe, type Account } from "@/lib/account";
-import Icon from "@/components/icon";
+import Avatar from "@/components/avatar";
 
 export default function Topbar() {
   const pathname = usePathname().replace("/", "");
@@ -37,7 +37,7 @@ export default function Topbar() {
               <h1 className="font-bold">{account.role}</h1>
             </div>
 
-            <Icon src="/profile.svg" className="h-9 w-9" alt="Profile" />
+            <Avatar name={account.username} className="h-9 w-9" />
           </>
         )}
       </div>

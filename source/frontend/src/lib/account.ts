@@ -2,7 +2,7 @@
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cached } from "@/lib/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
@@ -240,6 +240,33 @@ export function updateAccount(
   );
 }
 
+// Both live in the Supabase login rather than the account table, hence their own endpoints instead of a key in AccountPatch.
+// `accountId` is your own row, or that of somebody you outrank. The password is always the caller's own - an admin resetting a member never sees theirs.
+export function changeEmail(
+  accountId: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  return mutate(
+    apiSendJson(`/account/${accountId}/email`, "PUT", { email, password }),
+    "Could not change that email address.",
+  );
+}
+
+export function changePassword(
+  accountId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  return mutate(
+    apiSendJson(`/account/${accountId}/password`, "PUT", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+    "Could not change your password.",
+  );
+}
+
 export function assignRole(
   accountId: string,
   role: AccountRole,
@@ -288,7 +315,7 @@ export async function adminCreateAccount(
   return account;
 }
 
-export type CurrentAccount =
+export type CurrentAccount = (
   | {
       signedIn: false;
       loading: boolean;
@@ -304,7 +331,11 @@ export type CurrentAccount =
       userRole: UserRole;
       currentUserId: string;
       isAdmin: boolean;
-    };
+    }
+) & {
+  // Go back for the row after a write. The writes above drop the me cache, so this lands on the network.
+  reload: () => void;
+};
 
 // No account yet - still loading, disabled, or signed out. Fails closed on isAdmin.
 const SIGNED_OUT = {
@@ -317,12 +348,15 @@ const SIGNED_OUT = {
 } as const;
 
 // Load once on mount, ignore result if unmounted. Pass a stable function.
+// `reload` bumps a counter the effect watches - `load` itself has to stay stable or the effect loops.
 function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
   const [state, setState] = useState<{
     data: T | null;
     loading: boolean;
     error: string | null;
   }>({ data: null, loading: true, error: null });
+  const [attempt, setAttempt] = useState(0);
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -344,16 +378,16 @@ function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
     return () => {
       cancelled = true;
     };
-  }, [load, enabled]);
+  }, [load, enabled, attempt]);
 
-  return state;
+  return { ...state, reload };
 }
 
 // Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
 export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
-  const { data: account, loading } = useFetched(getMe, enabled);
+  const { data: account, loading, reload } = useFetched(getMe, enabled);
 
-  if (!account) return { ...SIGNED_OUT, loading: enabled && loading };
+  if (!account) return { ...SIGNED_OUT, loading: enabled && loading, reload };
 
   // "Lab Owner" and "Lab Admin" both count as admin
   const admin = isAdminRole(account.role);
@@ -365,6 +399,7 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
     userRole: admin ? "Lab Admin" : "Lab User",
     currentUserId: account.id,
     isAdmin: admin,
+    reload,
   };
 }
 

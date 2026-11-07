@@ -7,8 +7,11 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   assignRole,
+  changeEmail,
+  changePassword,
   deleteAccount,
   getAccounts,
+  outranks,
   updateAccount,
   type Account,
   type AccountRole,
@@ -24,6 +27,12 @@ const ROLE_ORDER: Record<AccountRole, number> = {
 };
 
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
+
+const MIN_PASSWORD = 8;
+
+const FIELD =
+  "h-10 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a] disabled:opacity-50";
+const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
 
 function byRoleThenName(a: Account, b: Account) {
   return (
@@ -51,6 +60,12 @@ export default function Member({
   const [quotaEditId, setQuotaEditId] = useState<string | null>(null);
   const [quotaDraft, setQuotaDraft] = useState("");
 
+  // Resetting somebody else's login. One row open at a time.
+  const [resetId, setResetId] = useState<string | null>(null);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [myPassword, setMyPassword] = useState("");
+
   // Try-Except helper -> Special thank to Wassawin.
   const refresh = useCallback(
     () =>
@@ -75,15 +90,17 @@ export default function Member({
 
   // The server owns the rules, so show whatever `detail` it sends back.
   async function run(member: Account, action: () => Promise<void>) {
-    if (!isAdmin) return;
+    if (!isAdmin) return false;
 
     setBusyId(member.id);
     try {
       await action();
       setError(null);
       await refresh();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+      return false;
     } finally {
       setBusyId(null);
     }
@@ -122,6 +139,51 @@ export default function Member({
     await run(member, () => updateAccount(member.id, { quota }));
   }
 
+  function openReset(member: Account) {
+    setError(null);
+    setResetEmail("");
+    setResetPassword("");
+    setMyPassword("");
+    setResetId((current) => (current === member.id ? null : member.id));
+  }
+
+  function closeReset() {
+    setResetId(null);
+    setResetEmail("");
+    setResetPassword("");
+    setMyPassword("");
+  }
+
+  // Either half can be left blank to keep it as it is, but not both.
+  async function submitReset(e: React.FormEvent, member: Account) {
+    e.preventDefault();
+
+    const email = resetEmail.trim().toLowerCase();
+    const password = resetPassword;
+
+    if (!email && !password) {
+      setError("Give a new email, a new password, or both.");
+      return;
+    }
+    if (password && password.length < MIN_PASSWORD) {
+      setError(`A new password needs at least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+    if (!myPassword) {
+      setError("Confirm with your own password.");
+      return;
+    }
+
+    // Two endpoints, so the email can land and the password still fail. The
+    // refresh in `run` shows whichever half went through.
+    const ok = await run(member, async () => {
+      if (email) await changeEmail(member.id, email, myPassword);
+      if (password) await changePassword(member.id, myPassword, password);
+    });
+
+    if (ok) closeReset();
+  }
+
   const needle = query.trim().toLowerCase();
   const visible = members.filter(
     (member) =>
@@ -133,6 +195,10 @@ export default function Member({
   const canEdit = (member: Account) =>
     (member.id !== account?.id && account?.role == "Lab Owner") ||
     member.role == "Lab User";
+
+  // Strictly below you, so a Lab Admin cannot reset a peer and nobody can touch a Lab Owner.
+  const canReset = (member: Account) =>
+    account !== null && outranks(account.role, member.role);
 
   // An admin sees real addresses; everyone else only ever sees their own.
   const emailOf = (member: Account) =>
@@ -176,6 +242,7 @@ export default function Member({
           <span className="w-20 shrink-0 text-right">Quota</span>
           <span className="w-25 shrink-0 text-right">Status</span>
           {isAdmin && <span className="w-25 shrink-0" />}
+          {isAdmin && <span className="w-25 shrink-0" />}
         </div>
 
         {loading ? (
@@ -190,104 +257,193 @@ export default function Member({
           visible.map((member) => (
             <div
               key={member.id}
-              className="flex items-center gap-3 border-b border-[#e0e0e0] py-3"
+              className="flex flex-col border-b border-[#e0e0e0]"
             >
-              <span className="flex-1 truncate">
-                {member.username}
-                {member.id === account?.id && (
-                  <span className="text-[#8a8a8a]"> (You)</span>
-                )}
-              </span>
-              <span className="flex-1 truncate">{emailOf(member)}</span>
-              {isAdmin && canEdit(member) ? (
-                <select
-                  value={member.role}
-                  disabled={busyId === member.id}
-                  onChange={(e) =>
-                    run(member, () =>
-                      assignRole(member.id, e.target.value as AccountRole),
-                    )
-                  }
-                  className="h-10 w-25 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 outline-none disabled:opacity-50"
-                >
-                  {ASSIGNABLE_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="w-25 shrink-0">{member.role}</span>
-              )}
-
-              {isAdmin && canEdit(member) ? (
-                quotaEditId === member.id ? (
-                  <input
-                    autoFocus
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={quotaDraft}
-                    onChange={(e) => setQuotaDraft(e.target.value)}
-                    onBlur={() => commitQuota(member)}
-                    onKeyDown={(e) => {
-                      // Blur is what commits, so Enter just leaves the field.
-                      // Escape unmounts it, which fires no blur at all.
-                      if (e.key === "Enter") e.currentTarget.blur();
-                      if (e.key === "Escape") setQuotaEditId(null);
-                    }}
-                    placeholder="No cap"
-                    className="h-10 w-20 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 text-right outline-none placeholder:text-[#8a8a8a]"
-                  />
-                ) : (
-                  <button
-                    type="button"
+              <div className="flex items-center gap-3 py-3">
+                <span className="flex-1 truncate">
+                  {member.username}
+                  {member.id === account?.id && (
+                    <span className="text-[#8a8a8a]"> (You)</span>
+                  )}
+                </span>
+                <span className="flex-1 truncate">{emailOf(member)}</span>
+                {isAdmin && canEdit(member) ? (
+                  <select
+                    value={member.role}
                     disabled={busyId === member.id}
-                    onClick={() => startQuotaEdit(member)}
-                    title="Ticket quota. Leave it blank for no cap."
-                    className="h-10 w-20 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                    onChange={(e) =>
+                      run(member, () =>
+                        assignRole(member.id, e.target.value as AccountRole),
+                      )
+                    }
+                    className="h-10 w-25 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 outline-none disabled:opacity-50"
                   >
-                    {member.quota ?? "No cap"}
-                  </button>
-                )
-              ) : (
-                <span className="w-20 shrink-0 text-right">
-                  {member.quota ?? "-"}
-                </span>
-              )}
+                    {ASSIGNABLE_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="w-25 shrink-0">{member.role}</span>
+                )}
 
-              {isAdmin && canEdit(member) ? (
-                <button
-                  type="button"
-                  disabled={busyId === member.id}
-                  onClick={() =>
-                    run(member, () =>
-                      updateAccount(member.id, { active: !member.active }),
-                    )
-                  }
-                  className="h-10 w-25 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
-                >
-                  {member.active ? "Deactivate" : "Activate"}
-                </button>
-              ) : (
-                <span className="w-25 shrink-0 text-right">
-                  {member.active ? "Active" : "Inactive"}
-                </span>
-              )}
-
-              {isAdmin && (
-                <div className="flex w-25 shrink-0 justify-end">
-                  {canEdit(member) && (
+                {isAdmin && canEdit(member) ? (
+                  quotaEditId === member.id ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={quotaDraft}
+                      onChange={(e) => setQuotaDraft(e.target.value)}
+                      onBlur={() => commitQuota(member)}
+                      onKeyDown={(e) => {
+                        // Blur is what commits, so Enter just leaves the field.
+                        // Escape unmounts it, which fires no blur at all.
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setQuotaEditId(null);
+                      }}
+                      placeholder="No cap"
+                      className="h-10 w-20 shrink-0 border border-[#d0d0d0] bg-[#dedede] px-2 text-right outline-none placeholder:text-[#8a8a8a]"
+                    />
+                  ) : (
                     <button
                       type="button"
                       disabled={busyId === member.id}
-                      onClick={() => handleDelete(member)}
+                      onClick={() => startQuotaEdit(member)}
+                      title="Ticket quota. Leave it blank for no cap."
+                      className="h-10 w-20 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                    >
+                      {member.quota ?? "No cap"}
+                    </button>
+                  )
+                ) : (
+                  <span className="w-20 shrink-0 text-right">
+                    {member.quota ?? "-"}
+                  </span>
+                )}
+
+                {isAdmin && canEdit(member) ? (
+                  <button
+                    type="button"
+                    disabled={busyId === member.id}
+                    onClick={() =>
+                      run(member, () =>
+                        updateAccount(member.id, { active: !member.active }),
+                      )
+                    }
+                    className="h-10 w-25 shrink-0 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                  >
+                    {member.active ? "Deactivate" : "Activate"}
+                  </button>
+                ) : (
+                  <span className="w-25 shrink-0 text-right">
+                    {member.active ? "Active" : "Inactive"}
+                  </span>
+                )}
+
+                {isAdmin && (
+                  <div className="flex w-25 shrink-0 justify-end">
+                    {canReset(member) && (
+                      <button
+                        type="button"
+                        disabled={busyId === member.id}
+                        onClick={() => openReset(member)}
+                        title="Set a new email or password for this member."
+                        className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                      >
+                        {resetId === member.id ? "Cancel" : "Reset"}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {isAdmin && (
+                  <div className="flex w-25 shrink-0 justify-end">
+                    {canEdit(member) && (
+                      <button
+                        type="button"
+                        disabled={busyId === member.id}
+                        onClick={() => handleDelete(member)}
+                        className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {resetId === member.id && (
+                <form
+                  onSubmit={(e) => submitReset(e, member)}
+                  className="flex flex-col gap-5 pb-5"
+                >
+                  <p className="text-[#8a8a8a]">
+                    Sets {member.username}&apos;s login directly. Nothing is
+                    emailed, so pass the new credentials on yourself. Leave a
+                    field blank to keep it as it is.
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <label className={LABEL}>
+                      New email
+                      <input
+                        autoFocus
+                        type="email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        disabled={busyId === member.id}
+                        placeholder={member.email}
+                        className={FIELD}
+                      />
+                    </label>
+                    <label className={LABEL}>
+                      New password
+                      <input
+                        type="password"
+                        value={resetPassword}
+                        onChange={(e) => setResetPassword(e.target.value)}
+                        disabled={busyId === member.id}
+                        maxLength={72}
+                        autoComplete="new-password"
+                        placeholder={`at least ${MIN_PASSWORD} characters`}
+                        className={FIELD}
+                      />
+                    </label>
+                    <label className={LABEL}>
+                      Your own password
+                      <input
+                        type="password"
+                        value={myPassword}
+                        onChange={(e) => setMyPassword(e.target.value)}
+                        disabled={busyId === member.id}
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        className={FIELD}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={busyId === member.id}
+                      className="h-10 w-25 bg-(--primary-color-2) text-base text-white enabled:hover:bg-(--primary-color-2-hover) disabled:opacity-50"
+                    >
+                      {busyId === member.id ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeReset}
+                      disabled={busyId === member.id}
                       className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
                     >
-                      Delete
+                      Cancel
                     </button>
-                  )}
-                </div>
+                  </div>
+                </form>
               )}
             </div>
           ))

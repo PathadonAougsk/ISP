@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { signOut } from "@/lib/account";
+import Avatar from "@/components/avatar";
 import Icon from "@/components/icon";
 import Nav, { accountNav } from "./nav";
 
@@ -22,11 +23,7 @@ export default function Sidebar({
   return (
     <aside className="flex w-76.5 shrink-0 flex-col overflow-y-auto border-r border-[#d6d6d6] px-4 py-6">
       <div className="flex items-stretch gap-3 pl-2">
-        <Icon
-          src="/profile.svg"
-          alt="Profile"
-          className="size-12 object-cover"
-        />
+        <Avatar name={username} className="size-12" />
         <div className="flex flex-col justify-center">
           <p className="font-bold">{username ?? "..."}</p>
           <button

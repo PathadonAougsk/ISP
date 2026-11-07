@@ -113,7 +113,7 @@ export default function CreateUser({
               onClick={() => setKind(option.value)}
               className={`h-10 w-30 text-base ${
                 kind === option.value
-                  ? "bg-[#9a6fc9] text-white"
+                  ? "bg-(--primary-color-2) text-white"
                   : "bg-[#d4d4d4] hover:bg-[#c8c8c8]"
               }`}
             >
@@ -202,7 +202,7 @@ export default function CreateUser({
       {error && <p className="text-[#b3261e]">{error}</p>}
 
       {handover && (
-        <div className="flex flex-col gap-2 border border-[#9a6fc9] bg-[#e4dcef] p-4">
+        <div className="flex flex-col gap-2 border border-(--primary-color-2) bg-(--panel-bg) p-4">
           <p>{handover.username} can sign in now. Pass these on:</p>
           <p className="text-[#8a8a8a]">
             Email <span className="text-[#1a1a1a]">{handover.email}</span>

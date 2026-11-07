@@ -3,7 +3,7 @@ import { useState } from "react";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
-import Icon from "@/components/icon";
+import Avatar from "@/components/avatar";
 import DateInput from "@/components/request-table/DateInput";
 import {
   fieldClass,
@@ -178,7 +178,10 @@ export default function CreateTaskModal({
                       onChange={() => toggleNewTaskAssign(member.id)}
                       className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
                     />
-                    <Icon src="/profile.svg" className="h-6 w-auto shrink-0" />
+                    <Avatar
+                      name={member.name}
+                      className="h-6 w-auto shrink-0"
+                    />
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium leading-tight text-gray-800">
                         {member.name}
