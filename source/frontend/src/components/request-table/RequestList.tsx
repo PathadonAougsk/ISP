@@ -33,6 +33,7 @@ const controlClass =
 type Filter = {
   key: string;
   value: string | number;
+  allLabel: string;
   onChange: (value: string) => void;
   options: { value: string | number; label: string; title?: string }[];
 };
@@ -109,6 +110,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
     {
       key: "category",
       value: categoryId,
+      allLabel: "All categories",
       onChange: (v) => onCategoryChange(v === "All" ? "All" : Number(v)),
       options: categories.map((c) => ({
         value: c.id,
@@ -119,6 +121,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
     {
       key: "status",
       value: status,
+      allLabel: "All statuses",
       onChange: onStatusChange,
       options: statusOptions,
     },
@@ -160,7 +163,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
                   f.value === "All" ? "text-gray-500" : "text-black"
                 }`}
               >
-                <option value="All">All</option>
+                <option value="All">{f.allLabel}</option>
                 {f.options.map((o) => (
                   <option key={o.value} value={o.value} title={o.title}>
                     {o.label}
