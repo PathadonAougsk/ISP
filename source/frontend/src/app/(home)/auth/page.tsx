@@ -106,17 +106,25 @@ function AuthForm() {
           </button>
         </form>
 
-        {deactivated && !error && (
-          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-            [ ERROR ] Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
-          </div>
-        )}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            (deactivated && !error) || error
+              ? "mt-4 max-h-32 opacity-100"
+              : "max-h-0 opacity-0"
+          }`}
+        >
+          {deactivated && !error && (
+            <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
+              [ ERROR ] Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
+            </div>
+          )}
 
-        {error && (
-          <div className="mt-4 border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-            [ ERROR ] {error}
-          </div>
-        )}
+          {error && (
+            <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
+              The email or password you entered is incorrect. If you need to reset your credentials, please contact your Lab Owner.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
