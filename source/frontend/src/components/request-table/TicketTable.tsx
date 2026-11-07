@@ -1,166 +1,125 @@
 "use client";
-import { useState } from "react";
-import { truncateLabel } from "@/lib/format";
-import type { TicketRow } from "@/lib/ticket";
+import type { TicketRow, TicketStatus } from "@/lib/ticket";
+import type { Category } from "@/lib/category";
+import Icon from "@/components/icon";
+import { ticketStatusIcon } from "@/components/dashboard/dashboard-data";
+import {
+  formatDueDate,
+  isPastDate,
+  RequestListRow,
+  RequestTableFrame,
+} from "@/components/request-table/RequestList";
+
+const titles = [
+  "ID",
+  "Title",
+  "Category",
+  "Status",
+  "Created By",
+  "Due Date",
+  "Created Date",
+  "Last Update",
+];
+
+// full class string, tailwind need to see it
+const gridClassName = "grid-cols-[0.2fr_2fr_1.2fr_1fr_1.2fr_1fr_1fr_1fr]";
+
+const statusOptions = [
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "rejected", label: "Rejected" },
+];
 
 export default function TicketTable({
   tickets,
   loading,
   error,
+  categories,
+  status,
+  onStatusChange,
+  categoryId,
+  onCategoryChange,
+  page,
+  hasNext,
+  onPageChange,
   onSelect,
   onCreate,
+  canCreate,
 }: {
   tickets: TicketRow[];
   loading: boolean;
   error: string | null;
+  categories: Category[];
+  status: TicketStatus | "All";
+  onStatusChange: (status: TicketStatus | "All") => void;
+  categoryId: number | "All";
+  onCategoryChange: (id: number | "All") => void;
+  page: number;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
   onSelect: (ticket: TicketRow) => void;
   onCreate: () => void;
+  canCreate: boolean;
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [ticketCategoryFilter, setTicketCategoryFilter] = useState("All");
-
-  const filteredTickets = tickets
-    .filter(
-      (ticket) =>
-        ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.id.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
-    .filter((ticket) =>
-      statusFilter === "All" ? true : ticket.status === statusFilter,
-    )
-    .filter((ticket) =>
-      ticketCategoryFilter === "All"
-        ? true
-        : ticket.category === ticketCategoryFilter,
-    );
-
-  const ticketCategories = Array.from(
-    new Set(tickets.map((t) => t.category).filter(Boolean)),
-  );
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
-          My Tickets
-          <button
-            onClick={onCreate}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
-          >
-            +
-          </button>
-        </h2>
+    <RequestTableFrame
+      title="Tickets"
+      noun="tickets"
+      rows={tickets}
+      loading={loading}
+      error={error}
+      canCreate={canCreate}
+      onCreate={onCreate}
+      categories={categories}
+      categoryId={categoryId}
+      onCategoryChange={onCategoryChange}
+      status={status}
+      onStatusChange={(s) => onStatusChange(s as TicketStatus | "All")}
+      statusOptions={statusOptions}
+      page={page}
+      hasNext={hasNext}
+      onPageChange={onPageChange}
+      titles={titles}
+      gridClassName={gridClassName}
+    >
+      {(rows) =>
+        rows.map((ticket) => {
+          // only pending ticket can be overdue
+          const overdue =
+            ticket.status === "Pending" && isPastDate(ticket.dueDateValue);
 
-        <div className="h-9 flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-          />
-
-          <select
-            value={ticketCategoryFilter}
-            onChange={(e) => setTicketCategoryFilter(e.target.value)}
-            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <option value="All">All</option>
-            {ticketCategories.map((category) => (
-              <option key={category} value={category} title={category}>
-                {truncateLabel(category)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <option value="All">All</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-(--primary-color-2) text-white text-left text-sm">
-              <th className="px-4 py-2">Ticket-ID</th>
-              <th className="px-4 py-2">Title</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Category</th>
-              <th className="px-4 py-2">Created By</th>
-              <th className="px-4 py-2">Due Date</th>
-              <th className="px-4 py-2">Created Date</th>
-              <th className="px-4 py-2">Last Update</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTickets.map((ticket) => (
-              <tr
-                key={ticket.id}
-                onClick={() => onSelect(ticket)}
-                className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-4 py-3">{ticket.id}</td>
-                <td
-                  className="px-4 py-3  max-w-40 truncate"
-                  title={ticket.title}
-                >
-                  {ticket.title}
-                </td>
-                <td className="px-4 py-3">{ticket.status}</td>
-                <td className="px-4 py-3">{ticket.category}</td>
-                <td
-                  className="px-4 py-3 max-w-30 truncate"
-                  title={ticket.createdBy}
-                >
-                  {ticket.createdBy}
-                </td>
-                <td className="px-4 py-3">{ticket.dueDate || "—"}</td>
-                <td className="px-4 py-3">{ticket.createdDate}</td>
-                <td className="px-4 py-3">{ticket.lastUpdate}</td>
-              </tr>
-            ))}
-            {loading && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-6 text-center text-sm text-gray-400"
-                >
-                  Loading tickets…
-                </td>
-              </tr>
-            )}
-            {error && !loading && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-6 text-center text-sm text-red-500"
-                >
-                  Couldn't load tickets: {error}
-                </td>
-              </tr>
-            )}
-            {!loading && !error && filteredTickets.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-6 text-center text-sm text-gray-400"
-                >
-                  No tickets match your search.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          return (
+            <RequestListRow
+              key={ticket.id}
+              overdue={overdue}
+              spacingClassName="pl-1.5 pr-3.5 gap-5"
+              gridClassName={gridClassName}
+              lead={
+                <Icon
+                  src={
+                    overdue
+                      ? "/alert.svg"
+                      : ticketStatusIcon[ticket.status.toLowerCase()]
+                  }
+                  className="h-4 w-auto shrink-0"
+                  alt={ticket.status}
+                />
+              }
+              cells={[
+                ticket.id,
+                ticket.title,
+                ticket.category,
+                ticket.status,
+                ticket.createdBy,
+                formatDueDate(ticket),
+                ticket.createdDate,
+                ticket.lastUpdate,
+              ]}
+              onClick={() => onSelect(ticket)}
+            />
+          );
+        })
+      }
+    </RequestTableFrame>
   );
 }

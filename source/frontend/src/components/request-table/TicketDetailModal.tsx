@@ -3,11 +3,23 @@ import { useState } from "react";
 import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
 import type { Category } from "@/lib/category";
-import type { Member, UserRole } from "@/lib/account";
+import { outranks, type AccountRole, type Member } from "@/lib/account";
+import { formatDueDate } from "@/components/request-table/RequestList";
+import {
+  DateField,
+  FormButton,
+  FormColumn,
+  FormModal,
+  MemberPanel,
+  SelectField,
+  TextAreaField,
+  TextField,
+  useFormSubmit,
+} from "@/components/request-table/FormParts";
 
 export default function TicketDetailModal({
   ticket,
-  userRole,
+  currentRole,
   currentUserId,
   members,
   categories,
@@ -16,7 +28,7 @@ export default function TicketDetailModal({
   onTaskCreated,
 }: {
   ticket: TicketRow;
-  userRole: UserRole;
+  currentRole: AccountRole;
   currentUserId: string;
   members: Member[];
   categories: Category[];
@@ -28,34 +40,32 @@ export default function TicketDetailModal({
   const [editTicketDescription, setEditTicketDescription] = useState(
     ticket.description,
   );
-  const [editTicketDueDate, setEditTicketDueDate] = useState(ticket.dueDate);
+  const [editTicketDueDate, setEditTicketDueDate] = useState(
+    ticket.dueDateValue,
+  );
   const [editTicketCategoryId, setEditTicketCategoryId] = useState<number | "">(
     ticket.categoryId,
   );
   const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([]);
-  const [isSavingTask, setIsSavingTask] = useState(false);
-  const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null);
+  const { saving, error, setError, run } = useFormSubmit();
 
   const canEditTicket =
-    userRole === "Lab Admin" ||
-    (ticket.createdById === currentUserId && ticket.status === "Pending");
+    ticket.createdById === currentUserId &&
+    (ticket.status === "Pending" || ticket.status === "Rejected");
 
-  function toggleAssign(memberId: string) {
-    setAssignedMemberIds((prev) =>
-      prev.includes(memberId)
-        ? prev.filter((id) => id !== memberId)
-        : [...prev, memberId],
-    );
-  }
+  // only role higher than creator can judge. creator not found = nobody
+  const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
+  const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
 
-  function toggleAssignAll() {
-    setAssignedMemberIds((prev) =>
-      prev.length === members.length ? [] : members.map((m) => m.id),
-    );
-  }
-
-  async function handleDecision(newStatus: TicketRow["status"]) {
+  async function handleDecision(
+    newStatus: TicketRow["status"],
+    close: () => void,
+  ) {
     if (ticket.status === newStatus) return;
+    if (!canJudge) {
+      setError("You can't accept or reject this ticket.");
+      return;
+    }
 
     // Use the edited form values when the user can edit, otherwise the saved ones
     const title = canEditTicket ? editTicketTitle.trim() : ticket.title;
@@ -63,25 +73,22 @@ export default function TicketDetailModal({
       ? editTicketDescription
       : ticket.description;
     const categoryId = canEditTicket ? editTicketCategoryId : ticket.categoryId;
-    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDate;
+    const dueDate = canEditTicket ? editTicketDueDate : ticket.dueDateValue;
 
     if (!title || categoryId === "") {
-      setTaskSubmitError("Title and category are required.");
+      setError("Title and category are required.");
       return;
     }
 
-    const backendStatus = newStatus === "Approved" ? "accepted" : "rejected";
+    const backendStatus = newStatus === "Accepted" ? "accepted" : "rejected";
     const previousStatus =
-      ticket.status === "Approved"
+      ticket.status === "Accepted"
         ? "accepted"
         : ticket.status === "Rejected"
           ? "rejected"
           : "pending";
 
-    setIsSavingTask(true);
-    setTaskSubmitError(null);
-
-    try {
+    const ok = await run(async () => {
       // 1. Save the edits and the new status together
       await putTicket(ticket.id, {
         name: title,
@@ -91,8 +98,8 @@ export default function TicketDetailModal({
         status: backendStatus,
       });
 
-      // 2. If approved, create the task from the edited values
-      if (newStatus === "Approved") {
+      // 2. If accepted, create the task from the edited values
+      if (newStatus === "Accepted") {
         try {
           await postTask({
             name: title,
@@ -102,7 +109,7 @@ export default function TicketDetailModal({
             assignees: assignedMemberIds,
           });
         } catch (taskErr) {
-          // Task failed: restore the previous status so it can be approved again
+          // Task failed: restore the previous status so it can be accepted again
           await putTicket(ticket.id, {
             status: previousStatus,
           }).catch(() => {});
@@ -110,245 +117,123 @@ export default function TicketDetailModal({
         }
         onTaskCreated();
       }
+    }, "Failed to update ticket");
 
+    if (ok) {
       onSaved();
       setAssignedMemberIds([]);
-      onClose();
-    } catch (err) {
-      setTaskSubmitError(
-        err instanceof Error ? err.message : "Failed to update ticket",
-      );
-    } finally {
-      setIsSavingTask(false);
+      close();
     }
   }
 
-  async function handleUpdateTicket() {
+  async function handleUpdateTicket(close: () => void) {
     if (!editTicketTitle.trim() || editTicketCategoryId === "") {
-      setTaskSubmitError("Title and category are required.");
+      setError("Title and category are required.");
       return;
     }
-    setIsSavingTask(true);
-    setTaskSubmitError(null);
-    try {
-      await putTicket(ticket.id, {
-        name: editTicketTitle.trim(),
-        description: editTicketDescription || null,
-        category_id: editTicketCategoryId,
-        due_date: editTicketDueDate || null,
-      });
+
+    const ok = await run(
+      () =>
+        putTicket(ticket.id, {
+          name: editTicketTitle.trim(),
+          description: editTicketDescription || null,
+          category_id: editTicketCategoryId,
+          due_date: editTicketDueDate || null,
+          status: ticket.status === "Rejected" ? "pending" : undefined,
+        }),
+      "Failed to update ticket",
+    );
+
+    if (ok) {
       onSaved();
-      onClose();
-    } catch (err) {
-      setTaskSubmitError(
-        err instanceof Error ? err.message : "Failed to update ticket",
-      );
-    } finally {
-      setIsSavingTask(false);
+      close();
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end justify-center pt-20 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 min-h-[75vh] max-h-[85vh] overflow-y-auto flex flex-col">
-        <div className="bg-(--primary-color-2) text-white text-center py-3 rounded-t-lg font-semibold">
-          Judge tickets
-        </div>
-
-        <div className="flex gap-6 p-6 flex-1">
-          <div className="flex-1 space-y-4 min-w-0">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
-              {!canEditTicket ? (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                  {ticket.title}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  value={editTicketTitle}
-                  onChange={(e) => setEditTicketTitle(e.target.value)}
-                  className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                />
-              )}
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
-                {!canEditTicket ? (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                    {ticket.category}
-                  </div>
-                ) : (
-                  <select
-                    value={editTicketCategoryId}
-                    onChange={(e) =>
-                      setEditTicketCategoryId(
-                        e.target.value ? Number(e.target.value) : "",
-                      )
-                    }
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium mb-1">
-                  Due Date
-                </label>
-                {!canEditTicket ? (
-                  <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word max-h-20 overflow-y-auto">
-                    {ticket.dueDate || "—"}
-                  </div>
-                ) : (
-                  <input
-                    type="date"
-                    value={editTicketDueDate}
-                    onChange={(e) => setEditTicketDueDate(e.target.value)}
-                    className="w-full bg-gray-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Description
-              </label>
-              {!canEditTicket ? (
-                <div className="bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto wrap-break-word">
-                  {ticket.description}
-                </div>
-              ) : (
-                <textarea
-                  value={editTicketDescription}
-                  onChange={(e) => setEditTicketDescription(e.target.value)}
-                  className="w-full bg-gray-100 rounded px-3 py-2 text-sm min-h-24 max-h-40 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-gray-400"
-                />
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Created By
-              </label>
-              <div className="bg-gray-100 rounded px-3 py-2 text-sm wrap-break-word">
-                {ticket.createdBy}
-              </div>
-            </div>
-          </div>
-
-          {userRole === "Lab Admin" && ticket.status !== "Approved" && (
-            <div className="w-64 border-l border-gray-200 pl-4">
-              <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase mb-2 pb-2 border-b border-gray-200">
-                <span>Members — {members.length}</span>
-                <button
-                  type="button"
-                  onClick={toggleAssignAll}
-                  disabled={members.length === 0}
-                  className="px-3 py-1 rounded-full bg-(--primary-color-2) text-white normal-case hover:bg-(--primary-color-2-hover) disabled:opacity-50"
-                >
-                  {members.length > 0 &&
-                  assignedMemberIds.length === members.length
-                    ? "Clear all"
-                    : "Assign all"}
-                </button>
-              </div>
-
-              <p className="text-xs text-gray-400 mb-2 normal-case">
-                Selected members are assigned to the task when you approve.
-              </p>
-
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {members.map((member) => (
-                  <label
-                    key={member.id}
-                    className="grid grid-cols-[auto_1fr] gap-x-3 items-center"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={assignedMemberIds.includes(member.id)}
-                      onChange={() => toggleAssign(member.id)}
-                      className="w-4 h-4"
-                    />
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium leading-tight">
-                          {member.name}
-                        </div>
-                        <div className="text-xs text-gray-400 leading-tight">
-                          {member.email}
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer: action buttons, bottom-right */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 items-center">
-          {taskSubmitError && (
-            <span className="text-sm text-red-500 mr-auto">
-              {taskSubmitError}
-            </span>
-          )}
-
-          <button
-            onClick={() => {
-              setAssignedMemberIds([]);
-              setTaskSubmitError(null);
-              onClose();
-            }}
-            disabled={isSavingTask}
-            className="px-5 py-2 rounded bg-(--primary-color-2) hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
+    <FormModal
+      title="Judge ticket"
+      onClose={onClose}
+      error={error}
+      footer={(close) => (
+        <>
           {canEditTicket && (
-            <button
-              onClick={handleUpdateTicket}
-              disabled={isSavingTask}
-              className="px-5 py-2 rounded bg-(--primary-color-2) text-black hover:bg-(--primary-color-2-hover) text-sm disabled:opacity-50"
+            <FormButton
+              color="green"
+              onClick={() => handleUpdateTicket(close)}
+              disabled={saving}
             >
-              {isSavingTask ? "Saving…" : "Save Changes"}
-            </button>
+              {saving ? "Saving…" : "Save Changes"}
+            </FormButton>
           )}
 
-          {userRole === "Lab Admin" && (
+          {canJudge && (
             <>
-              <button
-                onClick={() => handleDecision("Rejected")}
-                disabled={isSavingTask || ticket.status === "Rejected"}
-                className="px-5 py-2 rounded bg-(--primary-red) hover:bg-(--primary-red-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-red)"
+              <FormButton
+                color="red"
+                onClick={() => handleDecision("Rejected", close)}
+                disabled={saving || ticket.status === "Rejected"}
               >
                 Reject
-              </button>
-              <button
-                onClick={() => handleDecision("Approved")}
-                disabled={isSavingTask || ticket.status === "Approved"}
-                className="px-5 py-2 rounded bg-(--primary-color-3) text-black hover:bg-(--primary-color-3-hover) text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-(--primary-color-3)"
+              </FormButton>
+              <FormButton
+                color="green"
+                onClick={() => handleDecision("Accepted", close)}
+                disabled={saving || ticket.status === "Accepted"}
               >
-                {isSavingTask ? "Saving…" : "Approve"}
-              </button>
+                {saving ? "Saving…" : "Accept"}
+              </FormButton>
             </>
           )}
+        </>
+      )}
+    >
+      <FormColumn>
+        <TextField
+          label="Title"
+          value={editTicketTitle}
+          onChange={setEditTicketTitle}
+          readOnly={!canEditTicket}
+        />
+
+        <div className="flex gap-4">
+          <SelectField
+            label="Category"
+            className="flex-1 min-w-0"
+            value={editTicketCategoryId}
+            onChange={setEditTicketCategoryId}
+            categories={categories}
+            readOnly={!canEditTicket}
+            readOnlyText={ticket.category}
+          />
+          <DateField
+            label="Due Date"
+            className="flex-1 min-w-0"
+            value={editTicketDueDate}
+            onChange={setEditTicketDueDate}
+            readOnly={!canEditTicket}
+            readOnlyText={formatDueDate(ticket)}
+          />
         </div>
-      </div>
-    </div>
+
+        <TextAreaField
+          label="Description"
+          value={editTicketDescription}
+          onChange={setEditTicketDescription}
+          readOnly={!canEditTicket}
+        />
+
+        <TextField label="Created By" value={ticket.createdBy} readOnly />
+      </FormColumn>
+
+      {canJudge && ticket.status !== "Accepted" && (
+        <MemberPanel
+          members={members}
+          selectedIds={assignedMemberIds}
+          onChange={setAssignedMemberIds}
+          hint="Selected members are assigned to the task when you accept."
+        />
+      )}
+    </FormModal>
   );
 }

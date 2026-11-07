@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { apiFetch, apiSendJson } from "@/lib/api";
 import { getAccounts, type Account } from "@/lib/account";
 import { getCategories } from "@/lib/category";
-import { formatShortDateTime } from "@/lib/format";
+import { formatShortDateTime, toDateInputValue } from "@/lib/format";
+import { cached, withoutPagination } from "@/lib/cache/cache";
+import { pageParams, splitPage } from "@/lib/pagination";
+import { buildQuery } from "@/lib/query";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
 
@@ -36,8 +39,12 @@ export type GetTasksParams = {
   id?: number;
   categories?: number;
   assignsTo?: string;
+  notassignsTo?: string;
   status?: TaskStatus;
+  due_after?: string;
+  due_before?: string;
   limit?: number;
+  offset?: number;
 };
 
 // Body for POST /task/ and PUT /task/{id} (mirrors TaskRequest in the backend)
@@ -50,6 +57,9 @@ export type TaskPayload = {
   assignees?: string[];
 };
 
+// Body for PUT /task/{id} (TaskUpdate in the backend, every field optional)
+export type TaskUpdatePayload = Partial<TaskPayload>;
+
 // Shape the request-table UI renders
 export type TaskRow = {
   id: string;
@@ -59,26 +69,18 @@ export type TaskRow = {
   assignedTo: string;
   createdBy: string;
   dueDate: string;
+  dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
   createdDate: string;
   lastUpdate: string;
-  status: "Completed" | "In_progress";
+  status: "Completed" | "In progress";
   categoryId: number;
   assigneeIds: string[];
 };
 
-export async function getTasks(
+export async function fetchTasks(
   params: GetTasksParams = {},
 ): Promise<TasksResponse> {
-  const { id, categories, assignsTo, status, limit } = params;
-  const query = new URLSearchParams();
-
-  if (id !== undefined) query.set("id", String(id));
-  if (categories !== undefined) query.set("categories", String(categories));
-  if (assignsTo !== undefined) query.set("assignsTo", assignsTo);
-  if (status !== undefined) query.set("status", status);
-  if (limit !== undefined) query.set("limit", String(limit));
-
-  const qs = query.toString();
+  const qs = buildQuery(params).toString();
   const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
 
   if (!res.ok) {
@@ -88,6 +90,16 @@ export async function getTasks(
   return res.json();
 }
 
+const TASKS_CACHE_TTL = 1 * 60 * 1000;
+
+// same filters share expiration, different limits share the same family
+export const getTasks = cached(
+  fetchTasks,
+  TASKS_CACHE_TTL,
+  "tasks",
+  withoutPagination,
+);
+
 export async function postTask(body: TaskPayload): Promise<TaskResponse> {
   const res = await apiSendJson("/task/", "POST", body);
 
@@ -95,12 +107,15 @@ export async function postTask(body: TaskPayload): Promise<TaskResponse> {
     throw new Error(`HTTP ${res.status}`);
   }
 
+  // data changed, so drop cached lists
+  getTasks.clear();
+
   return res.json();
 }
 
 export async function putTask(
   id: number | string,
-  body: TaskPayload,
+  body: TaskUpdatePayload,
 ): Promise<TaskResponse> {
   const res = await apiSendJson(`/task/${id}`, "PUT", body);
 
@@ -108,11 +123,14 @@ export async function putTask(
     throw new Error(`HTTP ${res.status}`);
   }
 
+  // data changed, so drop cached lists
+  getTasks.clear();
+
   return res.json();
 }
 
 function mapTaskStatus(status: TaskStatus): TaskRow["status"] {
-  return status === "completed" ? "Completed" : "In_progress";
+  return status === "completed" ? "Completed" : "In progress";
 }
 
 export function mapBackendTask(
@@ -128,30 +146,58 @@ export function mapBackendTask(
     assignedTo: bt.assignees.map((a) => a.username).join(", "),
     createdBy: accountById.get(bt.created_by) ?? bt.created_by,
     dueDate: formatShortDateTime(bt.due_date),
-    createdDate: formatShortDateTime(bt.created),
-    lastUpdate: formatShortDateTime(bt.updated),
+    dueDateValue: toDateInputValue(bt.due_date),
+    createdDate: formatShortDateTime(bt.created, "created"),
+    lastUpdate: formatShortDateTime(bt.updated, "updated"),
     status: mapTaskStatus(bt.status),
     categoryId: bt.category_id,
     assigneeIds: bt.assignees.map((a) => a.id),
   };
 }
 
-export function useTasks() {
+// fetch one task by id for the modal. throw if not found
+export async function getTaskRowById(id: number): Promise<TaskRow> {
+  const [taskBody, catBody, accBody] = await Promise.all([
+    getTasks({ id }),
+    getCategories().catch(() => null),
+    getAccounts().catch(() => null),
+  ]);
+
+  const task = taskBody.Tasks.find((t) => t.id === id);
+  if (!task) throw new Error("Task not found");
+
+  const categoryById = new Map<number, string>(
+    (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
+  );
+  const accountById = new Map<string, string>(
+    (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
+  );
+
+  return mapBackendTask(task, categoryById, accountById);
+}
+
+export type TaskFilters = { status?: TaskStatus; categoryId?: number };
+
+export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [tasksHasNext, setTasksHasNext] = useState(false);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [tasksReloadKey, setTasksReloadKey] = useState(0);
+  // page of the data we hold. differ from page = data is stale
+  const [tasksLoadedPage, setTasksLoadedPage] = useState(0);
+
+  const { status, categoryId } = filters;
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     async function loadTasks() {
+      setTasksLoading(true);
       try {
-        // Categories and accounts only add labels, so a failure there is tolerated
         const [taskBody, catBody, accBody] = await Promise.all([
-          getTasks({
-            limit: 50,
-          }),
+          getTasks({ status, categories: categoryId, ...pageParams(page) }),
           getCategories().catch(() => null),
           getAccounts().catch(() => null),
         ]);
@@ -164,18 +210,23 @@ export function useTasks() {
         );
 
         if (!cancelled) {
+          const { rows, hasNext } = splitPage(taskBody.Tasks);
           setTasks(
-            taskBody.Tasks.map((t) =>
-              mapBackendTask(t, categoryById, accountById),
-            ),
+            rows.map((t) => mapBackendTask(t, categoryById, accountById)),
           );
+          setTasksHasNext(hasNext);
           setTasksError(null);
         }
       } catch (err) {
         if (!cancelled)
-          setTasksError(err instanceof Error ? err.message : "Failed to load tasks");
+          setTasksError(
+            err instanceof Error ? err.message : "Failed to load tasks",
+          );
       } finally {
-        if (!cancelled) setTasksLoading(false);
+        if (!cancelled) {
+          setTasksLoading(false);
+          setTasksLoadedPage(page);
+        }
       }
     }
 
@@ -183,7 +234,14 @@ export function useTasks() {
     return () => {
       cancelled = true;
     };
-  }, [tasksReloadKey]);
+  }, [enabled, page, status, categoryId, tasksReloadKey]);
 
-  return { tasks, tasksLoading, tasksError, setTasksReloadKey };
+  return {
+    tasks,
+    tasksHasNext,
+    // loading also true on the render right after page change
+    tasksLoading: tasksLoading || tasksLoadedPage !== page,
+    tasksError,
+    setTasksReloadKey,
+  };
 }

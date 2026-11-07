@@ -11,6 +11,7 @@ export const accountNav: NavItem[] = [
   { label: "Account", icon: "account" },
   { label: "Category", icon: "category" },
   { label: "Member", icon: "team" },
+  { label: "Log", icon: "log" },
 ];
 
 export default function Nav({

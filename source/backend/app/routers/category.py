@@ -28,6 +28,8 @@ async def retrieve_category(category_id: int, session: Annotated[AsyncSession, D
 async def create_category(body : CategoryRequestBody, session: Annotated[AsyncSession, Depends(getSession)], me: Annotated[Account, Depends(account_service.require_admin)]):
     newCategory = Category(name=body.name)
     session.add(newCategory)
+    await session.flush()
+    category_service.audit_category(session, newCategory.id, "name", None, newCategory.name, me.id)
     await session.commit()
     await session.refresh(newCategory)
     return {"Message" : "Succesfuly Create new category"}
@@ -35,7 +37,10 @@ async def create_category(body : CategoryRequestBody, session: Annotated[AsyncSe
 @categoryRouter.put("/{category_id}", tags=["Category"])
 async def update_category(category_id: int, body : CategoryRequestBody, session: Annotated[AsyncSession, Depends(getSession)], me: Annotated[Account, Depends(account_service.require_admin)]):
     targetCategory = await category_service.get_category_or_404(session, category_id)
+    previousName = targetCategory.name
     targetCategory.name = body.name
+    if previousName != body.name:
+        category_service.audit_category(session, category_id, "name", previousName, body.name, me.id)
     await session.commit()
     await session.refresh(targetCategory)
     return {"Message" : f"Succesfuly update {body.name} category"}
@@ -43,6 +48,7 @@ async def update_category(category_id: int, body : CategoryRequestBody, session:
 @categoryRouter.delete("/{category_id}", tags=["Category"])
 async def delete_category(category_id: int, session: Annotated[AsyncSession, Depends(getSession)], me: Annotated[Account, Depends(account_service.require_admin)]):
     targetCategory = await category_service.get_category_or_404(session, category_id)
+    category_service.audit_category(session, category_id, "name", targetCategory.name, None, me.id)
     await session.delete(targetCategory)
     await session.commit()
     return {"Message" : "Succesfuly delete category"}

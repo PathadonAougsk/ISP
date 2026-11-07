@@ -1,15 +1,48 @@
 "use client";
-import { useState } from "react";
-import { truncateLabel } from "@/lib/format";
 import type { TaskRow } from "@/lib/task";
+import type { TaskStatus } from "@/lib/task";
+import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
+import {
+  formatDueDate,
+  isPastDate,
+  RequestListRow,
+  RequestTableFrame,
+} from "@/components/request-table/RequestList";
+
+const titles = [
+  "ID",
+  "Title",
+  "Category",
+  "Status",
+  "Assigned",
+  "Created By",
+  "Due Date",
+  "Created Date",
+  "Last Update",
+];
+
+// full class string, tailwind need to see it
+const gridClassName = "grid-cols-[0.2fr_2fr_1.2fr_1fr_1.2fr_1.2fr_1fr_1fr_1fr]";
+
+const statusOptions = [
+  { value: "in_progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+];
 
 export default function TaskTable({
   tasks,
   loading,
   error,
   userRole,
-  currentUserId,
+  categories,
+  status,
+  onStatusChange,
+  categoryId,
+  onCategoryChange,
+  page,
+  hasNext,
+  onPageChange,
   onSelect,
   onCreate,
 }: {
@@ -17,180 +50,78 @@ export default function TaskTable({
   loading: boolean;
   error: string | null;
   userRole: UserRole;
-  currentUserId: string;
+  categories: Category[];
+  status: TaskStatus | "All";
+  onStatusChange: (status: TaskStatus | "All") => void;
+  categoryId: number | "All";
+  onCategoryChange: (id: number | "All") => void;
+  page: number;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
   onSelect: (task: TaskRow) => void;
   onCreate: () => void;
 }) {
-  const [taskSearchTerm, setTaskSearchTerm] = useState("");
-  const [taskCategoryFilter, setTaskCategoryFilter] = useState("All");
-  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
-
-  const taskCategories = Array.from(
-    new Set(tasks.map((t) => t.category).filter(Boolean)),
-  );
-
-  const filteredTasks = tasks
-    .filter(
-      (task) =>
-        task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
-        task.id.toLowerCase().includes(taskSearchTerm.toLowerCase()),
-    )
-    .filter((task) =>
-      taskCategoryFilter === "All"
-        ? true
-        : task.category === taskCategoryFilter,
-    )
-    .filter((task) =>
-      taskStatusFilter === "All" ? true : task.status === taskStatusFilter,
-    )
-    .filter((task) =>
-      userRole === "Lab Admin"
-        ? true
-        : task.assigneeIds.includes(currentUserId),
-    );
-
+  // The backend already limits a Lab User to their own tasks, so no extra filter here
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="h-9 text-lg font-semibold flex items-center gap-2">
-          My Task
-          {userRole === "Lab Admin" && (
-            <button
-              onClick={onCreate}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
-            >
-              +
-            </button>
-          )}
-        </h2>
+    <RequestTableFrame
+      title="Tasks"
+      noun="tasks"
+      rows={tasks}
+      loading={loading}
+      error={error}
+      canCreate={userRole === "Lab Admin"}
+      onCreate={onCreate}
+      categories={categories}
+      categoryId={categoryId}
+      onCategoryChange={onCategoryChange}
+      status={status}
+      onStatusChange={(s) => onStatusChange(s as TaskStatus | "All")}
+      statusOptions={statusOptions}
+      page={page}
+      hasNext={hasNext}
+      onPageChange={onPageChange}
+      titles={titles}
+      gridClassName={gridClassName}
+    >
+      {(rows) =>
+        rows.map((task) => {
+          const completed = task.status === "Completed";
+          // only unfinished task can be overdue
+          const overdue = !completed && isPastDate(task.dueDateValue);
 
-        <div className="h-9 flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search"
-            value={taskSearchTerm}
-            onChange={(e) => setTaskSearchTerm(e.target.value)}
-            className="h-9 border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-          />
-
-          <select
-            value={taskCategoryFilter}
-            onChange={(e) => setTaskCategoryFilter(e.target.value)}
-            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <option value="All">All</option>
-            {taskCategories.map((category) => (
-              <option key={category} value={category} title={category}>
-                {truncateLabel(category)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={taskStatusFilter}
-            onChange={(e) => setTaskStatusFilter(e.target.value)}
-            className="h-9 max-w-40 truncate border border-gray-300 rounded-full px-4 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <option value="All">All</option>
-            <option value="In_progress">In progress</option>
-            <option value="Completed">Completed</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-(--primary-color-2) text-white text-left text-sm">
-              <th className="px-4 py-2">Task-ID</th>
-              <th className="px-4 py-2">Title</th>
-              <th className="px-4 py-2">Description</th>
-              <th className="px-4 py-2">Category</th>
-              <th className="px-4 py-2">Assigned</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Created By</th>
-              <th className="px-4 py-2">Due Date</th>
-              <th className="px-4 py-2">Created Date</th>
-              <th className="px-4 py-2">Last Update</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTasks.map((task) => (
-              <tr
-                key={task.id}
-                onClick={() => onSelect(task)}
-                className="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-4 py-3">{task.id}</td>
-                <td
-                  className="px-4 py-3 max-w-40 truncate"
-                  title={task.title}
-                >
-                  {task.title}
-                </td>
-                <td
-                  className="px-4 py-3 max-w-50 truncate"
-                  title={task.description}
-                >
-                  {task.description}
-                </td>
-                <td
-                  className="px-4 py-3 max-w-25 truncate"
-                  title={task.category}
-                >
-                  {task.category}
-                </td>
-                <td
-                  className="px-4 py-3 max-w-35 truncate"
-                  title={task.assignedTo}
-                >
-                  {task.assignedTo}
-                </td>
-                <td className="px-4 py-3">{task.status}</td>
-                <td
-                  className="px-4 py-3 max-w-30 truncate"
-                  title={task.createdBy}
-                >
-                  {task.createdBy}
-                </td>
-                <td className="px-4 py-3">{task.dueDate || "—"}</td>
-                <td className="px-4 py-3">{task.createdDate}</td>
-                <td className="px-4 py-3">{task.lastUpdate}</td>
-              </tr>
-            ))}
-            {loading && (
-              <tr>
-                <td
-                  colSpan={10}
-                  className="px-4 py-6 text-center text-sm text-gray-400"
-                >
-                  Loading tasks…
-                </td>
-              </tr>
-            )}
-            {error && !loading && (
-              <tr>
-                <td
-                  colSpan={10}
-                  className="px-4 py-6 text-center text-sm text-red-500"
-                >
-                  Couldn't load tasks: {error}
-                </td>
-              </tr>
-            )}
-            {!loading && !error && filteredTasks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={10}
-                  className="px-4 py-6 text-center text-sm text-gray-400"
-                >
-                  No tasks yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          return (
+            <RequestListRow
+              key={task.id}
+              overdue={overdue}
+              spacingClassName="pl-2.5 pr-3.5 gap-6"
+              gridClassName={gridClassName}
+              lead={
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    overdue
+                      ? "bg-(--primary-red)"
+                      : completed
+                        ? "bg-(--primary-color-1)"
+                        : "bg-(--primary-blue)"
+                  }`}
+                />
+              }
+              cells={[
+                task.id,
+                task.title,
+                task.category,
+                task.status,
+                task.assignedTo,
+                task.createdBy,
+                formatDueDate(task),
+                task.createdDate,
+                task.lastUpdate,
+              ]}
+              onClick={() => onSelect(task)}
+            />
+          );
+        })
+      }
+    </RequestTableFrame>
   );
 }

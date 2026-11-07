@@ -2,7 +2,8 @@
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { cached } from "@/lib/cache/cache";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -50,6 +51,18 @@ export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
+// higher number = higher role
+const ROLE_RANK: Record<AccountRole, number> = {
+  "Lab User": 0,
+  "Lab Admin": 1,
+  "Lab Owner": 2,
+};
+
+// true only when actor role is strictly higher than target role
+export function outranks(actor: AccountRole, target: AccountRole): boolean {
+  return ROLE_RANK[actor] > ROLE_RANK[target];
+}
+
 // The cached role is a UI hint only - anyone can edit their own cookies, so dont trust it too much.
 export function readCachedRole(): AccountRole | null {
   if (typeof document === "undefined") return null;
@@ -71,24 +84,29 @@ export function cacheRole(role: AccountRole) {
 
 export function clearCachedRole() {
   clearMeCache();
+  getAccounts.clear();
 
   if (typeof document === "undefined") return;
 
   document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
-export async function getAccounts(): Promise<AccountsResponse> {
+const ACCOUNTS_CACHE_TTL = 60 * 1000;
+
+async function fetchAccounts(): Promise<AccountsResponse> {
   const res = await apiFetch("/account/");
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
-// Creates the caller's own row. An invited member has an auth user but no
-// account row until they pick a username, so this is step one of setup.
+export const getAccounts = cached(
+  fetchAccounts,
+  ACCOUNTS_CACHE_TTL,
+  "accounts",
+);
+
+// Creates the caller's own row. A user who has a login but no account row
+// yet claims it here by picking a username, so this is step one of setup.
 export async function createMyAccount(username: string): Promise<Account> {
   const res = await apiSendJson("/account/", "POST", { username });
   await apiOrThrow(res, "Could not finish setting up your account.");
@@ -96,6 +114,7 @@ export async function createMyAccount(username: string): Promise<Account> {
   const { Account: account } = (await res.json()) as AccountResponse;
   cacheRole(account.role);
   primeMeCache(account);
+  getAccounts.clear();
 
   return account;
 }
@@ -123,6 +142,27 @@ export function getMe({ force = false }: { force?: boolean } = {}): Promise<
   return entry.promise;
 }
 
+async function endSession(search = "") {
+  clearCachedRole();
+  await createClient().auth.signOut();
+
+  if (typeof window !== "undefined") {
+    window.location.replace(`/auth${search}`);
+  }
+}
+
+// Sends them back to the login page with a reason, rather than to a blank
+// dashboard that fails every request.
+function signOutDeactivated() {
+  return endSession("?deactivated=1");
+}
+
+// Logging out on purpose, so no reason flag - the login page has nothing to
+// explain.
+export function signOut() {
+  return endSession();
+}
+
 async function fetchMe(): Promise<Account | undefined> {
   const {
     data: { session },
@@ -135,8 +175,10 @@ async function fetchMe(): Promise<Account | undefined> {
 
   if (res.ok) {
     account = ((await res.json()) as AccountResponse).Account;
+  } else if (res.status === 403) {
+    await signOutDeactivated();
+    return undefined;
   } else if (res.status === 404) {
-    // A row that is not keyed to the auth id still has to be findable by email.
     const { Accounts } = await getAccounts();
     account = Accounts.find((user) => user.email === session.user.email);
   } else {
@@ -161,10 +203,20 @@ export async function isAdmin(): Promise<boolean> {
 
 export type UserRole = "Lab Admin" | "Lab User";
 
-export type Member = { id: string; name: string; email: string };
+export type Member = {
+  id: string;
+  name: string;
+  email: string;
+  role: AccountRole;
+};
 
 export function mapAccountToMember(account: Account): Member {
-  return { id: account.id, name: account.username, email: account.email };
+  return {
+    id: account.id,
+    name: account.username,
+    email: account.email,
+    role: account.role,
+  };
 }
 
 export type AccountPatch = {
@@ -178,6 +230,7 @@ export type AccountPatch = {
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
   clearMeCache();
+  getAccounts.clear();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.
@@ -188,6 +241,33 @@ export function updateAccount(
   return mutate(
     apiSendJson(`/account/${accountId}`, "PUT", patch),
     "Could not update that account.",
+  );
+}
+
+// Both live in the Supabase login rather than the account table, hence their own endpoints instead of a key in AccountPatch.
+// `accountId` is your own row, or that of somebody you outrank. The password is always the caller's own - an admin resetting a member never sees theirs.
+export function changeEmail(
+  accountId: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  return mutate(
+    apiSendJson(`/account/${accountId}/email`, "PUT", { email, password }),
+    "Could not change that email address.",
+  );
+}
+
+export function changePassword(
+  accountId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  return mutate(
+    apiSendJson(`/account/${accountId}/password`, "PUT", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+    "Could not change your password.",
   );
 }
 
@@ -208,10 +288,43 @@ export function deleteAccount(accountId: string): Promise<void> {
   );
 }
 
-export type CurrentAccount =
+// A "member" is uncapped. A "trial" gets a ticket quota that counts down every
+// time they file a ticket - see create_ticket on the backend.
+export type UserKind = "member" | "trial";
+
+export type CreateUserPayload = {
+  username: string;
+  // Supabase keys the login on this, and signing in is email plus password.
+  email: string;
+  password: string;
+  kind: UserKind;
+  quota?: number | null;
+};
+
+// Creates both halves of a member at once - the Supabase login and the account
+// row behind it - so they can sign in with the credentials the admin just
+// picked. Nothing is emailed; the admin passes those on themselves. Always a
+// Lab User: promoting them is a separate call to assignRole. POST /account/ is
+// the other way round, where the member claims their own row once they already
+// have a login.
+export async function adminCreateAccount(
+  payload: CreateUserPayload,
+): Promise<Account> {
+  const res = await apiSendJson("/account/admin", "POST", payload);
+  await apiOrThrow(res, "Could not create that member.");
+
+  const { Account: account } = (await res.json()) as AccountResponse;
+  getAccounts.clear();
+
+  return account;
+}
+
+export type CurrentAccount = (
   | {
       signedIn: false;
       loading: boolean;
+      // set when the request failed. null with no account = really signed out
+      error: string | null;
       account: null;
       userRole: "Lab User";
       currentUserId: "";
@@ -220,16 +333,22 @@ export type CurrentAccount =
   | {
       signedIn: true;
       loading: false;
+      error: null;
       account: Account;
       userRole: UserRole;
       currentUserId: string;
       isAdmin: boolean;
-    };
+    }
+) & {
+  // Go back for the row after a write. The writes above drop the me cache, so this lands on the network.
+  reload: () => void;
+};
 
 // No account yet - still loading, disabled, or signed out. Fails closed on isAdmin.
 const SIGNED_OUT = {
   signedIn: false,
   loading: false,
+  error: null,
   account: null,
   userRole: "Lab User",
   currentUserId: "",
@@ -237,12 +356,15 @@ const SIGNED_OUT = {
 } as const;
 
 // Load once on mount, ignore result if unmounted. Pass a stable function.
+// `reload` bumps a counter the effect watches - `load` itself has to stay stable or the effect loops.
 function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
   const [state, setState] = useState<{
     data: T | null;
     loading: boolean;
     error: string | null;
   }>({ data: null, loading: true, error: null });
+  const [attempt, setAttempt] = useState(0);
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -264,16 +386,17 @@ function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
     return () => {
       cancelled = true;
     };
-  }, [load, enabled]);
+  }, [load, enabled, attempt]);
 
-  return state;
+  return { ...state, reload };
 }
 
 // Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
 export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
-  const { data: account, loading } = useFetched(getMe, enabled);
+  const { data: account, loading, error, reload } = useFetched(getMe, enabled);
 
-  if (!account) return { ...SIGNED_OUT, loading: enabled && loading };
+  if (!account)
+    return { ...SIGNED_OUT, loading: enabled && loading, error, reload };
 
   // "Lab Owner" and "Lab Admin" both count as admin
   const admin = isAdminRole(account.role);
@@ -281,10 +404,12 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
   return {
     signedIn: true,
     loading: false,
+    error: null,
     account,
     userRole: admin ? "Lab Admin" : "Lab User",
     currentUserId: account.id,
     isAdmin: admin,
+    reload,
   };
 }
 

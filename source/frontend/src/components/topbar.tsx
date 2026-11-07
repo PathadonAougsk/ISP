@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMe, type Account } from "@/lib/account";
-import Icon from "@/components/icon";
+import Avatar from "@/components/avatar";
+import { clearAllApiCache } from "@/lib/cache/cache";
 
 export default function Topbar() {
   const pathname = usePathname().replace("/", "");
@@ -21,7 +22,10 @@ export default function Topbar() {
     <div className="sticky top-0 z-10 flex h-15 w-full flex-row items-center justify-between bg-(--primary-color-3) p-7.5">
       <h1
         className="cursor-pointer text-3xl font-bold"
-        onClick={() => window.location.reload()}
+        onClick={async () => {
+          await clearAllApiCache();
+          window.location.reload();
+        }}
       >
         {pathname[0]?.toUpperCase() + pathname.slice(1)}
       </h1>
@@ -37,7 +41,7 @@ export default function Topbar() {
               <h1 className="font-bold">{account.role}</h1>
             </div>
 
-            <Icon src="/profile.svg" className="h-9 w-9" alt="Profile" />
+            <Avatar name={account.username} className="h-9 w-9" />
           </>
         )}
       </div>

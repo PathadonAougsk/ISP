@@ -34,6 +34,7 @@ auth_users = Table(
     "users",
     Base.metadata,
     Column("id", UUID(as_uuid=True), primary_key=True),
+    Column("email", String(255)),
     schema="auth",
 )
 

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "@/components/icon";
 import { useSettings } from "./setting-provider";
+import { clearAllApiCache } from "@/lib/cache/cache";
 
 const mainNavigation = ["dashboard", "request-table", "report"];
 const bottomNavigation = ["announcement"];
@@ -44,11 +45,12 @@ function NavigationItem({
   return (
     <Link
       href={`/${name}`}
-      onClick={(event) => {
+      onClick={async (event) => {
         onClick?.();
 
         if (active) {
           event.preventDefault();
+          await clearAllApiCache();
           window.location.reload();
         }
       }}
@@ -80,7 +82,7 @@ export default function Sidebar() {
     <div className="sticky top-0 left-0 z-50 flex h-screen w-15 shrink-0 flex-col justify-between bg-(--primary-color-2)">
       {expanded && (
         <div
-          className="popup-overlay fixed inset-0 z-40 bg-black"
+          className="blur-fade-in fixed inset-0 z-40 bg-black"
           onClick={handleNavigationClick}
         />
       )}
