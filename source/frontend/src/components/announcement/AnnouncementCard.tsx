@@ -18,8 +18,8 @@ export default function AnnouncementCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex h-45 w-full flex-col gap-1 rounded-[30px] p-4 text-left hover:bg-(--panel-bg-hover) ${
-        selected ? "bg-(--panel-bg-hover)" : "bg-(--panel-bg)"
+      className={`relative flex h-45 w-full flex-col gap-1 rounded-[15px] bg-white p-4 text-left ${
+        selected ? "ring-2 ring-inset ring-(--primary-color-2)" : ""
       }`}
     >
       <h1 className="text-2xl font-bold text-black text-justify line-clamp-2">

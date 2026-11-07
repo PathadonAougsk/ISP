@@ -178,6 +178,7 @@ export function TextField({
   onChange,
   readOnly = false,
   placeholder,
+  maxLength,
   className,
 }: {
   label: string;
@@ -185,6 +186,7 @@ export function TextField({
   onChange?: (value: string) => void;
   readOnly?: boolean;
   placeholder?: string;
+  maxLength?: number;
   className?: string;
 }) {
   return (
@@ -197,6 +199,7 @@ export function TextField({
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
+          maxLength={maxLength}
           className={`${fieldClass} placeholder:text-gray-400`}
         />
       )}
