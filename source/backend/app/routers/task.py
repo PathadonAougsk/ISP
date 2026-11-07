@@ -51,19 +51,33 @@ async def retrieve_tasks(
     me: Annotated[Account, Depends(account_service.get_current_account)],
     session: Annotated[AsyncSession, Depends(getSession)],
     id: int | None = None,
+    search: str | None = None,
     categories: int | None = None,
     assignsTo: uuid.UUID | None = None,
     notassignsTo: uuid.UUID | None = None,
     status: TaskStatus | None = None,
     due_after: datetime | None = None,
     due_before: datetime | None = None,
+    get_count: bool = False,
     limit: int = Query(default=20, ge=0),
     offset: int = Query(default=0, ge=0),
 ):
+    from sqlalchemy import cast, String, or_, func
+
     tasks = select(Task).options(selectinload(Task.assignees))
 
     if id:
         tasks = tasks.where(Task.id == id)
+
+    if search and search.strip():
+        search = search.strip()
+
+        conditions = [Task.name.ilike(f"%{search}%")]
+
+        if search.isdecimal():
+            conditions.append(cast(Task.id, String).ilike(f"%{search}%"))
+
+        tasks = tasks.where(or_(*conditions))
 
     if categories:
         tasks = tasks.where(Task.category_id == categories)
@@ -83,32 +97,40 @@ async def retrieve_tasks(
     if due_before:
         tasks = tasks.where(Task.due_date <= to_utc(due_before))
 
-    # lab user can sees tasks that are assigned to them only (cant see others' task)
     if me.role == AccountRole.LAB_USER:
         tasks = tasks.where(Task.assignees.any(Account.id == me.id))
 
-    # Most urgent due date first, and unfinished work first when they tie.
+    task_count: int | None = None
+
+    if get_count:
+        task_count = await session.scalar(
+            select(func.count()).select_from(tasks.subquery())
+        )
+
     status_order = case(
         (Task.status == TaskStatus.IN_PROGRESS, 1),
         (Task.status == TaskStatus.COMPLETED, 2),
     )
 
-    tasks = tasks.order_by(Task.due_date, status_order)
+    tasks = tasks.order_by(status_order, Task.due_date)  # status first then due_date
     tasks = tasks.offset(offset)
 
     if limit:
         tasks = tasks.limit(limit)
 
     result = await session.scalars(tasks)
-    tasks = result.all()
+    task_list = result.all()
 
-    if id and not tasks:
+    if id and not task_list:
         raise HTTPException(
             status_code=404,
             detail=f"Task with id {id} not found",
         )
 
-    return {"Tasks": tasks}
+    if get_count:
+        return {"Tasks": task_list, "TaskCount": task_count}
+
+    return {"Tasks": task_list}
 
 
 @taskRouter.post("/", tags=["Task"])

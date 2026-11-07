@@ -95,6 +95,8 @@ async def retrieve_tickets(
     elif notOwned:
         query = query.where(Ticket.created_by != me.id)
 
+    ticket_count: int | None = None
+
     if get_count:
         ticket_count = await session.scalar(select(func.count()).select_from(query.subquery()))
 
