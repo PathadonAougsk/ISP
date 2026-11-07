@@ -6,16 +6,16 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from supabase_auth.errors import AuthApiError, AuthError
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
 from app.dependencies import password_check, supabase
-from app.model import Account, AccountRole, AuditLog
+from app.model import Account, AccountRole, AuditLog, auth_users
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +140,34 @@ def account_conflict(exc: IntegrityError, fallback: str) -> HTTPException:
     )
 
 
+STALE_LOGIN = (
+    "{email} is still registered to a Supabase login with no account behind "
+    "it. Delete that user in the Supabase dashboard, or use another address."
+)
+
+
+async def auth_login_for_email(session: AsyncSession, email: str) -> uuid.UUID | None:
+    """The auth.users id holding an address, if one does.
+
+    The account table only mirrors Supabase, so an address can be free here
+    and still refused there - a login whose account row was deleted keeps its
+    email forever. Reading auth.users lets us name that instead of handing the
+    admin Supabase's own wording for it.
+
+    Only a check, never the authority: if the database role cannot see the
+    auth schema we give up quietly and let Supabase do the refusing."""
+    try:
+        return await session.scalar(
+            select(auth_users.c.id).where(func.lower(auth_users.c.email) == email)
+        )
+    except SQLAlchemyError:
+        # The failed statement poisons the transaction, so clear it before the
+        # caller goes on to write anything.
+        logger.exception("Could not read auth.users while checking %s", email)
+        await session.rollback()
+        return None
+
+
 async def assert_login_available(
     session: AsyncSession, username: str, email: str
 ) -> None:
@@ -151,6 +179,11 @@ async def assert_login_available(
         )
     )
     if clash is None:
+        if await auth_login_for_email(session, email) is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=STALE_LOGIN.format(email=email),
+            )
         return
 
     raise HTTPException(
@@ -198,12 +231,16 @@ async def create_auth_user(email: str, password: str, username: str) -> uuid.UUI
     return uuid.UUID(response.user.id)
 
 
-async def delete_auth_user(user_id: uuid.UUID) -> None:
+async def delete_auth_user(user_id: uuid.UUID) -> bool:
+    """False if the login is still there, so a caller that can say so does.
+    The create path is already failing its request and ignores this: there the
+    log is all we can offer."""
     try:
         await run_in_threadpool(supabase.auth.admin.delete_user, str(user_id))
     except Exception:
-        # Already failing the request, so log and let the original error stand.
-        logger.exception("Could not roll back orphaned auth user %s", user_id)
+        logger.exception("Could not delete auth user %s", user_id)
+        return False
+    return True
 
 
 WRONG_PASSWORD = HTTPException(
@@ -264,6 +301,14 @@ async def assert_email_available(
         select(Account).where(Account.email == email, Account.id != account_id)
     )
     if clash is None:
+        # Their own id coming back means Supabase already holds the address and
+        # only the mirror is behind, which is the one case worth going ahead on.
+        holder = await auth_login_for_email(session, email)
+        if holder is not None and holder != account_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=STALE_LOGIN.format(email=email),
+            )
         return
 
     raise HTTPException(

@@ -343,6 +343,22 @@ async def delete_account(
             ),
         ) from exc
 
+    # The row is only the mirror - auth.users is what reserves the address, and
+    # the cascade only runs the other way. Left behind, the login keeps the
+    # email forever and nothing here can see why it is refused next time.
+    #
+    # After the commit on purpose: deleting the login cascades into the account
+    # row, which would hit the RESTRICT above inside Supabase instead of as the
+    # 409 that tells the admin to deactivate.
+    if not await account_service.delete_auth_user(target.id):
+        return {
+            "Message": (
+                f"Deleted {target.username}, but their Supabase login is still "
+                f"there. Remove {target.email} from the Supabase dashboard, or "
+                "that address cannot be used again."
+            )
+        }
+
     return {"Message": f"Successfully deleted {target.username}"}
 
 @accountRouter.post("/admin", tags=["Admin"], status_code=status.HTTP_201_CREATED)
