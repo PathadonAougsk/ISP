@@ -19,7 +19,7 @@ const PAGE_SIZE = 10;
 const INCREMENT = 10;
 
 export default function Annoucment() {
-  const { isAdmin, currentUserId: myId } = useCurrentAccount();
+  const { isAdmin } = useCurrentAccount();
   const { members } = useMembers();
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);

@@ -256,7 +256,7 @@ export function TicketList({
 // layout only, the two lists are passed as children
 export default function TaskTicketList({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-w-0 flex-1 shrink-0">
+    <div className="relative flex min-h-[80vh] min-w-0 flex-1 shrink-0">
       <div className="absolute inset-0 grid grid-rows-[minmax(0,auto)_minmax(0,auto)] content-start gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
         {children}
       </div>
