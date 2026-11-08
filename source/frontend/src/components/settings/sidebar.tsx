@@ -23,7 +23,7 @@ export default function Sidebar({
   const [leaving, setLeaving] = useState(false);
 
   return (
-    <aside className="flex w-76.5 shrink-0 flex-col overflow-y-auto border-r border-[#d6d6d6] px-4 py-6">
+    <aside className="flex w-76.5 shrink-0 flex-col overflow-y-auto scrollbar-thin bg-(--panel-bg) px-4 py-6">
       <div className="flex items-stretch gap-3 pl-2">
         <Avatar name={username} className="size-12" />
         <div className="flex flex-col justify-center">
@@ -31,14 +31,6 @@ export default function Sidebar({
           <p className="text-sm font-normal text-gray-500">{role ?? "..."}</p>
         </div>
       </div>
-
-      <label className="mt-4 flex items-center gap-3 border border-[#d0d0d0] bg-[#dedede] px-3 py-2.5 text-[#8a8a8a]">
-        <Icon src="/search.svg" className="size-4 shrink-0" />
-        <input
-          placeholder="Search"
-          className="w-full bg-transparent outline-none placeholder:text-[#8a8a8a]"
-        />
-      </label>
 
       <Nav items={accountNav} active={active} onSelect={onSelect} />
 
@@ -50,9 +42,9 @@ export default function Sidebar({
           void signOut();
         }}
         disabled={leaving}
-        className="mt-auto flex w-full items-center gap-3 px-2 py-2 text-left hover:bg-[#e0e0e0] disabled:opacity-50"
+        className="mt-auto flex w-full items-center gap-3 rounded-full px-4 py-2 text-left font-semibold text-black hover:bg-(--panel-bg-hover) disabled:opacity-50"
       >
-        <Icon src="/logout.svg" className="size-5 shrink-0" />
+        <Icon src="/logout.svg" className="h-5 w-auto shrink-0" />
         <span>{leaving ? "Logging out..." : "Logout"}</span>
       </button>
     </aside>

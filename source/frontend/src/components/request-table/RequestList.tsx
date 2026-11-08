@@ -1,107 +1,47 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type { Category } from "@/lib/category";
 import Icon from "@/components/icon";
-import { ListMessage } from "@/components/dashboard/dashboard-utils";
+import {
+  ListMessage,
+  useListOverflow,
+} from "@/components/dashboard/dashboard-utils";
+import { todayIso } from "@/components/request-table/DateInput";
 import Pagination from "@/components/request-table/Pagination";
 import { formatShortDate, truncateLabel } from "@/lib/format";
-
-// grid class come from caller, full string so tailwind can see it
-// ex: "grid-cols-[1fr_2fr_1fr]"
-const gridBase = "grid flex-1 items-center gap-3";
-
-// green header bar, same look as dashboard. one title per column
-export function RequestListHeader({
-  titles,
-  gridClassName,
-  hasOverflow = false,
-}: {
-  titles: string[];
-  gridClassName: string;
-  hasOverflow?: boolean;
-}) {
-  return (
-    <div
-      className={`flex h-8 shrink-0 items-center gap-5 rounded-[20px] bg-(--primary-color-2) pl-2 ${
-        hasOverflow ? "pr-6" : "pr-4"
-      }`}
-    >
-      <Icon src="/header_donut_dark_green.svg" />
-      <div className={`${gridBase} ${gridClassName}`}>
-        {titles.map((title) => (
-          <h1 key={title} className="truncate text-base font-bold text-white">
-            {title}
-          </h1>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// one clickable white row. lead = mark before cells (icon or dot)
-export function RequestListRow({
-  gridClassName,
-  cells,
-  lead,
-  overdue = false,
-  spacingClassName = "pl-2.5 pr-3.5 gap-5",
-  onClick,
-}: {
-  gridClassName: string;
-  cells: string[];
-  lead?: ReactNode;
-  overdue?: boolean;
-  spacingClassName?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
-        overdue
-          ? "border-(--primary-red) text-red-700"
-          : "border-transparent text-black"
-      }`}
-    >
-      {lead}
-      <div className={`${gridBase} ${gridClassName}`}>
-        {cells.map((cell, index) => (
-          // title show full text when cell is cut
-          <p key={index} className="truncate text-sm" title={cell}>
-            {cell}
-          </p>
-        ))}
-      </div>
-    </button>
-  );
-}
 
 // true when date is before today (local time). empty = false
 export function isPastDate(isoDate: string) {
   if (!isoDate) return false;
 
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-
   // iso string compare is ok
-  return isoDate < `${now.getFullYear()}-${mm}-${dd}`;
+  return isoDate < todayIso();
 }
 
 // due date text for table cell and read only box
 export function formatDueDate(row: { dueDateValue: string; dueDate: string }) {
   return row.dueDateValue
     ? formatShortDate(row.dueDateValue)
-    : row.dueDate || "—";
+    : row.dueDate || "-";
 }
 
 const controlClass =
-  "h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-(--primary-color-2)";
+  "h-9 px-4 rounded-full bg-white text-sm focus:outline-none focus:ring-1 focus:ring-(--primary-color-2)";
+
+// one dropdown filter. both filters use same shape
+type Filter = {
+  key: string;
+  value: string | number;
+  allLabel: string;
+  onChange: (value: string) => void;
+  options: { value: string | number; label: string; title?: string }[];
+};
 
 // whole table panel: title, create btn, filters, header, rows, pagination
-// children get the rows left after search
+// grid class come from caller, full string so tailwind can see it
+// ex: "grid-cols-[1fr_2fr_1fr]"
+// getRow turn one row into its cells + mark before cells (icon or dot)
 export function RequestTableFrame<T extends { id: string; title: string }>({
   title,
   noun,
@@ -116,12 +56,16 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   status,
   onStatusChange,
   statusOptions,
+  search,
+  onSearch,
   page,
   hasNext,
+  totalPages,
   onPageChange,
   titles,
   gridClassName,
-  children,
+  onSelect,
+  getRow,
 }: {
   title: string;
   noun: string;
@@ -136,99 +80,193 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   status: string;
   onStatusChange: (status: string) => void;
   statusOptions: { value: string; label: string }[];
+  search: string;
+  onSearch: (term: string) => void;
   page: number;
   hasNext: boolean;
+  totalPages: number;
   onPageChange: (page: number) => void;
   titles: string[];
   gridClassName: string;
-  children: (rows: T[]) => ReactNode;
+  onSelect: (row: T) => void;
+  getRow: (row: T) => {
+    cells: string[];
+    lead: ReactNode;
+    overdue: boolean;
+    spacingClassName: string;
+  };
 }) {
-  // Search only looks at the rows on the current page
-  const [searchTerm, setSearchTerm] = useState("");
+  // Draft only, search run on Enter. Start from saved search
+  const [draft, setDraft] = useState(search);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const term = searchTerm.toLowerCase();
-  const filteredRows = rows.filter(
-    (row) =>
-      row.title.toLowerCase().includes(term) ||
-      row.id.toLowerCase().includes(term),
-  );
+  // header need more right space when scrollbar show
+  const { listRef, hasOverflow } = useListOverflow([rows.length, loading]);
+
+  const filters: Filter[] = [
+    {
+      key: "category",
+      value: categoryId,
+      allLabel: "All categories",
+      onChange: (v) => onCategoryChange(v === "All" ? "All" : Number(v)),
+      options: categories.map((c) => ({
+        value: c.id,
+        label: truncateLabel(c.name),
+        title: c.name,
+      })),
+    },
+    {
+      key: "status",
+      value: status,
+      allLabel: "All statuses",
+      onChange: onStatusChange,
+      options: statusOptions,
+    },
+  ];
 
   return (
-    <div className="rounded-[30px] bg-(--panel-bg) p-3">
+    <div className="flex flex-col h-full min-h-0 p-3 rounded-t-[30px] bg-(--panel-bg)">
       <div className="flex items-center justify-between mb-3">
-        <h1 className="h-9 text-lg font-semibold flex items-center gap-2">
+        {/* type and create button */}
+        <h1 className="flex items-center gap-3 h-9 pl-4 text-lg font-semibold">
           {title}
           {canCreate && (
             <button
               onClick={onCreate}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-(--primary-color-2) text-white text-2xl hover:bg-(--primary-color-2-hover)"
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-(--primary-color-2) text-2xl text-white hover:bg-(--primary-color-2-hover)"
             >
               +
             </button>
           )}
         </h1>
 
-        <div className="h-9 flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search this page"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`${controlClass} w-100`}
-          />
+        <div className="flex items-center gap-2 h-9">
+          {/* searchbox */}
+          <div className="relative w-100">
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSearch(draft.trim());
+              }}
+              className={`${controlClass} w-full pr-10`}
+            />
+            {draft && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft("");
+                  searchRef.current?.focus();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <Icon src="/close.svg" className="h-3 w-3" />
+              </button>
+            )}
+          </div>
 
-          <select
-            value={categoryId}
-            onChange={(e) =>
-              onCategoryChange(
-                e.target.value === "All" ? "All" : Number(e.target.value),
-              )
-            }
-            className={`${controlClass} w-40 truncate`}
-          >
-            <option value="All">All</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id} title={c.name}>
-                {truncateLabel(c.name)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={status}
-            onChange={(e) => onStatusChange(e.target.value)}
-            className={`${controlClass} w-40 truncate`}
-          >
-            <option value="All">All</option>
-            {statusOptions.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          {/* category filter and status filter*/}
+          {filters.map((f) => (
+            <div key={f.key} className="relative">
+              <select
+                value={f.value}
+                onChange={(e) => f.onChange(e.target.value)}
+                className={`${controlClass} w-40 pr-8 truncate appearance-none cursor-pointer ${
+                  f.value === "All" ? "text-gray-500" : "text-black"
+                }`}
+              >
+                <option value="All">{f.allLabel}</option>
+                {f.options.map((o) => (
+                  <option key={o.value} value={o.value} title={o.title}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <img
+                src="/dropdown_arrow.svg"
+                alt=""
+                className="absolute right-2 top-1/2 w-4 h-4 -translate-y-1/2 pointer-events-none"
+              />
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <RequestListHeader titles={titles} gridClassName={gridClassName} />
+      <div className="flex flex-col flex-1 min-h-0 gap-2">
+        {/* green header bar */}
+        <div
+          className={`flex items-center h-8 shrink-0 gap-5 pl-2 rounded-[20px] bg-(--primary-color-2) ${
+            hasOverflow ? "pr-6" : "pr-4"
+          }`}
+        >
+          <Icon src="/header_donut_dark_green.svg" />
+          <div className={`grid flex-1 items-center gap-3 ${gridClassName}`}>
+            {titles.map((t) => (
+              <h1 key={t} className="truncate text-base font-bold text-white">
+                {t}
+              </h1>
+            ))}
+          </div>
+        </div>
 
-        {children(filteredRows)}
+        {/* row list */}
+        <div
+          ref={listRef}
+          className="flex flex-col flex-1 min-h-0 gap-2 overflow-y-auto scrollbar-thin"
+        >
+          {/* rows hide while loading, so old page dont show */}
+          {!loading &&
+            !error &&
+            rows.map((row) => {
+              const { cells, lead, overdue, spacingClassName } = getRow(row);
 
-        {loading && rows.length === 0 && (
-          <ListMessage>Loading {noun}…</ListMessage>
-        )}
-        {error && !loading && (
-          <ListMessage>
-            Couldn't load {noun}: {error}
-          </ListMessage>
-        )}
-        {!loading && !error && filteredRows.length === 0 && (
-          <ListMessage>No {noun} match your search.</ListMessage>
-        )}
+              return (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => onSelect(row)}
+                  className={`flex items-center w-full h-8 shrink-0 border-2 rounded-[20px] bg-white text-left cursor-pointer hover:bg-gray-100 ${spacingClassName} ${
+                    overdue
+                      ? "border-(--primary-red) text-red-700"
+                      : "border-transparent text-black"
+                  }`}
+                >
+                  {lead}
+                  <div
+                    className={`grid flex-1 items-center gap-3 ${gridClassName}`}
+                  >
+                    {cells.map((cell, index) => (
+                      // title show full text when cell is cut
+                      <p key={index} className="truncate text-sm" title={cell}>
+                        {cell}
+                      </p>
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+
+          {/* message when loading or error */}
+          {loading && <ListMessage>Loading {noun}…</ListMessage>}
+          {error && !loading && (
+            <ListMessage>
+              Couldn't load {noun}: {error}
+            </ListMessage>
+          )}
+          {!loading && !error && rows.length === 0 && (
+            <ListMessage>No {noun} match your search.</ListMessage>
+          )}
+        </div>
       </div>
 
+      {/* footer for page selection */}
       <Pagination
         page={page}
+        totalPages={totalPages}
         hasNext={hasNext}
         loading={loading}
         onChange={onPageChange}

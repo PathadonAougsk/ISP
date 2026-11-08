@@ -29,6 +29,7 @@ export type Task = {
 
 export type TasksResponse = {
   Tasks: Task[];
+  TaskCount?: number;
 };
 
 export type TaskResponse = {
@@ -37,12 +38,14 @@ export type TaskResponse = {
 
 export type GetTasksParams = {
   id?: number;
+  search?: string;
   categories?: number;
   assignsTo?: string;
   notassignsTo?: string;
   status?: TaskStatus;
   due_after?: string;
   due_before?: string;
+  get_count?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -90,7 +93,7 @@ export async function fetchTasks(
   return res.json();
 }
 
-const TASKS_CACHE_TTL = 1 * 60 * 1000;
+const TASKS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
 export const getTasks = cached(
@@ -143,8 +146,8 @@ export function mapBackendTask(
     title: bt.name,
     description: bt.description ?? "",
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
-    assignedTo: bt.assignees.map((a) => a.username).join(", "),
-    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
+    assignedTo: bt.assignees.map((a) => a.username).join(", ") || "Unassigned",
+    createdBy: accountById.get(bt.created_by) ?? "-",
     dueDate: formatShortDateTime(bt.due_date),
     dueDateValue: toDateInputValue(bt.due_date),
     createdDate: formatShortDateTime(bt.created, "created"),
@@ -176,7 +179,11 @@ export async function getTaskRowById(id: number): Promise<TaskRow> {
   return mapBackendTask(task, categoryById, accountById);
 }
 
-export type TaskFilters = { status?: TaskStatus; categoryId?: number };
+export type TaskFilters = {
+  status?: TaskStatus;
+  categoryId?: number;
+  search?: string;
+};
 
 export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -186,8 +193,9 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
   const [tasksReloadKey, setTasksReloadKey] = useState(0);
   // page of the data we hold. differ from page = data is stale
   const [tasksLoadedPage, setTasksLoadedPage] = useState(0);
+  const [tasksTotalPages, setTasksTotalPages] = useState(0);
 
-  const { status, categoryId } = filters;
+  const { status, categoryId, search } = filters;
 
   useEffect(() => {
     if (!enabled) return;
@@ -197,7 +205,13 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
       setTasksLoading(true);
       try {
         const [taskBody, catBody, accBody] = await Promise.all([
-          getTasks({ status, categories: categoryId, ...pageParams(page) }),
+          getTasks({
+            status,
+            categories: categoryId,
+            search,
+            get_count: true,
+            ...pageParams(page),
+          }),
           getCategories().catch(() => null),
           getAccounts().catch(() => null),
         ]);
@@ -215,6 +229,10 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
             rows.map((t) => mapBackendTask(t, categoryById, accountById)),
           );
           setTasksHasNext(hasNext);
+          // limit have 1 extra row for hasNext, so page size = limit - 1
+          setTasksTotalPages(
+            Math.ceil((taskBody.TaskCount ?? 0) / (pageParams(page).limit - 1)),
+          );
           setTasksError(null);
         }
       } catch (err) {
@@ -234,11 +252,12 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, page, status, categoryId, tasksReloadKey]);
+  }, [enabled, page, status, categoryId, search, tasksReloadKey]);
 
   return {
     tasks,
     tasksHasNext,
+    tasksTotalPages,
     // loading also true on the render right after page change
     tasksLoading: tasksLoading || tasksLoadedPage !== page,
     tasksError,

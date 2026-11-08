@@ -12,6 +12,7 @@ import {
   SlideupEdited,
   SlideupError,
   SlideupMeta,
+  renderWithLinks,
 } from "@/components/dashboard/dashboard-utils";
 import {
   SlideupCloseButton,
@@ -84,23 +85,29 @@ export default function TaskSlideup({
       onClose={handleClose}
       className="flex flex-col"
     >
-      <div className="flex justify-end gap-4 pb-2">
-        <RequestTableButton
-          type="task"
-          id={task.id}
-          label="Open in Request-table"
-        />
-        <SlideupCloseButton onClose={handleClose} />
+      <div className="flex items-center justify-between gap-4 pb-2">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-2xl font-bold text-black">Task</h1>
+          <h1 className="text-xl font-semibold text-gray-500">#{task.id}</h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <RequestTableButton
+            type="task"
+            id={task.id}
+            label="Open in Request-table"
+          />
+          <SlideupCloseButton onClose={handleClose} />
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 gap-5">
         <div className="flex min-w-0 flex-1 flex-col">
-          <h1 className="wrap-break-word text-3xl font-bold text-black">
-            {task.name}
+          <h1 className="wrap-break-word text-xl font-bold text-black">
+            {renderWithLinks(task.name)}
           </h1>
 
           <SlideupMeta
-            id={task.id}
             categoryName={categoryMap[task.category_id] ?? "-"}
             createdDate={task.created}
           >
@@ -117,7 +124,7 @@ export default function TaskSlideup({
           <SlideupDescription description={task.description} />
         </div>
 
-        <div className="flex w-72 shrink-0 flex-col">
+        <div className="flex w-9/40 shrink-0 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
             <h1 className="text-base font-bold text-black">
               Responsible person

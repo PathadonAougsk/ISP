@@ -27,17 +27,19 @@ export type Ticket = {
   completed_at: string | null;
 };
 
-export type TicketsResponse = { Tickets: Ticket[] };
+export type TicketsResponse = { Tickets: Ticket[]; TicketCount?: number };
 
 export type GetTicketsParams = {
   ticket_id?: number;
+  search?: string;
   status?: TicketStatus;
   category_id?: number;
   due_after?: string;
-  /** ISO 8601 string, e.g. new Date().toISOString() — FastAPI parses it into a datetime. */
+  /** ISO 8601 string, e.g. new Date().toISOString() - FastAPI parses it into a datetime. */
   due_before?: string;
   onlyOwned?: boolean;
   notOwned?: boolean;
+  get_count?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -81,7 +83,7 @@ export async function fetchTickets(
   return res.json();
 }
 
-const TICKETS_CACHE_TTL = 1 * 60 * 1000;
+const TICKETS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
 export const getTickets = cached(
@@ -152,10 +154,8 @@ export function mapBackendTicket(
     lastUpdate: formatShortDateTime(bt.updated, "updated"),
     category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
     description: bt.description ?? "",
-    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
-    assignedTo: bt.assigned_id
-      ? (accountById.get(bt.assigned_id) ?? bt.assigned_id)
-      : "",
+    createdBy: accountById.get(bt.created_by) ?? "-",
+    assignedTo: bt.assigned_id ? (accountById.get(bt.assigned_id) ?? "-") : "",
     categoryId: bt.category_id,
     createdById: bt.created_by,
   };
@@ -188,7 +188,11 @@ export async function getTicketRowById(
   return mapBackendTicket(ticket, categoryById, accountById);
 }
 
-export type TicketFilters = { status?: TicketStatus; categoryId?: number };
+export type TicketFilters = {
+  status?: TicketStatus;
+  categoryId?: number;
+  search?: string;
+};
 
 export function useTickets(
   userRole: UserRole,
@@ -204,8 +208,9 @@ export function useTickets(
   const [ticketsReloadKey, setTicketsReloadKey] = useState(0);
   // page of the data we hold. differ from page = data is stale
   const [ticketsLoadedPage, setTicketsLoadedPage] = useState(0);
+  const [ticketsTotalPages, setTicketsTotalPages] = useState(0);
 
-  const { status, categoryId } = filters;
+  const { status, categoryId, search } = filters;
 
   useEffect(() => {
     if (meLoading || !enabled) return;
@@ -219,6 +224,8 @@ export function useTickets(
             ...(userRole === "Lab Admin" ? {} : { onlyOwned: true }),
             status,
             category_id: categoryId,
+            search,
+            get_count: true,
             ...pageParams(page),
           }),
           getCategories().catch(() => null),
@@ -238,6 +245,12 @@ export function useTickets(
             rows.map((t) => mapBackendTicket(t, categoryById, accountById)),
           );
           setTicketsHasNext(hasNext);
+          // limit have 1 extra row for hasNext, so page size = limit - 1
+          setTicketsTotalPages(
+            Math.ceil(
+              (ticketBody.TicketCount ?? 0) / (pageParams(page).limit - 1),
+            ),
+          );
           setTicketsError(null);
         }
       } catch (err) {
@@ -264,12 +277,14 @@ export function useTickets(
     page,
     status,
     categoryId,
+    search,
     ticketsReloadKey,
   ]);
 
   return {
     tickets,
     ticketsHasNext,
+    ticketsTotalPages,
     // loading also true on the render right after page change
     ticketsLoading: ticketsLoading || ticketsLoadedPage !== page,
     ticketsError,

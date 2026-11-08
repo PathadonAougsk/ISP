@@ -1,70 +1,65 @@
 "use client";
-import { useRef } from "react";
 
-export default function Pagination({
-  page,
-  hasNext,
-  loading,
-  onChange,
-}: {
+type PaginationProps = {
   page: number;
+  totalPages: number;
   hasNext: boolean;
   loading: boolean;
   onChange: (page: number) => void;
-}) {
-  // remember last shown button + busy state
-  const st = useRef({ page, last: page, busy: false, seen: false });
-  const s = st.current;
+};
 
-  // page changed, hasNext still stale so wait
-  if (page !== s.page) {
-    s.page = page;
-    s.busy = true;
-    s.seen = false;
-  }
-  // busy end after one full loading cycle
-  if (loading) s.seen = true;
-  if (s.busy && s.seen && !loading) s.busy = false;
+// page numbers show in block of 10, ex: 1-10, 11-20
+const BLOCK_SIZE = 10;
 
-  // waiting: keep old buttons, no guess next
-  const wait = loading || s.busy;
-  const last = wait ? Math.max(page, s.last) : page + (hasNext ? 1 : 0);
-  if (!wait) s.last = last;
+export default function Pagination({
+  page,
+  totalPages,
+  hasNext,
+  loading,
+  onChange,
+}: PaginationProps) {
+  const base = "min-w-9 h-9 px-3 rounded-full text-sm disabled:text-gray-500";
+  const circle =
+    "flex items-center justify-center w-9 h-9 rounded-full text-sm";
 
-  const first = Math.max(1, last - 6);
-  const numbers = Array.from({ length: last - first + 1 }, (_, i) => first + i);
-
-  const base = "min-w-9 h-9 px-3 rounded-full text-sm disabled:opacity-40";
+  const start = Math.floor((page - 1) / BLOCK_SIZE) * BLOCK_SIZE + 1;
+  const end = Math.min(start + BLOCK_SIZE - 1, Math.max(totalPages, page));
+  const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
-    <div className="flex items-center justify-center gap-1 mt-3">
+    <div className="flex flex-row items-center justify-center gap-3 mt-3">
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1 || loading}
-        className={`${base} hover:bg-white`}
+        className={`${base} font-medium enabled:hover:bg-gray-50 enabled:hover:text-gray-700 enabled:bg-white`}
       >
         Prev
       </button>
 
-      {numbers.map((n) => (
-        <button
-          key={n}
-          onClick={() => onChange(n)}
-          disabled={loading || n === page}
-          className={
-            n === page
-              ? `${base} bg-(--primary-color-2) text-white opacity-100!`
-              : `${base} hover:bg-white`
-          }
-        >
-          {n}
-        </button>
-      ))}
+      {pages.map((p) =>
+        p === page ? (
+          <p
+            key={p}
+            className={`${circle} font-semibold bg-(--primary-color-2) text-white`}
+          >
+            {p}
+          </p>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            disabled={loading}
+            className={`${circle} font-medium bg-white text-black enabled:hover:bg-gray-50 disabled:opacity-50`}
+          >
+            {p}
+          </button>
+        ),
+      )}
 
       <button
         onClick={() => onChange(page + 1)}
         disabled={!hasNext || loading}
-        className={`${base} hover:bg-white`}
+        className={`${base} font-medium enabled:hover:bg-gray-50 enabled:hover:text-gray-700 enabled:bg-white`}
       >
         Next
       </button>

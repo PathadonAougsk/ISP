@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { putTicket, type TicketRow } from "@/lib/ticket";
 import { postTask } from "@/lib/task";
@@ -57,6 +58,13 @@ export default function TicketDetailModal({
   const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
   const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
 
+  const hasChanges =
+    editTicketTitle.trim() !== ticket.title ||
+    (editTicketDescription || "") !== (ticket.description || "") ||
+    (editTicketDueDate || "") !== (ticket.dueDateValue || "") ||
+    editTicketCategoryId !== ticket.categoryId ||
+    ticket.status === "Rejected";
+
   async function handleDecision(
     newStatus: TicketRow["status"],
     close: () => void,
@@ -80,13 +88,9 @@ export default function TicketDetailModal({
       return;
     }
 
-    const backendStatus = newStatus === "Accepted" ? "accepted" : "rejected";
-    const previousStatus =
-      ticket.status === "Accepted"
-        ? "accepted"
-        : ticket.status === "Rejected"
-          ? "rejected"
-          : "pending";
+    // "Accepted" -> "accepted", backend use lowercase
+    const backendStatus = newStatus.toLowerCase();
+    const previousStatus = ticket.status.toLowerCase();
 
     const ok = await run(async () => {
       // 1. Save the edits and the new status together
@@ -121,12 +125,13 @@ export default function TicketDetailModal({
 
     if (ok) {
       onSaved();
-      setAssignedMemberIds([]);
       close();
     }
   }
 
   async function handleUpdateTicket(close: () => void) {
+    if (!hasChanges) return;
+
     if (!editTicketTitle.trim() || editTicketCategoryId === "") {
       setError("Title and category are required.");
       return;
@@ -161,7 +166,7 @@ export default function TicketDetailModal({
             <FormButton
               color="green"
               onClick={() => handleUpdateTicket(close)}
-              disabled={saving}
+              disabled={saving || !hasChanges}
             >
               {saving ? "Saving…" : "Save Changes"}
             </FormButton>
@@ -193,13 +198,20 @@ export default function TicketDetailModal({
           label="Title"
           value={editTicketTitle}
           onChange={setEditTicketTitle}
+          placeholder="Enter a title"
           readOnly={!canEditTicket}
         />
 
         <div className="flex gap-4">
+          <TextField
+            label="Created By"
+            className="w-[40%] min-w-0"
+            value={ticket.createdBy}
+            readOnly
+          />
           <SelectField
             label="Category"
-            className="flex-1 min-w-0"
+            className="w-[40%] min-w-0"
             value={editTicketCategoryId}
             onChange={setEditTicketCategoryId}
             categories={categories}
@@ -208,7 +220,7 @@ export default function TicketDetailModal({
           />
           <DateField
             label="Due Date"
-            className="flex-1 min-w-0"
+            className="w-[20%] min-w-0"
             value={editTicketDueDate}
             onChange={setEditTicketDueDate}
             readOnly={!canEditTicket}
@@ -220,10 +232,9 @@ export default function TicketDetailModal({
           label="Description"
           value={editTicketDescription}
           onChange={setEditTicketDescription}
+          placeholder="Add more details"
           readOnly={!canEditTicket}
         />
-
-        <TextField label="Created By" value={ticket.createdBy} readOnly />
       </FormColumn>
 
       {canJudge && ticket.status !== "Accepted" && (

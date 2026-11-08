@@ -27,12 +27,13 @@ import {
   useSlideupClose,
 } from "@/components/modal-slideup";
 import { Toggle } from "@/components/dashboard/overview";
+import { usePathname } from "next/navigation";
 
 type Tab = "ticket" | "task";
 
-// remove ?type=&id= from url, so refresh dont reopen the modal
+// remove /type/id from url, so refresh dont reopen the modal
 function clearLinkParams() {
-  window.history.replaceState(null, "", window.location.pathname);
+  window.history.replaceState(null, "", "/request-table");
 }
 
 // shown when the id from the url cant be fetched
@@ -70,14 +71,22 @@ export default function RequestTable() {
   const [ticketCategoryId, setTicketCategoryId] = useState<number | "All">(
     "All",
   );
+  const [ticketSearch, setTicketSearch] = useState("");
   const [taskPage, setTaskPage] = useState(1);
   const [taskStatus, setTaskStatus] = useState<TaskStatus | "All">("All");
   const [taskCategoryId, setTaskCategoryId] = useState<number | "All">("All");
+  const [taskSearch, setTaskSearch] = useState("");
 
-  const { loading: meLoading, userRole, account } = useCurrentAccount();
+  const {
+    loading: meLoading,
+    userRole,
+    account,
+    currentUserId,
+  } = useCurrentAccount();
   const {
     tickets,
     ticketsHasNext,
+    ticketsTotalPages,
     ticketsLoading,
     ticketsError,
     setTicketsReloadKey,
@@ -88,33 +97,45 @@ export default function RequestTable() {
     {
       status: ticketStatus === "All" ? undefined : ticketStatus,
       categoryId: ticketCategoryId === "All" ? undefined : ticketCategoryId,
+      search: ticketSearch || undefined,
     },
     tab === "ticket",
   );
-  const { tasks, tasksHasNext, tasksLoading, tasksError, setTasksReloadKey } =
-    useTasks(
-      taskPage,
-      {
-        status: taskStatus === "All" ? undefined : taskStatus,
-        categoryId: taskCategoryId === "All" ? undefined : taskCategoryId,
-      },
-      tab === "task",
-    );
+  const {
+    tasks,
+    tasksHasNext,
+    tasksTotalPages,
+    tasksLoading,
+    tasksError,
+    setTasksReloadKey,
+  } = useTasks(
+    taskPage,
+    {
+      status: taskStatus === "All" ? undefined : taskStatus,
+      categoryId: taskCategoryId === "All" ? undefined : taskCategoryId,
+      search: taskSearch || undefined,
+    },
+    tab === "task",
+  );
   const { members, membersLoading, membersError } = useMembers();
   const { categories } = useCategories();
 
-  const { currentUserId } = useCurrentAccount();
+  const pathname = usePathname();
 
   // open modal from link such as /request-table?type=task&id=12
   useEffect(() => {
     if (meLoading) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get("type");
-    const id = Number(params.get("id"));
+    const segments = pathname.split("/");
+    const type = segments[2];
+    const id = Number(segments[3]);
 
-    if ((type !== "task" && type !== "ticket") || !Number.isInteger(id)) return;
-    if (id <= 0) return;
+    if (
+      (type !== "task" && type !== "ticket") ||
+      !Number.isInteger(id) ||
+      id <= 0
+    )
+      return;
 
     let cancelled = false;
     setTab(type);
@@ -138,21 +159,21 @@ export default function RequestTable() {
     return () => {
       cancelled = true;
     };
-  }, [meLoading, userRole]);
+  }, [meLoading, userRole, pathname]);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <div className="p-6 space-y-6">
-        <Toggle
-          options={[
-            { label: "Tickets", onClick: () => setTab("ticket") },
-            { label: "Tasks", onClick: () => setTab("task") },
-          ]}
-          selectedIndex={tab === "ticket" ? 0 : 1}
-          ariaLabel="Request table tab"
-          widthClassName="w-64"
-        />
+    <div className="flex h-full w-full flex-col gap-3 bg-white px-5 pt-5 text-gray-900">
+      <Toggle
+        options={[
+          { label: "Tickets", onClick: () => setTab("ticket") },
+          { label: "Tasks", onClick: () => setTab("task") },
+        ]}
+        selectedIndex={tab === "ticket" ? 0 : 1}
+        ariaLabel="Request table tab"
+        widthClassName="w-64"
+      />
 
+      <div className="min-h-0 flex-1">
         {tab === "ticket" ? (
           <TicketTable
             tickets={tickets}
@@ -169,8 +190,14 @@ export default function RequestTable() {
               setTicketCategoryId(id);
               setTicketPage(1);
             }}
+            search={ticketSearch}
+            onSearch={(s) => {
+              setTicketSearch(s);
+              setTicketPage(1);
+            }}
             page={ticketPage}
             hasNext={ticketsHasNext}
+            totalPages={ticketsTotalPages}
             onPageChange={setTicketPage}
             onSelect={setSelectedTicket}
             onCreate={() => setIsCreatingTicket(true)}
@@ -193,8 +220,14 @@ export default function RequestTable() {
               setTaskCategoryId(id);
               setTaskPage(1);
             }}
+            search={taskSearch}
+            onSearch={(s) => {
+              setTaskSearch(s);
+              setTaskPage(1);
+            }}
             page={taskPage}
             hasNext={tasksHasNext}
+            totalPages={tasksTotalPages}
             onPageChange={setTaskPage}
             onSelect={setSelectedTask}
             onCreate={() => setIsCreatingTask(true)}

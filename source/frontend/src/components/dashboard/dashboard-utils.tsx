@@ -75,7 +75,7 @@ export const listGridClass =
 // loading, error or empty text for a list
 export function ListMessage({ children }: { children: ReactNode }) {
   return (
-    <p className="py-6 text-center text-base font-medium text-gray-500">
+    <p className="py-6 text-center text-base font-medium text-gray-400">
       {children}
     </p>
   );
@@ -96,10 +96,10 @@ export function LoadMoreButton({
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className={`relative z-10 rounded-full border border-gray-300 bg-white px-4 py-1 text-sm font-medium text-gray-500 ${
+        className={`relative z-10 rounded-full border border-gray-300 px-4 py-1 text-sm font-medium text-gray-500 ${
           disabled
-            ? "cursor-wait opacity-60"
-            : "cursor-pointer hover:bg-gray-100"
+            ? "cursor-wait bg-gray-100"
+            : "cursor-pointer bg-white hover:bg-gray-100"
         }`}
       >
         Load More
@@ -281,10 +281,10 @@ export function RequestTableButton({
       type="button"
       onClick={() => {
         setRedirecting(true);
-        router.push(`/request-table?type=${type}&id=${id}`);
+        router.push(`/request-table/${type}/${id}`);
       }}
       disabled={redirecting}
-      className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
+      className={`flex h-7.5 w-50 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
         redirecting
           ? "cursor-wait bg-gray-700"
           : "cursor-pointer bg-black hover:bg-gray-700"
@@ -297,19 +297,16 @@ export function RequestTableButton({
 
 // id + category + created date row. children are extra items added at the end
 export function SlideupMeta({
-  id,
   categoryName,
   createdDate,
   children,
 }: {
-  id: number;
   categoryName: string;
   createdDate: string | null;
   children?: ReactNode;
 }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
-      <span className="font-bold">#{id}</span>
       <div className="flex items-center gap-2">
         <Icon src="/header_donut_gray.svg" />
         <span>{categoryName}</span>

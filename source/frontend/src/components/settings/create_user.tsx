@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { adminCreateAccount, type UserKind } from "@/lib/account";
+import { Toggle } from "@/components/dashboard/overview";
+import { CARD, ERROR, FIELD, LABEL, MUTED, SAVE, BTN } from "./settings-style";
 
 const DEFAULT_TRIAL_QUOTA = 10;
 const MIN_PASSWORD = 8;
@@ -19,10 +21,6 @@ const KINDS: { value: UserKind; label: string; blurb: string }[] = [
     blurb: "Capped at a ticket quota, counted down as they file tickets.",
   },
 ];
-
-const FIELD =
-  "h-10 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a] disabled:opacity-50";
-const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
 
 type Handover = { username: string; email: string; password: string };
 
@@ -98,31 +96,24 @@ export default function CreateUser({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={CARD}>
       <div className="flex flex-col gap-1.5">
-        <p>Create A User</p>
-        <p className="text-[#8a8a8a]">Create a user here!</p>
+        <p className="font-semibold">Create A User</p>
+        <p className={MUTED}>Create a user here!</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex gap-0.5">
-          {KINDS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setKind(option.value)}
-              className={`h-10 w-30 text-base ${
-                kind === option.value
-                  ? "bg-(--primary-color-2) text-white"
-                  : "bg-[#d4d4d4] hover:bg-[#c8c8c8]"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <Toggle
+          options={KINDS.map((option) => ({
+            label: option.label,
+            onClick: () => setKind(option.value),
+          }))}
+          selectedIndex={KINDS.findIndex((k) => k.value === kind)}
+          ariaLabel="User kind"
+          widthClassName="w-60"
+        />
 
-        <p className="text-[#8a8a8a]">
+        <p className={MUTED}>
           {KINDS.find((k) => k.value === kind)?.blurb} They join as a Lab User
           and can sign in straight away - nothing is emailed, so pass the
           credentials on to them yourself.
@@ -183,15 +174,11 @@ export default function CreateUser({
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={!ready || busy}
-            className="h-10 w-30 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
-          >
+          <button type="submit" disabled={!ready || busy} className={SAVE}>
             {busy ? "Creating..." : "Create"}
           </button>
           {password.length > 0 && password.length < MIN_PASSWORD && (
-            <span className="text-[#8a8a8a]">
+            <span className={MUTED}>
               Password needs {MIN_PASSWORD - password.length} more character
               {MIN_PASSWORD - password.length === 1 ? "" : "s"}.
             </span>
@@ -199,23 +186,25 @@ export default function CreateUser({
         </div>
       </form>
 
-      {error && <p className="text-[#b3261e]">{error}</p>}
+      {error && <p className={ERROR}>{error}</p>}
 
       {handover && (
-        <div className="flex flex-col gap-2 border border-(--primary-color-2) bg-(--panel-bg) p-4">
-          <p>{handover.username} can sign in now. Pass these on:</p>
-          <p className="text-[#8a8a8a]">
-            Email <span className="text-[#1a1a1a]">{handover.email}</span>
-            {" · "}
-            Password <span className="text-[#1a1a1a]">{handover.password}</span>
+        <div className="flex flex-col gap-2 rounded-[20px] border-2 border-(--primary-color-2) bg-white p-4">
+          <p className="font-semibold">
+            {handover.username} can sign in now. Pass these on:
           </p>
-          <p className="text-[#8a8a8a]">
+          <p className={MUTED}>
+            Email <span className="text-black">{handover.email}</span>
+            {" · "}
+            Password <span className="text-black">{handover.password}</span>
+          </p>
+          <p className={MUTED}>
             This is the only time the password is shown. Closing this clears it.
           </p>
           <button
             type="button"
             onClick={() => setHandover(null)}
-            className="h-10 w-25 self-start bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+            className={`${BTN} w-25 self-start`}
           >
             Dismiss
           </button>

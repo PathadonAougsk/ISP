@@ -4,13 +4,29 @@ import { useEffect, useRef, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
 import { formatShortDateTime } from "@/lib/format";
+import Icon from "@/components/icon";
+import {
+  BTN,
+  ERROR,
+  FIELD,
+  HEAD,
+  LIST_PANEL,
+  MESSAGE,
+  MUTED,
+  ROW,
+  SELECT,
+  TITLE,
+} from "./settings-style";
 
 // The log is written by hand, one row per changed column, by whichever endpoint
 // made the change so these are the only tables that can show up.
 const TABLES = ["account", "category", "ticket", "task"];
 
 // One screenful. The server caps `limit` at 500 either way.
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
+
+// fr cols. grid! because HEAD and ROW are flex
+const COLS = "grid! grid-cols-[0.6fr_1.6fr_1.1fr_1fr_0.9fr_4fr]";
 
 // A deleted account leaves by_whom null, and a create or a delete leaves one
 // side of the change null, so neither of those is an error worth shouting about.
@@ -63,7 +79,9 @@ export default function Log({
         if (requestId.current !== id) return;
         setEntries([]);
         setHasMore(false);
-        setError(err instanceof Error ? err.message : "Could not load the log.");
+        setError(
+          err instanceof Error ? err.message : "Could not load the log.",
+        );
       })
       .finally(() => {
         // Clears the loading state - on an error too, the message takes over.
@@ -118,30 +136,28 @@ export default function Log({
   );
 
   return (
-    <section className="flex flex-col gap-7">
-      <h2 className="text-[28px] leading-tight">Log</h2>
+    <section className="flex flex-col gap-5">
+      <h1 className={TITLE}>Log</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p>Every Change Made In Your Lab</p>
-        <p className="text-[#8a8a8a]">
+        <p className="font-semibold">Every Change Made In Your Lab</p>
+        <p className={MUTED}>
           One line per changed column, newest first. Nothing here can be edited
           or removed.
         </p>
       </div>
 
       {accountLoading ? (
-        <p className="text-[#8a8a8a]">Loading...</p>
+        <p className={MUTED}>Loading...</p>
       ) : !isAdmin ? (
-        <p className="text-[#8a8a8a]">
-          Only a Lab Owner or Lab Admin can read the log.
-        </p>
+        <p className={MUTED}>Only a Lab Owner or Lab Admin can read the log.</p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-lg">
+            <p className="text-lg font-semibold">
               All Entries
               {!loading && !error && (
-                <span className="text-[#8a8a8a]">
+                <span className={MUTED}>
                   {" "}
                   ({entries.length}
                   {hasMore ? "+" : ""})
@@ -149,11 +165,11 @@ export default function Log({
               )}
             </p>
 
-            <div className="flex items-center gap-3">
+            <div className="relative w-32.5">
               <select
                 value={table}
                 onChange={(e) => setTable(e.target.value)}
-                className="h-10 w-32.5 border border-[#d0d0d0] bg-[#dedede] px-2 outline-none"
+                className={`${SELECT} w-full appearance-none cursor-pointer pr-8`}
               >
                 <option value="">All tables</option>
                 {TABLES.map((name) => (
@@ -162,77 +178,63 @@ export default function Log({
                   </option>
                 ))}
               </select>
-
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search this page"
-                className="h-10 w-62.5 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
+              <Icon
+                src="/dropdown_arrow.svg"
+                className="absolute right-2.5 top-1/2 h-4 w-auto shrink-0 -translate-y-1/2 pointer-events-none"
               />
             </div>
           </div>
 
-          {error && <p className="text-[#b3261e]">{error}</p>}
+          {error && <p className={ERROR}>{error}</p>}
 
-          {/* Six columns in 700px of monospace, hence text-sm rows and a title
-              on every column that can truncate. Only account row_ids are
-              UUIDs - category, ticket and task ids are small integers. */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-3 border-b border-[#d0d0d0] pb-2 text-sm text-[#8a8a8a] uppercase">
-              <span className="w-15 shrink-0">Row</span>
-              <span className="w-50 shrink-0">When</span>
-              <span className="w-27.5 shrink-0">Who</span>
-              <span className="w-20 shrink-0">Table</span>
-              <span className="w-22.5 shrink-0">Column</span>
-              <span className="flex-1">Change</span>
+          {/* Six columns, hence text-sm rows and a title on every column that
+              can truncate. Only account row_ids are UUIDs - category, ticket
+              and task ids are small integers. */}
+          <div className={LIST_PANEL}>
+            <div className={`${HEAD} ${COLS}`}>
+              <span>Row ID</span>
+              <span>When</span>
+              <span>Who</span>
+              <span>Table</span>
+              <span>Column</span>
+              <span>Change</span>
             </div>
 
             {loading ? (
-              <p className="py-4 text-[#8a8a8a]">Loading...</p>
+              <p className={MESSAGE}>Loading...</p>
             ) : visible.length === 0 ? (
-              <p className="py-4 text-[#8a8a8a]">
+              <p className={MESSAGE}>
                 {entries.length === 0
                   ? "Nothing has been logged yet."
                   : "No entries match that search."}
               </p>
             ) : (
               visible.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-3 border-b border-[#e0e0e0] py-3 text-sm"
-                >
-                  <span
-                    className="w-15 shrink-0 truncate"
-                    title={entry.row_id ?? undefined}
-                  >
+                <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
+                  <span className="truncate" title={entry.row_id ?? undefined}>
                     {valueOf(entry.row_id)}
                   </span>
-                  <span className="w-50 shrink-0">
-                    {formatShortDateTime(entry.occurred_at)}
-                  </span>
+                  <span>{formatShortDateTime(entry.occurred_at)}</span>
                   <span
-                    className="w-27.5 shrink-0 truncate"
+                    className="truncate"
                     title={entry.by_username ?? undefined}
                   >
                     {entry.by_username ?? (
-                      <span className="text-[#8a8a8a]">Deleted account</span>
+                      <span className="text-gray-500">Deleted account</span>
                     )}
                   </span>
-                  <span className="w-20 shrink-0">{entry.from_table}</span>
-                  <span
-                    className="w-22.5 shrink-0 truncate"
-                    title={entry.column_name}
-                  >
+                  <span>{entry.from_table}</span>
+                  <span className="truncate" title={entry.column_name}>
                     {entry.column_name}
                   </span>
                   <span
-                    className="flex-1 truncate"
+                    className="truncate"
                     title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
                   >
-                    <span className="text-[#8a8a8a]">
+                    <span className="text-gray-500">
                       {valueOf(entry.old_value)}
                     </span>
-                    <span className="px-2 text-[#8a8a8a]">&rarr;</span>
+                    <span className="px-2 text-gray-500">&rarr;</span>
                     {valueOf(entry.new_value)}
                   </span>
                 </div>
@@ -245,7 +247,7 @@ export default function Log({
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="h-10 w-full bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+              className={`${BTN} w-full`}
             >
               {loadingMore ? "Loading..." : "Load more"}
             </button>

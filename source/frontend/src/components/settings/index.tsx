@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useCurrentAccount } from "@/lib/account";
 import Icon from "@/components/icon";
@@ -15,6 +15,7 @@ import Log from "./log";
 // sidebar.tsx contain user profile and nav
 // nav.tsx basically all the clickble goody that could change the contents
 // row.tsx reuseable components.
+// settings-style.ts all the shared tailwind classes, change look here first.
 //
 // So if you want to add another new features
 // make the function and put it in nav.tsx and const panels (This file)
@@ -39,24 +40,51 @@ export default function Settings({
     Log: <Log isAdmin={isAdmin} accountLoading={loading} />,
   };
 
+  // closing = play pop out first, then really close
+  const [closing, setClosing] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // must match duration-150 below
+  const handleClose = useCallback(() => {
+    if (timerRef.current !== null) return;
+    setClosing(true);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      onClose();
+      setClosing(false);
+    }, 150);
+  }, [onClose]);
+
+  // stop timer if unmount early
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && handleClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, handleClose]);
 
   if (!open) return null;
 
+  // starting: = pop in on mount, closing = pop out. no css file change needed
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 font-mono"
-      onClick={onClose}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px] transition-opacity duration-150 starting:opacity-0 ${
+        closing ? "opacity-0" : ""
+      }`}
+      onClick={handleClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="flex h-[92vh] w-[92vw] overflow-hidden border border-(--primary-color-2) bg-[#ececec] text-[#1a1a1a] shadow-xl"
+        className={`flex h-[92vh] w-[92vw] overflow-hidden rounded-[30px] bg-white text-black transition duration-150 ease-out starting:scale-95 starting:opacity-0 ${
+          closing ? "scale-95 opacity-0" : ""
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <Sidebar
@@ -68,20 +96,22 @@ export default function Settings({
 
         {/* Content */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex items-center justify-between border-b border-[#d6d6d6] px-4 py-4">
-            <h1 className="text-base">{active}</h1>
+          <header className="flex items-start justify-between px-8 pt-6">
+            <h1 className="text-2xl font-bold text-black">{active}</h1>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Close settings"
-              className="p-1 hover:bg-[#dcdcdc]"
+              className="group flex items-center justify-center"
             >
-              <Icon src="/close.svg" className="size-5" />
+              <span className="flex size-9 items-center justify-center rounded-full group-hover:bg-gray-200">
+                <Icon src="/close.svg" className="h-4 w-auto shrink-0" />
+              </span>
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-8">
-            <div className="mx-auto max-w-175 py-20">{panels[active]}</div>
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-8">
+            <div className="mx-auto max-w-9/10 py-8">{panels[active]}</div>
           </div>
         </div>
       </div>

@@ -1,4 +1,8 @@
+"use client";
+
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
+import { cached, withoutPagination } from "@/lib/cache/cache";
+import { buildQuery } from "@/lib/query";
 
 export type Announcement = {
   id: number;
@@ -18,8 +22,16 @@ export type CreateAnnouncementInput = {
   description: string;
 };
 
-export async function getAnnouncements(): Promise<Announcement[]> {
-  const res = await apiFetch("/announcement/");
+export type GetAnnouncementsParams = {
+  limit?: number;
+  offset?: number;
+};
+
+export async function fetchAnnouncements(
+  params: GetAnnouncementsParams = {},
+): Promise<Announcement[]> {
+  const qs = buildQuery(params).toString();
+  const res = await apiFetch(`/announcement/${qs ? `?${qs}` : ""}`);
   await apiOrThrow(res, "Could not load announcements.");
 
   const { Announcements } = (await res.json()) as AnnouncementsResponse;
@@ -30,14 +42,39 @@ export async function getAnnouncements(): Promise<Announcement[]> {
   );
 }
 
-// TODO: backend POST is still a stub, wont save until its done
+const ANNOUNCEMENTS_CACHE_TTL = 5 * 60 * 1000;
+
+// same filters share expiration, different limits share the same family
+export const getAnnouncements = cached(
+  fetchAnnouncements,
+  ANNOUNCEMENTS_CACHE_TTL,
+  "announcements",
+  withoutPagination,
+);
+
 export async function createAnnouncement(
   input: CreateAnnouncementInput,
 ): Promise<void> {
   const res = await apiSendJson("/announcement/", "POST", input);
   await apiOrThrow(res, "Could not create the announcement.");
+
+  // data changed, so drop cached lists
+  getAnnouncements.clear();
 }
 
-// TODO: getAnnouncement(id) -> GET /announcement/{id}
-// TODO: updateAnnouncement(id, patch) -> PUT /announcement/{id}
-// TODO: deleteAnnouncement(id) -> DELETE /announcement/{id}
+export async function updateAnnouncement(
+  id: number,
+  input: CreateAnnouncementInput,
+): Promise<void> {
+  const res = await apiSendJson(`/announcement/${id}`, "PUT", input);
+  await apiOrThrow(res, "Could not update the announcement.");
+
+  getAnnouncements.clear();
+}
+
+export async function deleteAnnouncement(id: number): Promise<void> {
+  const res = await apiFetch(`/announcement/${id}`, { method: "DELETE" });
+  await apiOrThrow(res, "Could not delete the announcement.");
+
+  getAnnouncements.clear();
+}
