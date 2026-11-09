@@ -1,13 +1,15 @@
 "use client";
-import type { TicketRow, TicketStatus } from "@/lib/ticket";
+
+import type { TicketRow } from "@/lib/ticket";
 import type { Category } from "@/lib/category";
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
 import { ticketStatusIcon } from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
-  isPastDate,
   RequestTableFrame,
+  type TableFilters,
 } from "@/components/request-table/RequestList";
+import { isPastDate } from "@/lib/format";
 
 const titles = [
   "ID",
@@ -34,16 +36,11 @@ export default function TicketTable({
   loading,
   error,
   categories,
-  status,
-  onStatusChange,
-  categoryId,
-  onCategoryChange,
-  search,
-  onSearch,
-  page,
+  filters,
+  onFilterChange,
+  onPageChange,
   hasNext,
   totalPages,
-  onPageChange,
   onSelect,
   onCreate,
   canCreate,
@@ -52,16 +49,11 @@ export default function TicketTable({
   loading: boolean;
   error: string | null;
   categories: Category[];
-  status: TicketStatus | "All";
-  onStatusChange: (status: TicketStatus | "All") => void;
-  categoryId: number | "All";
-  onCategoryChange: (id: number | "All") => void;
-  search: string;
-  onSearch: (term: string) => void;
-  page: number;
+  filters: TableFilters;
+  onFilterChange: (patch: Partial<Omit<TableFilters, "page">>) => void;
+  onPageChange: (page: number) => void;
   hasNext: boolean;
   totalPages: number;
-  onPageChange: (page: number) => void;
   onSelect: (ticket: TicketRow) => void;
   onCreate: () => void;
   canCreate: boolean;
@@ -76,17 +68,12 @@ export default function TicketTable({
       canCreate={canCreate}
       onCreate={onCreate}
       categories={categories}
-      categoryId={categoryId}
-      onCategoryChange={onCategoryChange}
-      status={status}
-      onStatusChange={(s) => onStatusChange(s as TicketStatus | "All")}
       statusOptions={statusOptions}
-      search={search}
-      onSearch={onSearch}
-      page={page}
+      filters={filters}
+      onFilterChange={onFilterChange}
+      onPageChange={onPageChange}
       hasNext={hasNext}
       totalPages={totalPages}
-      onPageChange={onPageChange}
       titles={titles}
       gridClassName={gridClassName}
       onSelect={onSelect}

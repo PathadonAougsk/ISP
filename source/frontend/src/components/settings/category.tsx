@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+
 import {
   createCategory,
   deleteCategory,
@@ -7,18 +9,15 @@ import {
   updateCategory,
   type Category,
 } from "@/lib/category";
-import { useCallback, useEffect, useState } from "react";
+import Button from "@/components/ui/button";
+import { TextInput } from "@/components/ui/field";
 import {
-  BTN,
-  DANGER,
   ERROR,
-  FIELD,
   HEAD,
   LIST_PANEL,
   MESSAGE,
   MUTED,
   ROW,
-  SAVE,
   TITLE,
 } from "./settings-style";
 
@@ -105,15 +104,22 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
       {isAdmin ? (
         <form onSubmit={handleCreate} className="flex items-center gap-3">
-          <input
+          <TextInput
+            look="outlined"
             value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            onChange={setNewName}
             placeholder="New category name"
-            className={`${FIELD} flex-1`}
+            className="flex-1"
           />
-          <button type="submit" className={SAVE} disabled={!newName.trim()}>
+          <Button
+            variant="green"
+            size="md"
+            type="submit"
+            disabled={!newName.trim()}
+            className="min-w-25 px-4 font-bold"
+          >
             Add
-          </button>
+          </Button>
         </form>
       ) : (
         <p className={MUTED}>
@@ -123,11 +129,12 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg font-semibold">All Categories</p>
-        <input
+        <TextInput
+          look="outlined"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
           placeholder="Search by name"
-          className={`${FIELD} w-100`}
+          className="w-100"
         />
       </div>
 
@@ -153,16 +160,17 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
               <span className="w-15 text-gray-500">{category.id}</span>
 
               {isAdmin && editingId === category.id ? (
-                <input
+                <TextInput
+                  look="outlined"
                   autoFocus
                   value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
+                  onChange={setEditingName}
                   onBlur={() => handleRename(category.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRename(category.id);
-                    if (e.key === "Escape") setEditingId(null);
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleRename(category.id);
+                    if (event.key === "Escape") setEditingId(null);
                   }}
-                  className={`${FIELD} flex-1`}
+                  className="flex-1"
                 />
               ) : (
                 <span className="flex-1">{category.name}</span>
@@ -170,28 +178,30 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
               {isAdmin && (
                 <>
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="md"
                     onClick={() => {
                       setEditingId(category.id);
                       setEditingName(category.name);
                     }}
-                    className={`${BTN} w-25`}
+                    className="w-25 font-semibold"
                   >
                     Edit
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="red"
+                    size="md"
                     onClick={() =>
                       run(
                         () => deleteCategory(category.id),
                         `Could not delete "${category.name}".`,
                       )
                     }
-                    className={`${DANGER} w-25`}
+                    className="w-25 font-bold"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

@@ -3,7 +3,8 @@
 import { useState } from "react";
 
 import { maskEmail } from "@/lib/format";
-import { BTN, CARD } from "./settings-style";
+import Button from "@/components/ui/button";
+import { CARD } from "./settings-style";
 
 export function EditButton({
   onClick,
@@ -15,14 +16,15 @@ export function EditButton({
   disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="md"
       onClick={onClick}
       disabled={disabled}
-      className={`${BTN} w-25`}
+      className="w-25 font-semibold"
     >
       {open ? "Cancel" : "Edit"}
-    </button>
+    </Button>
   );
 }
 
@@ -32,14 +34,12 @@ export default function Row({
   value,
   reveal,
   action,
-  is_admin,
   children,
 }: {
   label: string;
   value?: string;
   reveal?: boolean;
   action: React.ReactNode;
-  is_admin?: boolean;
   children?: React.ReactNode;
 }) {
   const [shown, setShown] = useState(false);
@@ -55,7 +55,7 @@ export default function Row({
             onClick={() => setShown((s) => !s)}
             className="-ml-2 text-(--primary-color-deep) hover:underline"
           >
-            {is_admin ? "Hide" : shown ? "Hide" : "Reveal"}
+            {shown ? "Hide" : "Reveal"}
           </button>
         )}
         <div className="flex w-25 justify-end">{action}</div>

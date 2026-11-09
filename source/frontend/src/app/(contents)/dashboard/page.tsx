@@ -64,7 +64,7 @@ export default function Dashboard() {
   } = useDashboardView(view, isAllScope, groups);
 
   return (
-    <main className="flex min-h-full w-full min-w-0 flex-col gap-5 overflow-x-auto bg-(--background) px-5 pt-5 max-[600px]:min-w-150 min-[1000px]:flex-row">
+    <div className="flex min-h-full w-full min-w-0 flex-col gap-5 overflow-x-auto bg-(--background) px-5 pt-5 max-[600px]:min-w-150 min-[1000px]:flex-row">
       <div className="flex w-full shrink-0 flex-col gap-3 min-[1000px]:w-[40%] min-[1000px]:min-w-120 min-[1000px]:max-w-300">
         <Announcement usernames={usernames} />
 
@@ -94,7 +94,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* contents: under 1000px the children become part of main */}
+      {/* contents: under 1000px the children join the page's own flex */}
       <div className="contents min-[1000px]:flex min-[1000px]:min-w-0 min-[1000px]:flex-1 min-[1000px]:flex-col min-[1000px]:gap-3">
         {/* empty:hidden so no gap when Missing render nothing */}
         <div className="order-first empty:hidden min-[1000px]:order-0">
@@ -152,6 +152,6 @@ export default function Dashboard() {
           onUpdated={reloadTickets}
         />
       )}
-    </main>
+    </div>
   );
 }

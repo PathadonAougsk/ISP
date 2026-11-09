@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Icon from "@/components/icon";
-import { renderWithLinks } from "@/components/dashboard/dashboard-utils";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
 import { formatFullDateTime } from "@/lib/format";
 import {
   getAnnouncements,

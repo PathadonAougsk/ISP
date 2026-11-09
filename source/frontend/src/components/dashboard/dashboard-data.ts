@@ -160,3 +160,8 @@ export const ticketStatusIcon: Record<string, string> = {
 export function formatCount(count: number, max: number) {
   return count > max ? `${max}+` : String(count);
 }
+
+// "+" when the list still have more to load
+export function withMore(value: number, more: boolean) {
+  return more ? `${value}+` : String(value);
+}

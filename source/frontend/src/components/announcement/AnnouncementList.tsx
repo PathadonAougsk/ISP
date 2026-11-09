@@ -1,9 +1,6 @@
 import type { Announcement } from "@/lib/announcement";
 import AnnouncementCard from "@/components/announcement/AnnouncementCard";
-import {
-  ListMessage,
-  LoadMoreButton,
-} from "@/components/dashboard/dashboard-utils";
+import { ListMessage, LoadMoreButton } from "@/components/ui/table";
 
 export default function AnnouncementList({
   announcements,

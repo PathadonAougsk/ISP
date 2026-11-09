@@ -76,7 +76,7 @@ function AuthForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none border-1 border-gray-300 rounded-xl focus:border-black"
+              className="bg-white px-3 py-2 text-black outline-none border border-gray-300 rounded-xl focus:border-black"
               placeholder="you@example.com"
             />
           </label>
@@ -88,7 +88,7 @@ function AuthForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none focus:border-black border-1 border-gray-300 rounded-xl"
+              className="bg-white px-3 py-2 text-black outline-none focus:border-black border border-gray-300 rounded-xl"
               placeholder="••••••••"
             />
           </label>

@@ -1,11 +1,8 @@
 import {
   isMissingItem,
+  withMore,
   type GroupState,
 } from "@/components/dashboard/dashboard-data";
-
-// "+" when the list still have more to load
-const withMore = (value: number, more: boolean) =>
-  more ? `${value}+` : String(value);
 
 export default function Missing({
   myTasks,

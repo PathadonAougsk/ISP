@@ -1,11 +1,18 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
 import { formatShortDate } from "@/lib/format";
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
+import {
+  ListMessage,
+  LoadMoreButton,
+  TableHeader,
+  TableRow,
+  useListOverflow,
+} from "@/components/ui/table";
 import {
   dueBucketColor,
   getDueBucket,
@@ -15,13 +22,9 @@ import {
   ticketStatusText,
   type GroupState,
 } from "@/components/dashboard/dashboard-data";
-import {
-  ListMessage,
-  ListPanel,
-  ListRow,
-  ListSection,
-  useListOverflow,
-} from "@/components/dashboard/dashboard-utils";
+
+// full class string, tailwind need to see it
+const GRID = "grid-cols-[2fr_1.25fr_1.25fr_minmax(120px,1fr)]";
 
 // same props for every section
 const sectionProps = (group: GroupState) => ({
@@ -29,6 +32,74 @@ const sectionProps = (group: GroupState) => ({
   busy: group.refreshing,
   onLoadMore: group.overflow ? group.loadMore : undefined,
 });
+
+// label + rows of one section
+// label = title + count (count already formatted into string and "+" sign)
+// label sticky, so it stay under column header while its section scroll
+// Load More show only when onLoadMore is given (list overflow)
+function ListSection({
+  title,
+  count,
+  busy = false,
+  onLoadMore,
+  children,
+}: {
+  title: string;
+  count: string;
+  busy?: boolean;
+  onLoadMore?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex shrink-0 flex-col gap-2">
+      <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1">
+        <h1 className="text-base font-semibold text-black">{title}</h1>
+        <span className="text-xl font-bold text-green-800">{count}</span>
+      </div>
+      {children}
+      {onLoadMore && <LoadMoreButton disabled={busy} onClick={onLoadMore} />}
+      <div className="h-2 shrink-0" />
+    </div>
+  );
+}
+
+// column header + scrolling sections. shows a message when there is nothing
+function ListPanel({
+  titles,
+  hasOverflow,
+  listRef,
+  empty,
+  message,
+  children,
+}: {
+  titles: string[];
+  hasOverflow: boolean;
+  listRef: RefObject<HTMLDivElement | null>;
+  empty: boolean;
+  message: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-0 flex-col gap-2">
+      <TableHeader
+        titles={titles}
+        gridClassName={GRID}
+        hasOverflow={hasOverflow}
+      />
+
+      {empty ? (
+        <ListMessage>{message}</ListMessage>
+      ) : (
+        <div
+          ref={listRef}
+          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TaskList({
   myTasks,
@@ -50,19 +121,16 @@ export function TaskList({
   const hasMyTasks = myTasks.items.length > 0;
   const hasOtherTasks = otherTasks.items.length > 0;
 
-  const loadingMyTasks = myTasks.loading;
-  const loadingOtherTasks = otherTasks.loading;
-  const errorMyTasks = myTasks.error;
-  const errorOtherTasks = otherTasks.error;
-
   const { listRef, hasOverflow } = useListOverflow([
     myTasks.items,
     otherTasks.items,
   ]);
 
   const renderTask = (task: Task) => (
-    <ListRow
+    <TableRow
       key={task.id}
+      gridClassName={GRID}
+      fullLastCell
       overdue={isMissingItem(task, ["in_progress"], limits.now)}
       spacingClassName="pl-2.5 pr-3.5 gap-6"
       lead={
@@ -87,9 +155,9 @@ export function TaskList({
       listRef={listRef}
       empty={!hasMyTasks && !hasOtherTasks}
       message={
-        errorMyTasks || errorOtherTasks
+        myTasks.error || otherTasks.error
           ? "Failed to load tasks"
-          : loadingMyTasks || loadingOtherTasks
+          : myTasks.loading || otherTasks.loading
             ? "Loading tasks..."
             : "Good job! You have completed all tasks."
       }
@@ -106,15 +174,15 @@ export function TaskList({
         </ListSection>
       )}
 
-      {loadingOtherTasks && <ListMessage>Loading tasks...</ListMessage>}
+      {otherTasks.loading && <ListMessage>Loading tasks...</ListMessage>}
 
-      {errorMyTasks && (
+      {myTasks.error && (
         <ListMessage>
           {isLabUser ? "Failed to load tasks" : "Failed to load my tasks"}
         </ListMessage>
       )}
 
-      {errorOtherTasks && (
+      {otherTasks.error && (
         <ListMessage>{"Failed to load others' tasks"}</ListMessage>
       )}
     </ListPanel>
@@ -140,32 +208,31 @@ export function TicketList({
 }) {
   const now = new Date();
 
-  const hasMyRejected = myRejectedTickets.items.length > 0;
-  const hasMyPending = myPendingTickets.items.length > 0;
-  const hasOtherRejected = otherRejectedTickets.items.length > 0;
-  const hasOtherTickets = otherPendingTickets.items.length > 0;
+  const sections = [
+    { title: "My rejected tickets", group: myRejectedTickets },
+    { title: "My pending tickets", group: myPendingTickets },
+    { title: "Others' rejected tickets", group: otherRejectedTickets },
+    { title: "Others' pending tickets", group: otherPendingTickets },
+  ];
 
-  const loadingMyTickets =
-    myRejectedTickets.loading || myPendingTickets.loading;
-  const loadingOtherTickets =
+  const loadingMine = myRejectedTickets.loading || myPendingTickets.loading;
+  const loadingOthers =
     otherRejectedTickets.loading || otherPendingTickets.loading;
-  const errorMyTickets = myRejectedTickets.error || myPendingTickets.error;
-  const errorOtherTickets =
-    otherRejectedTickets.error || otherPendingTickets.error;
+  const errorMine = myRejectedTickets.error || myPendingTickets.error;
+  const errorOthers = otherRejectedTickets.error || otherPendingTickets.error;
 
-  const { listRef, hasOverflow } = useListOverflow([
-    myRejectedTickets.items,
-    myPendingTickets.items,
-    otherRejectedTickets.items,
-    otherPendingTickets.items,
-  ]);
+  const { listRef, hasOverflow } = useListOverflow(
+    sections.map(({ group }) => group.items),
+  );
 
   const renderTicket = (ticket: Ticket) => {
     const overdue = isMissingItem(ticket, ["pending", "rejected"], now);
 
     return (
-      <ListRow
+      <TableRow
         key={ticket.id}
+        gridClassName={GRID}
+        fullLastCell
         overdue={overdue}
         spacingClassName="pl-1.5 pr-3.5 gap-5"
         lead={
@@ -191,62 +258,33 @@ export function TicketList({
       titles={["Ticket Name", "Status", "Category", "Duedate"]}
       hasOverflow={hasOverflow}
       listRef={listRef}
-      empty={
-        !hasMyRejected && !hasMyPending && !hasOtherRejected && !hasOtherTickets
-      }
+      empty={sections.every(({ group }) => group.items.length === 0)}
       message={
-        errorMyTickets || errorOtherTickets
+        errorMine || errorOthers
           ? "Failed to load tickets"
-          : loadingMyTickets || loadingOtherTickets
+          : loadingMine || loadingOthers
             ? "Loading tickets..."
             : "Looks like everything's pretty peaceful around here. Yay!"
       }
     >
-      {hasMyRejected && (
-        <ListSection
-          title="My rejected tickets"
-          {...sectionProps(myRejectedTickets)}
-        >
-          {myRejectedTickets.items.map(renderTicket)}
-        </ListSection>
+      {sections.map(
+        ({ title, group }) =>
+          group.items.length > 0 && (
+            <ListSection key={title} title={title} {...sectionProps(group)}>
+              {group.items.map(renderTicket)}
+            </ListSection>
+          ),
       )}
 
-      {hasMyPending && (
-        <ListSection
-          title="My pending tickets"
-          {...sectionProps(myPendingTickets)}
-        >
-          {myPendingTickets.items.map(renderTicket)}
-        </ListSection>
-      )}
+      {loadingOthers && <ListMessage>Loading tickets...</ListMessage>}
 
-      {hasOtherRejected && (
-        <ListSection
-          title="Others' rejected tickets"
-          {...sectionProps(otherRejectedTickets)}
-        >
-          {otherRejectedTickets.items.map(renderTicket)}
-        </ListSection>
-      )}
-
-      {hasOtherTickets && (
-        <ListSection
-          title="Others' pending tickets"
-          {...sectionProps(otherPendingTickets)}
-        >
-          {otherPendingTickets.items.map(renderTicket)}
-        </ListSection>
-      )}
-
-      {loadingOtherTickets && <ListMessage>Loading tickets...</ListMessage>}
-
-      {errorMyTickets && (
+      {errorMine && (
         <ListMessage>
           {isLabUser ? "Failed to load tickets" : "Failed to load my tickets"}
         </ListMessage>
       )}
 
-      {errorOtherTickets && (
+      {errorOthers && (
         <ListMessage>{"Failed to load others' tickets"}</ListMessage>
       )}
     </ListPanel>
