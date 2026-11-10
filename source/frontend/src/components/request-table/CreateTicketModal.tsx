@@ -79,6 +79,7 @@ export default function CreateTicketModal({
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
             placeholder={{ value: "", label: "Select a category" }}
+            firstItem={{ value: "", label: "None"}}
           />
           <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
         </div>

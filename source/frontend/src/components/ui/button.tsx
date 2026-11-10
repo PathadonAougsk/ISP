@@ -22,6 +22,7 @@ const VARIANT = {
 // size out to set the whole lot from className.
 const SIZE = {
   sm: "h-6 px-4 text-sm",
+  base: "h-8 text-base",
   md: "h-10 text-base",
   lg: "h-10 px-5 text-lg",
   // the round "+" that opens a create form

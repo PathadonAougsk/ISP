@@ -34,7 +34,7 @@ export default function AnnouncementDetail({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-2">
-          <Icon src="/user.svg" className="h-auto w-4 shrink-0" />
+          <Icon src="/account.svg" className="h-auto w-4 shrink-0" />
           {authorName}
         </span>
 

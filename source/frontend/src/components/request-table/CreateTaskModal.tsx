@@ -83,14 +83,22 @@ export default function CreateTaskModal({
           onChange={setTitle}
           placeholder="Enter a title"
         />
-        <Select
-          label="Category"
-          value={categoryId}
-          onChange={(value) => setCategoryId(value ? Number(value) : "")}
-          options={categoryOptions(categories)}
-          placeholder={{ value: "", label: "Select a category" }}
-        />
-        <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
+        <div className="flex gap-3">
+          <div className="w-1/2">
+            <Select
+              label="Category"
+              value={categoryId}
+              onChange={(value) => setCategoryId(value ? Number(value) : "")}
+              options={categoryOptions(categories)}
+              placeholder={{ value: "", label: "Select a category" }}
+              firstItem={{ value: "", label: "None" }}
+            />
+          </div>
+
+          <div className="w-1/2">
+            <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
+          </div>
+        </div>
         <TextArea
           label="Description"
           value={description}

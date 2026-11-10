@@ -18,13 +18,14 @@ import {
 
 // The log is written by hand, one row per changed column, by whichever endpoint
 // made the change so these are the only tables that can show up.
-const TABLES = ["account", "category", "ticket", "task"];
+const TABLES = ["account", "announcement", "category", "task", "ticket"];
 
 // One screenful. The server caps `limit` at 500 either way.
 const PAGE_SIZE = 50;
 
 // fr cols. grid! because HEAD and ROW are flex
-const COLS = "grid! grid-cols-[0.6fr_1.6fr_1.1fr_1fr_0.9fr_4fr]";
+const COLS =
+  "grid! grid-cols-[minmax(4rem,0.8fr)_minmax(10rem,1.8fr)_1.2fr_1.1fr_1.1fr_4fr]";
 
 // A deleted account leaves by_whom null, and a create or a delete leaves one
 // side of the change null, so neither of those is an error worth shouting about.
@@ -34,13 +35,7 @@ function valueOf(value: string | null) {
   return value === null || value === "" ? DASH : value;
 }
 
-export default function Log({
-  isAdmin,
-  accountLoading,
-}: {
-  isAdmin: boolean;
-  accountLoading: boolean;
-}) {
+export default function Log({ accountLoading }: { accountLoading: boolean }) {
   const [entries, setEntries] = useState<AuditLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [table, setTable] = useState("");
@@ -62,7 +57,6 @@ export default function Log({
   // server, so it covers the whole log and not just the page already in hand.
   // The server already refuses a Lab User, so dont spend a request on a 403.
   useEffect(() => {
-    if (!isAdmin) return;
     const id = requestId.current;
 
     getAuditLogs({ limit: PAGE_SIZE, from_table: table || undefined })
@@ -88,7 +82,7 @@ export default function Log({
     return () => {
       requestId.current += 1;
     };
-  }, [isAdmin, table]);
+  }, [table]);
 
   // Keyset would be steadier, but offset matches the endpoint we have. A new
   // entry on top shifts every page down, so drop rows already in hand.
@@ -134,8 +128,6 @@ export default function Log({
 
       {accountLoading ? (
         <p className={MUTED}>Loading...</p>
-      ) : !isAdmin ? (
-        <p className={MUTED}>Only a Lab Owner or Lab Admin can read the log.</p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3">
@@ -152,10 +144,11 @@ export default function Log({
 
             <Select
               look="outlined"
-              className="w-32.5"
+              className="w-40"
               value={table}
               onChange={setTable}
               placeholder={{ value: "", label: "All tables" }}
+              firstItem={{ value: "", label: "All tables" }}
               options={TABLES.map((name) => ({ value: name, label: name }))}
             />
           </div>

@@ -56,7 +56,7 @@ export default function Announcement({
             <span>{formatFullDateTime(item.created)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Icon src="/user.svg" alt="" className="h-4 w-auto" />
+            <Icon src="/account.svg" alt="" className="h-4 w-auto" />
             <span>{usernames[item.created_by] ?? "-"}</span>
           </div>
         </div>

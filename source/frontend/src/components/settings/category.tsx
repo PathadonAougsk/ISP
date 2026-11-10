@@ -128,13 +128,13 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold">All Categories</p>
+        <p className="text-lg font-semibold w-40">All Categories</p>
         <TextInput
           look="outlined"
           value={query}
           onChange={setQuery}
           placeholder="Search by name"
-          className="w-100"
+          className="w-full"
         />
       </div>
 
@@ -142,7 +142,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
       <div className={LIST_PANEL}>
         <div className={HEAD}>
-          <span className="w-15">ID</span>
+          <span className="w-10">ID</span>
           <span className="flex-1">Name</span>
         </div>
 
@@ -180,7 +180,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                 <>
                   <Button
                     variant="outline"
-                    size="md"
+                    size="base"
                     onClick={() => {
                       setEditingId(category.id);
                       setEditingName(category.name);
@@ -191,7 +191,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                   </Button>
                   <Button
                     variant="red"
-                    size="md"
+                    size="base"
                     onClick={() =>
                       run(
                         () => deleteCategory(category.id),

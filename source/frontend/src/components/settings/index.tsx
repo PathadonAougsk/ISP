@@ -7,7 +7,7 @@ import Icon from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import AccountPanel from "./account";
 import Categories from "./category";
-import Sidebar from "./sidebar";
+import Sidebar from "./setting-sidebar";
 import Member from "./member";
 import Log from "./log";
 
@@ -40,11 +40,11 @@ export default function Settings({
     ),
     Category: <Categories isAdmin={isAdmin} />,
     Member: <Member account={account} isAdmin={isAdmin} />,
-    Log: <Log isAdmin={isAdmin} accountLoading={loading} />,
+    Log: <Log accountLoading={loading} />,
   };
 
   return (
-    <Modal onClose={onClose} className="flex h-[92vh] w-[92vw]">
+    <Modal onClose={onClose} className="flex h-[85vh] w-[85vw]">
       {(close) => (
         <>
           <Sidebar
@@ -52,6 +52,7 @@ export default function Settings({
             role={account?.role}
             active={active}
             onSelect={setActive}
+            isAdmin={isAdmin}
           />
 
           {/* Content */}
