@@ -216,6 +216,7 @@ export default function MemberRow({
         {canEdit ? (
           <Select
             look="outlined"
+            className="w-full"
             value={member.role}
             disabled={busy}
             onChange={(role) =>

@@ -180,7 +180,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                 <>
                   <Button
                     variant="outline"
-                    size="md"
+                    size="base"
                     onClick={() => {
                       setEditingId(category.id);
                       setEditingName(category.name);
@@ -191,7 +191,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                   </Button>
                   <Button
                     variant="red"
-                    size="md"
+                    size="base"
                     onClick={() =>
                       run(
                         () => deleteCategory(category.id),

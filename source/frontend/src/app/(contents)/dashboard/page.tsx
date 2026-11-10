@@ -68,7 +68,7 @@ export default function Dashboard() {
       <div className="flex w-full shrink-0 flex-col gap-3 min-[1000px]:w-[40%] min-[1000px]:min-w-120 min-[1000px]:max-w-300">
         <Announcement usernames={usernames} />
 
-        <div className="flex h-180 shrink-0 flex-col gap-4 overflow-hidden rounded-[30px] bg-(--panel-bg) p-3 pb-6 min-[1000px]:rounded-t-[30px] min-[1000px]:rounded-b-none min-[1000px]:pb-3">
+        <div className="flex min-h-180 flex-1 flex-col gap-4 overflow-hidden rounded-[30px] bg-(--panel-bg) p-3 pb-6 min-[1000px]:rounded-t-[30px] min-[1000px]:rounded-b-none min-[1000px]:pb-3">
           <div className="flex flex-wrap justify-between">
             <ViewToggle value={view} onChange={setView} />
             {showScope && (

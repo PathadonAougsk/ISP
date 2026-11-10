@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
@@ -24,7 +25,7 @@ export const INPUT_LOOK: Record<FieldLook, string> = {
 const SELECT_LOOK: Record<FieldLook, string> = {
   filled: `${INPUT_LOOK.filled} appearance-none`,
   outlined:
-    "h-10 w-full appearance-none rounded-full border-2 border-(--primary-color-3) bg-white px-2 pr-8 outline-none focus:border-(--primary-color-2) disabled:opacity-50",
+    "h-10 w-full text-sm appearance-none rounded-full border-2 border-(--primary-color-3) bg-white pl-3 pr-8 outline-none focus:border-(--primary-color-2) disabled:opacity-50",
   panel: `${INPUT_LOOK.panel} w-full appearance-none truncate pr-8`,
 };
 
@@ -65,8 +66,6 @@ export function ReadOnlyBox({
   );
 }
 
-// className goes on the outermost element: the label wrapper when the field is
-// labelled, the control itself when it is not.
 function withLabel(label: string | undefined, className: string) {
   return {
     controlClass: label === undefined ? className : "",
@@ -88,7 +87,7 @@ type Shared = {
   className?: string;
 };
 
-// one line of text. readOnly shows the value in a box, with links clickable
+// text input
 export function TextInput({
   label,
   value,
@@ -117,7 +116,7 @@ export function TextInput({
   );
 }
 
-// many lines of text. grow makes it fill the height its parent leaves
+// textarea
 export function TextArea({
   label,
   value,
@@ -160,7 +159,6 @@ export function TextArea({
 export type SelectOption = {
   value: string | number;
   label: string;
-  // full text for the tooltip, when the label had to be shortened
   title?: string;
 };
 
@@ -171,64 +169,106 @@ export function Select({
   onChange,
   options,
   placeholder,
+  firstItem,
   look = "filled",
   readOnly = false,
   readOnlyText = "",
   className = "",
-  ...props
+  disabled,
 }: Shared & {
   value: string | number;
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: SelectOption;
+  firstItem?: SelectOption;
   readOnlyText?: string;
 } & Omit<ComponentPropsWithRef<"select">, "value" | "onChange" | "className">) {
   const { controlClass, wrap } = withLabel(label, className);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
 
-  if (readOnly) return wrap(<ReadOnlyBox>{readOnlyText}</ReadOnlyBox>);
+  // Click outside or Escape closes the list.
+  useEffect(() => {
+    if (!open) return;
 
-  // nothing picked yet reads as a hint, except in settings where every row
-  // already has a value
-  const dim =
-    look !== "outlined" &&
-    placeholder !== undefined &&
-    String(value) === String(placeholder.value);
+    const handleDown = (event: MouseEvent) => {
+      if (!boxRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDown);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  if (readOnly) {
+    return wrap(<ReadOnlyBox>{readOnlyText}</ReadOnlyBox>);
+  }
+
+  const rows: SelectOption[] = firstItem
+    ? [firstItem, ...options]
+    : options;
+
+  // Only search actual options for the displayed value.
+  const current = options.find((row) => String(row.value) === String(value));
+
+  const dim = !current && placeholder !== undefined;
+
+  function pick(next: string | number) {
+    setOpen(false);
+    onChange(String(next));
+  }
 
   return wrap(
-    <div className={`relative ${controlClass}`}>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        {...props}
-        className={`${SELECT_LOOK[look]} cursor-pointer ${
+    <div ref={boxRef} className={`relative ${controlClass}`}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`relative ${SELECT_LOOK[look]} transform-none! cursor-pointer truncate text-left ${
           dim ? "text-gray-500" : "text-black"
         }`}
       >
-        {placeholder && (
-          <option
-            value={placeholder.value}
-            className={look === "outlined" ? "" : "text-gray-500"}
-          >
-            {placeholder.label}
-          </option>
-        )}
-        {options.map((option) => (
-          <option
-            key={option.value}
-            value={option.value}
-            title={option.title}
-            className="text-black"
-          >
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <Icon
-        src="/dropdown_arrow.svg"
-        className={`pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 ${
-          look === "outlined" ? "right-2.5" : "right-2"
-        }`}
-      />
+        {current?.label ?? placeholder?.label}
+
+        <Icon
+          src="/dropdown_arrow.svg"
+          className={`pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 ${
+            look === "outlined" ? "right-2.5" : "right-2"
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 z-9999 mt-2 w-max min-w-full max-h-60 overflow-y-auto overflow-x-hidden scrollbar-none rounded-2xl border border-gray-200 bg-white text-black">
+          {rows.map((row, index) => (
+            <button
+              key={row.value}
+              type="button"
+              title={row.title}
+              onClick={() => pick(row.value)}
+              className={`block w-full transform-none! cursor-pointer px-3 py-2 text-left text-sm font-normal whitespace-nowrap hover:bg-gray-200 ${
+                index === 0 && (firstItem)
+                  ? "text-gray-600"
+                  : "text-black"
+              }`}
+            >
+              {row.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>,
   );
 }

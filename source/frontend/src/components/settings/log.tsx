@@ -24,7 +24,7 @@ const TABLES = ["account", "category", "ticket", "task"];
 const PAGE_SIZE = 50;
 
 // fr cols. grid! because HEAD and ROW are flex
-const COLS = "grid! grid-cols-[0.6fr_1.6fr_1.1fr_1fr_0.9fr_4fr]";
+const COLS = "grid! grid-cols-[0.8fr_1.8fr_1.1fr_1.1fr_1.1fr_4fr]";
 
 // A deleted account leaves by_whom null, and a create or a delete leaves one
 // side of the change null, so neither of those is an error worth shouting about.
@@ -152,10 +152,11 @@ export default function Log({
 
             <Select
               look="outlined"
-              className="w-32.5"
+              className="w-30"
               value={table}
               onChange={setTable}
               placeholder={{ value: "", label: "All tables" }}
+              firstItem={{ value: "", label: "All tables" }}
               options={TABLES.map((name) => ({ value: name, label: name }))}
             />
           </div>

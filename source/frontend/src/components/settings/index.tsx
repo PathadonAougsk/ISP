@@ -7,7 +7,7 @@ import Icon from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import AccountPanel from "./account";
 import Categories from "./category";
-import Sidebar from "./sidebar";
+import Sidebar from "./setting-sidebar";
 import Member from "./member";
 import Log from "./log";
 

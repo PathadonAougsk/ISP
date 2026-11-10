@@ -249,7 +249,7 @@ export default function Overview({
             : "All tasks are done! Time to enjoy a well-earned break."}
         </p>
       ) : (
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin">
+        <div className="min-h-0 max-h-120 flex-1 space-y-2 overflow-y-auto rounded-2xl scrollbar-thin">
           {categoryIds.map((id) => {
             const counts = categoryCounts[id];
             const total = Object.values(counts).reduce((sum, n) => sum + n, 0);

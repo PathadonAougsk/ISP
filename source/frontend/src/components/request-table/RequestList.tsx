@@ -169,9 +169,10 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <Select
             look="panel"
-            className="w-40"
+            className="w-50"
             value={filters.categoryId}
             placeholder={{ value: "All", label: "All categories" }}
+            firstItem={{ value: "All", label: "All categories" }}
             options={categoryOptions(categories, true)}
             onChange={(value) =>
               onFilterChange({
@@ -182,9 +183,10 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <Select
             look="panel"
-            className="w-40"
+            className="w-50"
             value={filters.status}
             placeholder={{ value: "All", label: "All statuses" }}
+            firstItem={{ value: "All", label: "All statuses" }}
             options={statusOptions}
             onChange={(status) => onFilterChange({ status })}
           />
