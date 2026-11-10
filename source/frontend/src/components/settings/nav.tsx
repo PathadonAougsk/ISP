@@ -1,6 +1,6 @@
 "use client";
 
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
 
 export type NavItem = {
   label: string;

@@ -1,11 +1,13 @@
 "use client";
-import type { TaskRow, TaskStatus } from "@/lib/task";
+
+import type { TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
+import { isPastDate } from "@/lib/format";
 import {
   formatDueDate,
-  isPastDate,
   RequestTableFrame,
+  type TableFilters,
 } from "@/components/request-table/RequestList";
 
 const titles = [
@@ -35,16 +37,11 @@ export default function TaskTable({
   error,
   userRole,
   categories,
-  status,
-  onStatusChange,
-  categoryId,
-  onCategoryChange,
-  search,
-  onSearch,
-  page,
+  filters,
+  onFilterChange,
+  onPageChange,
   hasNext,
   totalPages,
-  onPageChange,
   onSelect,
   onCreate,
 }: {
@@ -53,16 +50,11 @@ export default function TaskTable({
   error: string | null;
   userRole: UserRole;
   categories: Category[];
-  status: TaskStatus | "All";
-  onStatusChange: (status: TaskStatus | "All") => void;
-  categoryId: number | "All";
-  onCategoryChange: (id: number | "All") => void;
-  search: string;
-  onSearch: (term: string) => void;
-  page: number;
+  filters: TableFilters;
+  onFilterChange: (patch: Partial<Omit<TableFilters, "page">>) => void;
+  onPageChange: (page: number) => void;
   hasNext: boolean;
   totalPages: number;
-  onPageChange: (page: number) => void;
   onSelect: (task: TaskRow) => void;
   onCreate: () => void;
 }) {
@@ -77,17 +69,12 @@ export default function TaskTable({
       canCreate={userRole === "Lab Admin"}
       onCreate={onCreate}
       categories={categories}
-      categoryId={categoryId}
-      onCategoryChange={onCategoryChange}
-      status={status}
-      onStatusChange={(s) => onStatusChange(s as TaskStatus | "All")}
       statusOptions={statusOptions}
-      search={search}
-      onSearch={onSearch}
-      page={page}
+      filters={filters}
+      onFilterChange={onFilterChange}
+      onPageChange={onPageChange}
       hasNext={hasNext}
       totalPages={totalPages}
-      onPageChange={onPageChange}
       titles={titles}
       gridClassName={gridClassName}
       onSelect={onSelect}
