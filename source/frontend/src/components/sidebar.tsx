@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
 import { useSettings } from "./setting-provider";
 import { clearAllApiCache } from "@/lib/cache/cache";
 

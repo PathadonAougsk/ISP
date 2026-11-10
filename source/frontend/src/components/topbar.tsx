@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMe, onAccountChange, type Account } from "@/lib/account";
-import Avatar from "@/components/avatar";
+import Avatar from "@/components/ui/avatar";
 import { clearAllApiCache } from "@/lib/cache/cache";
 
 export default function Topbar() {

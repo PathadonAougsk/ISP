@@ -3,8 +3,10 @@
 import { useState } from "react";
 
 import { adminCreateAccount, type UserKind } from "@/lib/account";
-import { Toggle } from "@/components/dashboard/overview";
-import { CARD, ERROR, FIELD, LABEL, MUTED, SAVE, BTN } from "./settings-style";
+import Button from "@/components/ui/button";
+import { TextInput } from "@/components/ui/field";
+import Toggle from "@/components/ui/toggle";
+import { CARD, ERROR, LABEL, MUTED } from "./settings-style";
 
 const DEFAULT_TRIAL_QUOTA = 10;
 const MIN_PASSWORD = 8;
@@ -95,6 +97,8 @@ export default function CreateUser({
     }
   }
 
+  const missing = MIN_PASSWORD - password.length;
+
   return (
     <div className={CARD}>
       <div className="flex flex-col gap-1.5">
@@ -122,65 +126,71 @@ export default function CreateUser({
         <div className="grid grid-cols-2 gap-3">
           <label className={LABEL}>
             Username
-            <input
+            <TextInput
+              look="outlined"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={setUsername}
               disabled={busy}
               maxLength={100}
               placeholder="Another Win"
-              className={FIELD}
             />
           </label>
 
           <label className={LABEL}>
             Email
-            <input
+            <TextInput
+              look="outlined"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={setEmail}
               disabled={busy}
               placeholder="Anawin.c@Chula.th"
-              className={FIELD}
             />
           </label>
 
           <label className={LABEL}>
             Password
-            <input
+            <TextInput
+              look="outlined"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               disabled={busy}
               maxLength={72}
               placeholder={`at least ${MIN_PASSWORD} characters`}
-              className={FIELD}
             />
           </label>
 
           {trial && (
             <label className={LABEL}>
               Ticket quota
-              <input
+              <TextInput
+                look="outlined"
                 type="number"
                 min={0}
                 step={1}
                 value={quota}
-                onChange={(e) => setQuota(e.target.value)}
+                onChange={setQuota}
                 disabled={busy}
-                className={FIELD}
               />
             </label>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <button type="submit" disabled={!ready || busy} className={SAVE}>
+          <Button
+            variant="green"
+            size="md"
+            type="submit"
+            disabled={!ready || busy}
+            className="min-w-25 px-4 font-bold"
+          >
             {busy ? "Creating..." : "Create"}
-          </button>
-          {password.length > 0 && password.length < MIN_PASSWORD && (
+          </Button>
+          {missing > 0 && password.length > 0 && (
             <span className={MUTED}>
-              Password needs {MIN_PASSWORD - password.length} more character
-              {MIN_PASSWORD - password.length === 1 ? "" : "s"}.
+              Password needs {missing} more character
+              {missing === 1 ? "" : "s"}.
             </span>
           )}
         </div>
@@ -201,13 +211,14 @@ export default function CreateUser({
           <p className={MUTED}>
             This is the only time the password is shown. Closing this clears it.
           </p>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="md"
             onClick={() => setHandover(null)}
-            className={`${BTN} w-25 self-start`}
+            className="w-25 self-start font-semibold"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
     </div>

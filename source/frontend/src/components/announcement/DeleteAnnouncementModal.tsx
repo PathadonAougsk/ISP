@@ -1,17 +1,15 @@
 "use client";
 
-import Icon from "@/components/icon";
 import type { Announcement } from "@/lib/announcement";
 import { formatFullDateTime } from "@/lib/format";
-import {
-  renderWithLinks,
-  SlideupDescription,
-} from "@/components/dashboard/dashboard-utils";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
 import {
   FormButton,
   FormModal,
   useFormSubmit,
-} from "@/components/request-table/FormParts";
+} from "@/components/ui/form-modal";
+import { SlideupDescription } from "@/components/dashboard/dashboard-utils";
 
 export default function DeleteAnnouncementModal({
   announcement,
@@ -39,11 +37,11 @@ export default function DeleteAnnouncementModal({
       error={error}
       footer={(close) => (
         <>
-          <FormButton color="green" onClick={close} disabled={saving}>
+          <FormButton variant="green" onClick={close} disabled={saving}>
             Cancel
           </FormButton>
           <FormButton
-            color="red"
+            variant="red"
             onClick={() => handleDelete(close)}
             disabled={saving}
           >

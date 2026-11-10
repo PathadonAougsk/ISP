@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 import { signOut } from "@/lib/account";
-import Avatar from "@/components/avatar";
-import Icon from "@/components/icon";
+import Avatar from "@/components/ui/avatar";
+import Icon from "@/components/ui/icon";
 import Nav, { accountNav } from "./nav";
 
 export default function Sidebar({
