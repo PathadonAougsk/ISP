@@ -1,7 +1,7 @@
-import Icon from "@/components/icon";
 import type { Announcement } from "@/lib/announcement";
 import { formatFullDateTime } from "@/lib/format";
-import { renderWithLinks } from "@/components/dashboard/dashboard-utils";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
 
 export default function AnnouncementCard({
   announcement,

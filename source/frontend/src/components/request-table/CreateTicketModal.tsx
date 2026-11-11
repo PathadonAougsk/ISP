@@ -1,17 +1,16 @@
 "use client";
+
 import { useState } from "react";
 import { postTicket } from "@/lib/ticket";
-import type { Category } from "@/lib/category";
+import { categoryOptions, type Category } from "@/lib/category";
+import DateInput from "@/components/ui/date-input";
+import { Select, TextArea, TextInput } from "@/components/ui/field";
 import {
-  DateField,
   FormButton,
   FormColumn,
   FormModal,
-  SelectField,
-  TextAreaField,
-  TextField,
   useFormSubmit,
-} from "@/components/request-table/FormParts";
+} from "@/components/ui/form-modal";
 
 export default function CreateTicketModal({
   categories,
@@ -22,16 +21,14 @@ export default function CreateTicketModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [newTicketTitle, setNewTicketTitle] = useState("");
-  const [newTicketDueDate, setNewTicketDueDate] = useState("");
-  const [newTicketDescription, setNewTicketDescription] = useState("");
-  const [newTicketCategoryId, setNewTicketCategoryId] = useState<number | "">(
-    "",
-  );
+  const [title, setTitle] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState<number | "">("");
   const { saving, error, setError, run } = useFormSubmit();
 
-  async function handleCreateTicket(close: () => void) {
-    if (!newTicketTitle.trim() || newTicketCategoryId === "") {
+  async function handleCreate(close: () => void) {
+    if (!title.trim() || categoryId === "") {
       setError("Title and category are required.");
       return;
     }
@@ -39,10 +36,10 @@ export default function CreateTicketModal({
     const ok = await run(
       () =>
         postTicket({
-          name: newTicketTitle.trim(),
-          description: newTicketDescription || null,
-          category_id: newTicketCategoryId,
-          due_date: newTicketDueDate || null,
+          name: title.trim(),
+          description: description || null,
+          category_id: categoryId,
+          due_date: dueDate || null,
         }),
       "Failed to create ticket",
     );
@@ -60,8 +57,8 @@ export default function CreateTicketModal({
       error={error}
       footer={(close) => (
         <FormButton
-          color="green"
-          onClick={() => handleCreateTicket(close)}
+          variant="green"
+          onClick={() => handleCreate(close)}
           disabled={saving}
         >
           {saving ? "Submitting…" : "Submit"}
@@ -69,30 +66,29 @@ export default function CreateTicketModal({
       )}
     >
       <FormColumn>
-        <TextField
+        <TextInput
           label="Title"
-          value={newTicketTitle}
-          onChange={setNewTicketTitle}
+          value={title}
+          onChange={setTitle}
           placeholder="Enter a title"
         />
         <div className="grid grid-cols-2 gap-4">
-          <SelectField
+          <Select
             label="Category"
-            value={newTicketCategoryId}
-            onChange={setNewTicketCategoryId}
-            categories={categories}
+            value={categoryId}
+            onChange={(value) => setCategoryId(value ? Number(value) : "")}
+            options={categoryOptions(categories)}
+            placeholder={{ value: "", label: "Select a category" }}
+            firstItem={{ value: "", label: "None"}}
           />
-          <DateField
-            label="Due Date"
-            value={newTicketDueDate}
-            onChange={setNewTicketDueDate}
-          />
+          <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
         </div>
-        <TextAreaField
+        <TextArea
           label="Description"
-          value={newTicketDescription}
-          onChange={setNewTicketDescription}
+          value={description}
+          onChange={setDescription}
           placeholder="Add more details"
+          grow
         />
       </FormColumn>
     </FormModal>

@@ -6,32 +6,21 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  assignRole,
-  changeEmail,
-  changePassword,
-  deleteAccount,
   getAccounts,
   outranks,
-  updateAccount,
   type Account,
   type AccountRole,
 } from "@/lib/account";
 import { maskEmail } from "@/lib/format";
-import Icon from "@/components/icon";
+import { TextInput } from "@/components/ui/field";
 import CreateUser from "./create_user";
+import MemberRow from "./member-row";
 import {
-  BTN,
-  BTN_THIN,
-  DANGER,
   ERROR,
-  FIELD,
   HEAD,
-  LABEL,
   LIST_PANEL,
   MESSAGE,
   MUTED,
-  SAVE,
-  SELECT,
   TITLE,
 } from "./settings-style";
 
@@ -42,15 +31,12 @@ const ROLE_ORDER: Record<AccountRole, number> = {
   "Lab User": 2,
 };
 
-const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
-
-const MIN_PASSWORD = 8;
-
 // fr cols. grid! because HEAD is flex. admin has 2 more action cols
 const COLS_ADMIN =
-  "grid! grid-cols-[2fr_2fr_1.25fr_minmax(80px,0.75fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(80px,0.75fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)]";
+
 const COLS_USER =
-  "grid! grid-cols-[2fr_2fr_1.25fr_minmax(80px,0.75fr)_minmax(120px,1fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(80px,0.75fr)_minmax(120px,1fr)]";
 
 function byRoleThenName(a: Account, b: Account) {
   return (
@@ -74,15 +60,8 @@ export default function Member({
   // Prevent double firing.
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Inline quota editing. A trial is capped; blank means no cap at all.
-  const [quotaEditId, setQuotaEditId] = useState<string | null>(null);
-  const [quotaDraft, setQuotaDraft] = useState("");
-
   // Resetting somebody else's login. One row open at a time.
   const [resetId, setResetId] = useState<string | null>(null);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetPassword, setResetPassword] = useState("");
-  const [myPassword, setMyPassword] = useState("");
 
   // Try-Except helper -> Special thank to Wassawin.
   const refresh = useCallback(
@@ -107,7 +86,7 @@ export default function Member({
   }, [refresh]);
 
   // The server owns the rules, so show whatever `detail` it sends back.
-  async function run(member: Account, action: () => Promise<void>) {
+  const run = (member: Account) => async (action: () => Promise<void>) => {
     if (!isAdmin) return false;
 
     setBusyId(member.id);
@@ -122,85 +101,7 @@ export default function Member({
     } finally {
       setBusyId(null);
     }
-  }
-
-  function handleDelete(member: Account) {
-    if (
-      !window.confirm(
-        `Delete ${member.username}? This cannot be undone. Deactivate instead if they own any tasks or tickets.`,
-      )
-    )
-      return;
-
-    run(member, () => deleteAccount(member.id));
-  }
-
-  function startQuotaEdit(member: Account) {
-    setQuotaEditId(member.id);
-    setQuotaDraft(member.quota === null ? "" : String(member.quota));
-  }
-
-  async function commitQuota(member: Account) {
-    const raw = quotaDraft.trim();
-    setQuotaEditId(null);
-
-    // NULL is what the backend reads as no cap, so blank clears it.
-    const quota = raw === "" ? null : Number(raw);
-    if (quota !== null && (!Number.isInteger(quota) || quota < 0)) {
-      setError(
-        "Quota has to be a whole number, 0 or more, or blank for no cap.",
-      );
-      return;
-    }
-    if (quota === member.quota) return;
-
-    await run(member, () => updateAccount(member.id, { quota }));
-  }
-
-  function openReset(member: Account) {
-    setError(null);
-    setResetEmail("");
-    setResetPassword("");
-    setMyPassword("");
-    setResetId((current) => (current === member.id ? null : member.id));
-  }
-
-  function closeReset() {
-    setResetId(null);
-    setResetEmail("");
-    setResetPassword("");
-    setMyPassword("");
-  }
-
-  // Either half can be left blank to keep it as it is, but not both.
-  async function submitReset(e: React.FormEvent, member: Account) {
-    e.preventDefault();
-
-    const email = resetEmail.trim().toLowerCase();
-    const password = resetPassword;
-
-    if (!email && !password) {
-      setError("Give a new email, a new password, or both.");
-      return;
-    }
-    if (password && password.length < MIN_PASSWORD) {
-      setError(`A new password needs at least ${MIN_PASSWORD} characters.`);
-      return;
-    }
-    if (!myPassword) {
-      setError("Confirm with your own password.");
-      return;
-    }
-
-    // Two endpoints, so the email can land and the password still fail. The
-    // refresh in `run` shows whichever half went through.
-    const ok = await run(member, async () => {
-      if (email) await changeEmail(member.id, email, myPassword);
-      if (password) await changePassword(member.id, myPassword, password);
-    });
-
-    if (ok) closeReset();
-  }
+  };
 
   const needle = query.trim().toLowerCase();
   const visible = members.filter(
@@ -209,14 +110,10 @@ export default function Member({
       member.email.toLowerCase().includes(needle),
   );
 
-  // Just surface UI to preventing french revolution.
+  // Strictly below you, so a Lab Admin cannot touch a peer and nobody can
+  // touch a Lab Owner. Just surface UI to preventing french revolution.
   const canEdit = (member: Account) =>
-    (member.id !== account?.id && account?.role == "Lab Owner") ||
-    member.role == "Lab User";
-
-  // Strictly below you, so a Lab Admin cannot reset a peer and nobody can touch a Lab Owner.
-  const canReset = (member: Account) =>
-    account !== null && outranks(account.role, member.role);
+    isAdmin && account !== null && outranks(account.role, member.role);
 
   // An admin sees real addresses; everyone else only ever sees their own.
   const emailOf = (member: Account) =>
@@ -245,11 +142,12 @@ export default function Member({
             <span className={MUTED}> ({members.length})</span>
           )}
         </p>
-        <input
+        <TextInput
+          look="outlined"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
           placeholder="Search by name or email"
-          className={`${FIELD} w-100`}
+          className="w-100"
         />
       </div>
 
@@ -274,203 +172,27 @@ export default function Member({
           </p>
         ) : (
           visible.map((member) => (
-            <div
+            <MemberRow
               key={member.id}
-              className="flex flex-col rounded-[20px] bg-white px-4"
-            >
-              <div className={`${cols} items-center gap-3 py-2`}>
-                <span className="truncate">
-                  {member.username}
-                  {member.id === account?.id && (
-                    <span className={MUTED}> (You)</span>
-                  )}
-                </span>
-                <span className="truncate">{emailOf(member)}</span>
-                {isAdmin && canEdit(member) ? (
-                  <div className="relative">
-                    <select
-                      value={member.role}
-                      disabled={busyId === member.id}
-                      onChange={(e) =>
-                        run(member, () =>
-                          assignRole(member.id, e.target.value as AccountRole),
-                        )
-                      }
-                      className={`${SELECT} w-full appearance-none cursor-pointer pr-8`}
-                    >
-                      {ASSIGNABLE_ROLES.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))}
-                    </select>
-                    <Icon
-                      src="/dropdown_arrow.svg"
-                      className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 pointer-events-none"
-                    />
-                  </div>
-                ) : (
-                  <span>{member.role}</span>
-                )}
-
-                {isAdmin && canEdit(member) ? (
-                  quotaEditId === member.id ? (
-                    <input
-                      autoFocus
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={quotaDraft}
-                      onChange={(e) => setQuotaDraft(e.target.value)}
-                      onBlur={() => commitQuota(member)}
-                      onKeyDown={(e) => {
-                        // Blur is what commits, so Enter just leaves the field.
-                        // Escape unmounts it, which fires no blur at all.
-                        if (e.key === "Enter") e.currentTarget.blur();
-                        if (e.key === "Escape") setQuotaEditId(null);
-                      }}
-                      placeholder="No cap"
-                      className={`${SELECT} w-full text-right placeholder:text-gray-400`}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={busyId === member.id}
-                      onClick={() => startQuotaEdit(member)}
-                      title="Ticket quota. Leave it blank for no cap."
-                      className={`${BTN_THIN} w-full`}
-                    >
-                      {member.quota ?? "No cap"}
-                    </button>
-                  )
-                ) : (
-                  <span className="text-right">
-                    {member.quota ?? "-"}
-                  </span>
-                )}
-
-                {isAdmin && canEdit(member) ? (
-                  <button
-                    type="button"
-                    disabled={busyId === member.id}
-                    onClick={() =>
-                      run(member, () =>
-                        updateAccount(member.id, { active: !member.active }),
-                      )
-                    }
-                    className={`${BTN_THIN} w-full`}
-                  >
-                    {member.active ? "Deactivate" : "Activate"}
-                  </button>
-                ) : (
-                  <span className="text-right">
-                    {member.active ? "Active" : "Inactive"}
-                  </span>
-                )}
-
-                {isAdmin && (
-                  <div className="flex justify-end">
-                    {canReset(member) && (
-                      <button
-                        type="button"
-                        disabled={busyId === member.id}
-                        onClick={() => openReset(member)}
-                        title="Set a new email or password for this member."
-                        className={`${BTN} w-full`}
-                      >
-                        {resetId === member.id ? "Cancel" : "Reset"}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {isAdmin && (
-                  <div className="flex justify-end">
-                    {canEdit(member) && (
-                      <button
-                        type="button"
-                        disabled={busyId === member.id}
-                        onClick={() => handleDelete(member)}
-                        className={`${DANGER} w-full`}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {resetId === member.id && (
-                <form
-                  onSubmit={(e) => submitReset(e, member)}
-                  className="flex flex-col gap-5 border-t border-gray-200 py-4"
-                >
-                  <p className={MUTED}>
-                    Sets {member.username}&apos;s login directly. Nothing is
-                    emailed, so pass the new credentials on yourself. Leave a
-                    field blank to keep it as it is.
-                  </p>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <label className={LABEL}>
-                      New email
-                      <input
-                        autoFocus
-                        type="email"
-                        value={resetEmail}
-                        onChange={(e) => setResetEmail(e.target.value)}
-                        disabled={busyId === member.id}
-                        placeholder={member.email}
-                        className={FIELD}
-                      />
-                    </label>
-                    <label className={LABEL}>
-                      New password
-                      <input
-                        type="password"
-                        value={resetPassword}
-                        onChange={(e) => setResetPassword(e.target.value)}
-                        disabled={busyId === member.id}
-                        maxLength={72}
-                        autoComplete="new-password"
-                        placeholder={`at least ${MIN_PASSWORD} characters`}
-                        className={FIELD}
-                      />
-                    </label>
-                    <label className={LABEL}>
-                      Your own password
-                      <input
-                        type="password"
-                        value={myPassword}
-                        onChange={(e) => setMyPassword(e.target.value)}
-                        disabled={busyId === member.id}
-                        autoComplete="current-password"
-                        placeholder="••••••••"
-                        className={FIELD}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={busyId === member.id}
-                      className={SAVE}
-                    >
-                      {busyId === member.id ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={closeReset}
-                      disabled={busyId === member.id}
-                      className={`${BTN} w-25`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+              member={member}
+              isMe={member.id === account?.id}
+              email={emailOf(member)}
+              isAdmin={isAdmin}
+              canEdit={canEdit(member)}
+              cols={cols}
+              busy={busyId === member.id}
+              resetOpen={resetId === member.id}
+              onToggleReset={() => {
+                setError(null);
+                setResetId((current) =>
+                  current === member.id ? null : member.id,
+                );
+              }}
+              onCloseReset={() => setResetId(null)}
+              run={run(member)}
+              error={error}
+              onError={setError}
+            />
           ))
         )}
       </div>

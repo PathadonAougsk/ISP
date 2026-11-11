@@ -1,19 +1,18 @@
 "use client";
+
 import { useState } from "react";
 import { postTask } from "@/lib/task";
-import type { Category } from "@/lib/category";
+import { categoryOptions, type Category } from "@/lib/category";
 import type { Member } from "@/lib/account";
+import DateInput from "@/components/ui/date-input";
+import { Select, TextArea, TextInput } from "@/components/ui/field";
 import {
-  DateField,
   FormButton,
   FormColumn,
   FormModal,
-  MemberPanel,
-  SelectField,
-  TextAreaField,
-  TextField,
   useFormSubmit,
-} from "@/components/request-table/FormParts";
+} from "@/components/ui/form-modal";
+import MemberPanel from "@/components/request-table/MemberPanel";
 
 export default function CreateTaskModal({
   categories,
@@ -30,15 +29,15 @@ export default function CreateTaskModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [newTaskAssignedIds, setNewTaskAssignedIds] = useState<string[]>([]);
-  const [newTaskDueDate, setNewTaskDueDate] = useState("");
-  const [newTaskCategoryId, setNewTaskCategoryId] = useState<number | "">("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [assignedIds, setAssignedIds] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState("");
+  const [categoryId, setCategoryId] = useState<number | "">("");
   const { saving, error, setError, run } = useFormSubmit();
 
-  async function handleCreateTask(close: () => void) {
-    if (!newTaskTitle.trim() || newTaskCategoryId === "") {
+  async function handleCreate(close: () => void) {
+    if (!title.trim() || categoryId === "") {
       setError("Title and category are required.");
       return;
     }
@@ -46,11 +45,11 @@ export default function CreateTaskModal({
     const ok = await run(
       () =>
         postTask({
-          name: newTaskTitle.trim(),
-          description: newTaskDescription || null,
-          category_id: newTaskCategoryId,
-          due_date: newTaskDueDate || null,
-          assignees: newTaskAssignedIds,
+          name: title.trim(),
+          description: description || null,
+          category_id: categoryId,
+          due_date: dueDate || null,
+          assignees: assignedIds,
         }),
       "Failed to create task",
     );
@@ -68,8 +67,8 @@ export default function CreateTaskModal({
       error={error}
       footer={(close) => (
         <FormButton
-          color="green"
-          onClick={() => handleCreateTask(close)}
+          variant="green"
+          onClick={() => handleCreate(close)}
           disabled={saving}
         >
           {saving ? "Saving…" : "Submit"}
@@ -78,36 +77,42 @@ export default function CreateTaskModal({
     >
       {/* Left column: form fields */}
       <FormColumn>
-        <TextField
+        <TextInput
           label="Title"
-          value={newTaskTitle}
-          onChange={setNewTaskTitle}
+          value={title}
+          onChange={setTitle}
           placeholder="Enter a title"
         />
-        <SelectField
-          label="Category"
-          value={newTaskCategoryId}
-          onChange={setNewTaskCategoryId}
-          categories={categories}
-        />
-        <DateField
-          label="Due Date"
-          value={newTaskDueDate}
-          onChange={setNewTaskDueDate}
-        />
-        <TextAreaField
+        <div className="flex gap-3">
+          <div className="w-1/2">
+            <Select
+              label="Category"
+              value={categoryId}
+              onChange={(value) => setCategoryId(value ? Number(value) : "")}
+              options={categoryOptions(categories)}
+              placeholder={{ value: "", label: "Select a category" }}
+              firstItem={{ value: "", label: "None" }}
+            />
+          </div>
+
+          <div className="w-1/2">
+            <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
+          </div>
+        </div>
+        <TextArea
           label="Description"
-          value={newTaskDescription}
-          onChange={setNewTaskDescription}
+          value={description}
+          onChange={setDescription}
           placeholder="Add more details"
+          grow
         />
       </FormColumn>
 
       {/* Right column: assign members */}
       <MemberPanel
         members={members}
-        selectedIds={newTaskAssignedIds}
-        onChange={setNewTaskAssignedIds}
+        selectedIds={assignedIds}
+        onChange={setAssignedIds}
         loading={membersLoading}
         error={membersError ? "Couldn't load members" : null}
       />

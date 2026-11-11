@@ -3,8 +3,11 @@
 import { useState } from "react";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
-import Avatar from "@/components/avatar";
-import Icon from "@/components/icon";
+import Avatar from "@/components/ui/avatar";
+import Button from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
+import { CloseButton, Slideup } from "@/components/ui/slideup";
 import {
   RequestTableButton,
   SlideupDescription,
@@ -12,13 +15,7 @@ import {
   SlideupEdited,
   SlideupError,
   SlideupMeta,
-  renderWithLinks,
 } from "@/components/dashboard/dashboard-utils";
-import {
-  SlideupCloseButton,
-  SlideupFrame,
-  useSlideupClose,
-} from "@/components/modal-slideup";
 
 export default function TaskSlideup({
   task,
@@ -35,8 +32,6 @@ export default function TaskSlideup({
   onClose: () => void;
   onUpdated: () => void;
 }) {
-  const { isClosing, handleClose } = useSlideupClose(onClose);
-
   // local copy, task prop never change after putTask
   const [status, setStatus] = useState(task.status);
   const [submitting, setSubmitting] = useState(false);
@@ -64,14 +59,7 @@ export default function TaskSlideup({
     }
   }
 
-  const buttonColor = submitting
-    ? "bg-gray-200"
-    : isCompleted
-      ? "bg-(--primary-red) hover:bg-(--primary-red-hover)"
-      : "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)";
-
   const verb = isCompleted ? "Unsubmit" : "Submit";
-  const buttonLabel = submitting ? `${verb}ting` : verb;
 
   const sortedAssignees = [...task.assignees].sort((a, b) => {
     if (a.id === currentUserId) return -1;
@@ -80,92 +68,99 @@ export default function TaskSlideup({
   });
 
   return (
-    <SlideupFrame
-      isClosing={isClosing}
-      onClose={handleClose}
-      className="flex flex-col"
-    >
-      <div className="flex items-center justify-between gap-4 pb-2">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-2xl font-bold text-black">Task</h1>
-          <h1 className="text-xl font-semibold text-gray-500">#{task.id}</h1>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <RequestTableButton
-            type="task"
-            id={task.id}
-            label="Open in Request-table"
-          />
-          <SlideupCloseButton onClose={handleClose} />
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1 gap-5">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h1 className="wrap-break-word text-xl font-bold text-black">
-            {renderWithLinks(task.name)}
-          </h1>
-
-          <SlideupMeta
-            categoryName={categoryMap[task.category_id] ?? "-"}
-            createdDate={task.created}
-          >
-            <div className="flex items-center gap-2">
-              <Icon src="/user.svg" alt="" className="h-4 w-auto" />
-              <span>{usernames[task.created_by] ?? "-"}</span>
+    <Slideup onClose={onClose}>
+      {(close) => (
+        <>
+          <div className="flex items-center justify-between gap-4 pb-2">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-2xl font-bold text-black">Task</h1>
+              <h1 className="text-xl font-semibold text-gray-500">
+                #{task.id}
+              </h1>
             </div>
-          </SlideupMeta>
 
-          <SlideupEdited created={task.created} updated={task.updated} />
-
-          <SlideupDueRow type="task" status={status} dueDate={task.due_date} />
-
-          <SlideupDescription description={task.description} />
-        </div>
-
-        <div className="flex w-9/40 shrink-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] p-3 bg-(--panel-bg)">
-            <h1 className="text-base font-bold text-black">
-              Responsible person
-            </h1>
-
-            <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-              <div className="flex flex-col gap-2">
-                {sortedAssignees.map((assignee) => (
-                  <div key={assignee.id} className="flex items-center gap-2">
-                    <Avatar
-                      name={assignee.username}
-                      className="h-5 w-auto shrink-0"
-                    />
-                    <span className="truncate text-base font-normal text-gray-800">
-                      {assignee.username}
-                      {assignee.id === currentUserId && " (You)"}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="flex items-center gap-4">
+              <RequestTableButton
+                type="task"
+                id={task.id}
+                label="Open in Request-table"
+              />
+              <CloseButton onClose={close} />
             </div>
           </div>
 
-          {error && (
-            <SlideupError message={error} className="mt-2 text-center" />
-          )}
+          <div className="flex min-h-0 flex-1 gap-5">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <h1 className="wrap-break-word text-xl font-bold text-black">
+                {renderWithLinks(task.name)}
+              </h1>
 
-          {isAssignedToMe && (
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={handleToggle}
-              className={`mt-2 h-10 w-full rounded-full text-lg font-bold text-white ${buttonColor} ${
-                submitting ? "cursor-not-allowed" : "cursor-pointer"
-              }`}
-            >
-              {buttonLabel}
-            </button>
-          )}
-        </div>
-      </div>
-    </SlideupFrame>
+              <SlideupMeta
+                categoryName={categoryMap[task.category_id] ?? "-"}
+                createdDate={task.created}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon src="/user.svg" alt="" className="h-4 w-auto" />
+                  <span>{usernames[task.created_by] ?? "-"}</span>
+                </div>
+              </SlideupMeta>
+
+              <SlideupEdited created={task.created} updated={task.updated} />
+
+              <SlideupDueRow
+                type="task"
+                status={status}
+                dueDate={task.due_date}
+              />
+
+              <SlideupDescription description={task.description} />
+            </div>
+
+            <div className="flex w-9/40 shrink-0 flex-col">
+              <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
+                <h1 className="text-base font-bold text-black">
+                  Responsible person
+                </h1>
+
+                <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+                  <div className="flex flex-col gap-2">
+                    {sortedAssignees.map((assignee) => (
+                      <div
+                        key={assignee.id}
+                        className="flex items-center gap-2"
+                      >
+                        <Avatar
+                          name={assignee.username}
+                          className="h-5 w-auto shrink-0"
+                        />
+                        <span className="truncate text-base font-normal text-gray-800">
+                          {assignee.username}
+                          {assignee.id === currentUserId && " (You)"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <SlideupError message={error} className="mt-2 text-center" />
+              )}
+
+              {isAssignedToMe && (
+                <Button
+                  variant={submitting ? "busy" : isCompleted ? "red" : "green"}
+                  disabled={submitting}
+                  onClick={handleToggle}
+                  className="mt-2 h-10 w-full text-lg font-bold"
+                >
+                  {submitting ? `${verb}ting` : verb}
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </Slideup>
   );
 }

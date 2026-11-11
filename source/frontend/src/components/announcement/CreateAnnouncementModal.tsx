@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import type { Announcement, CreateAnnouncementInput } from "@/lib/announcement";
+import { TextArea, TextInput } from "@/components/ui/field";
 import {
   FormButton,
   FormColumn,
   FormModal,
-  TextAreaField,
-  TextField,
   useFormSubmit,
-} from "@/components/request-table/FormParts";
+} from "@/components/ui/form-modal";
 
 export default function CreateAnnouncementModal({
   announcement,
@@ -27,7 +26,7 @@ export default function CreateAnnouncementModal({
   );
   const { saving, error, setError, run } = useFormSubmit();
 
-  async function handleCreate(close: () => void) {
+  async function handleSubmit(close: () => void) {
     if (!name.trim()) {
       setError("Title is required.");
       return;
@@ -48,8 +47,8 @@ export default function CreateAnnouncementModal({
       error={error}
       footer={(close) => (
         <FormButton
-          color="green"
-          onClick={() => handleCreate(close)}
+          variant="green"
+          onClick={() => handleSubmit(close)}
           disabled={saving}
         >
           {saving ? "Saving…" : "Submit"}
@@ -57,18 +56,19 @@ export default function CreateAnnouncementModal({
       )}
     >
       <FormColumn>
-        <TextField
+        <TextInput
           label="Title"
           value={name}
           onChange={setName}
           placeholder="Enter a title"
           maxLength={255}
         />
-        <TextAreaField
+        <TextArea
           label="Description"
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          grow
         />
       </FormColumn>
     </FormModal>

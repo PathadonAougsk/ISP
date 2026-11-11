@@ -4,17 +4,15 @@ import { useEffect, useRef, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
 import { formatShortDateTime } from "@/lib/format";
-import Icon from "@/components/icon";
+import Button from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import {
-  BTN,
   ERROR,
-  FIELD,
   HEAD,
   LIST_PANEL,
   MESSAGE,
   MUTED,
   ROW,
-  SELECT,
   TITLE,
 } from "./settings-style";
 
@@ -26,7 +24,7 @@ const TABLES = ["account", "category", "ticket", "task"];
 const PAGE_SIZE = 50;
 
 // fr cols. grid! because HEAD and ROW are flex
-const COLS = "grid! grid-cols-[0.6fr_1.6fr_1.1fr_1fr_0.9fr_4fr]";
+const COLS = "grid! grid-cols-[0.8fr_1.8fr_1.1fr_1.1fr_1.1fr_4fr]";
 
 // A deleted account leaves by_whom null, and a create or a delete leaves one
 // side of the change null, so neither of those is an error worth shouting about.
@@ -45,7 +43,6 @@ export default function Log({
 }) {
   const [entries, setEntries] = useState<AuditLog[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
   const [table, setTable] = useState("");
 
   // Which filter the rows on screen came from, null before the first fetch.
@@ -123,18 +120,6 @@ export default function Log({
     }
   }
 
-  const needle = query.trim().toLowerCase();
-  const visible = entries.filter((entry) =>
-    [
-      entry.by_username,
-      entry.from_table,
-      entry.column_name,
-      entry.row_id,
-      entry.old_value,
-      entry.new_value,
-    ].some((field) => field?.toLowerCase().includes(needle)),
-  );
-
   return (
     <section className="flex flex-col gap-5">
       <h1 className={TITLE}>Log</h1>
@@ -165,24 +150,15 @@ export default function Log({
               )}
             </p>
 
-            <div className="relative w-32.5">
-              <select
-                value={table}
-                onChange={(e) => setTable(e.target.value)}
-                className={`${SELECT} w-full appearance-none cursor-pointer pr-8`}
-              >
-                <option value="">All tables</option>
-                {TABLES.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                src="/dropdown_arrow.svg"
-                className="absolute right-2.5 top-1/2 h-4 w-auto shrink-0 -translate-y-1/2 pointer-events-none"
-              />
-            </div>
+            <Select
+              look="outlined"
+              className="w-30"
+              value={table}
+              onChange={setTable}
+              placeholder={{ value: "", label: "All tables" }}
+              firstItem={{ value: "", label: "All tables" }}
+              options={TABLES.map((name) => ({ value: name, label: name }))}
+            />
           </div>
 
           {error && <p className={ERROR}>{error}</p>}
@@ -202,14 +178,10 @@ export default function Log({
 
             {loading ? (
               <p className={MESSAGE}>Loading...</p>
-            ) : visible.length === 0 ? (
-              <p className={MESSAGE}>
-                {entries.length === 0
-                  ? "Nothing has been logged yet."
-                  : "No entries match that search."}
-              </p>
+            ) : entries.length === 0 ? (
+              <p className={MESSAGE}>Nothing has been logged yet.</p>
             ) : (
-              visible.map((entry) => (
+              entries.map((entry) => (
                 <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
                   <span className="truncate" title={entry.row_id ?? undefined}>
                     {valueOf(entry.row_id)}
@@ -243,14 +215,15 @@ export default function Log({
           </div>
 
           {hasMore && !loading && (
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="md"
               onClick={loadMore}
               disabled={loadingMore}
-              className={`${BTN} w-full`}
+              className="w-full font-semibold"
             >
               {loadingMore ? "Loading..." : "Load more"}
-            </button>
+            </Button>
           )}
         </>
       )}

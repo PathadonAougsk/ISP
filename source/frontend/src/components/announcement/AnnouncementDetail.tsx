@@ -1,23 +1,20 @@
-import Icon from "@/components/icon";
 import type { Announcement } from "@/lib/announcement";
 import { formatFullDateTime } from "@/lib/format";
-import {
-  renderWithLinks,
-  SlideupDescription,
-} from "@/components/dashboard/dashboard-utils";
+import Button from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
+import { SlideupDescription } from "@/components/dashboard/dashboard-utils";
 
 export default function AnnouncementDetail({
   announcement,
   authorName,
-  canEdit = false,
-  canDelete = false,
+  canManage = false,
   onEdit,
   onDelete,
 }: {
   announcement: Announcement | null;
   authorName: string;
-  canEdit?: boolean;
-  canDelete?: boolean;
+  canManage?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -46,27 +43,25 @@ export default function AnnouncementDetail({
           {formatFullDateTime(announcement.created)}
         </span>
 
-        {(canEdit || canDelete) && (
+        {canManage && (
           <div className="ml-auto flex items-center gap-2">
-            {canEdit && (
-              <button
-                type="button"
-                onClick={onEdit}
-                className="flex h-6 w-15 cursor-pointer items-center justify-center rounded-full bg-(--primary-color-2) px-4 text-sm font-semibold text-white hover:bg-(--primary-color-2-hover)"
-              >
-                Edit
-              </button>
-            )}
+            <Button
+              variant="green"
+              size="sm"
+              onClick={onEdit}
+              className="w-15 font-semibold"
+            >
+              Edit
+            </Button>
 
-            {canDelete && (
-              <button
-                type="button"
-                onClick={onDelete}
-                className="flex h-6 w-15 cursor-pointer items-center justify-center rounded-full bg-(--primary-red) px-4 text-sm font-semibold text-white hover:bg-(--primary-red-hover)"
-              >
-                Delete
-              </button>
-            )}
+            <Button
+              variant="red"
+              size="sm"
+              onClick={onDelete}
+              className="w-15 font-semibold"
+            >
+              Delete
+            </Button>
           </div>
         )}
       </div>
