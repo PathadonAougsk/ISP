@@ -63,6 +63,7 @@ export type TicketRow = {
   status: "Pending" | "Accepted" | "Rejected";
   dueDate: string;
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
+  dueDateIso: string | null; // as stored, to send back when the field is untouched
   createdDate: string;
   lastUpdate: string;
   category: string;
@@ -151,6 +152,7 @@ function mapTicket(
           : "Pending",
     dueDate: formatShortDateTime(ticket.due_date),
     dueDateValue: toDateInputValue(ticket.due_date),
+    dueDateIso: ticket.due_date,
     createdDate: formatShortDateTime(ticket.created, "created"),
     lastUpdate: formatShortDateTime(ticket.updated, "updated"),
     category:

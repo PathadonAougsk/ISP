@@ -190,6 +190,7 @@ export default function Member({
               }}
               onCloseReset={() => setResetId(null)}
               run={run(member)}
+              error={error}
               onError={setError}
             />
           ))

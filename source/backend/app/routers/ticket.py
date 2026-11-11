@@ -2,35 +2,30 @@ from typing import Annotated
 import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select, case, update, func, or_, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
+from app.datetime_utils import to_due_date, to_utc
+from app.limits import DESCRIPTION_MAX, NAME_MAX
 from app.model import Ticket, Account, Category, AccountRole, TicketStatus, AuditLog
 from app.service import account_service
 
 
 class TicketCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     category_id: int
     due_date: dt.datetime | None = None
 
 
 class TicketUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TicketStatus | None = None
     category_id: int | None = None
     due_date: dt.datetime | None = None
-
-
-def to_utc(date):
-    if date is None:
-        return None
-
-    return date.astimezone(dt.timezone.utc)
 
 
 ticketRouter = APIRouter(
@@ -180,7 +175,7 @@ async def create_ticket(
         created_by=me.id,
         completed_by=None,
         completed_at=None,
-        due_date=to_utc(data.due_date)
+        due_date=to_due_date(data.due_date)
     )
 
     session.add(ticket)
@@ -191,7 +186,7 @@ async def create_ticket(
         "description": data.description,
         "status": TicketStatus.PENDING.value,
         "category_id": data.category_id,
-        "due_date": to_utc(data.due_date)
+        "due_date": to_due_date(data.due_date)
     }
 
     for col_name, new_value in audit_fields.items():
@@ -281,10 +276,10 @@ async def update_ticket(
         ticket.category_id = data.category_id
 
     if data.due_date is not None:
-        new_due_date = to_utc(data.due_date)
+        new_due_date = to_due_date(data.due_date)
 
         audit_list.append(
-            update_ticket_log("due_date", ticket.due_date, new_due_date)
+            update_ticket_log("due_date", to_utc(ticket.due_date), new_due_date)
         )
         ticket.due_date = new_due_date
 

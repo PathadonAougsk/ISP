@@ -41,11 +41,16 @@ export default function TaskDetailModal({
 
   const isAdmin = userRole === "Lab Admin";
 
+  // The date input only holds a day, so sending it back would drop the time
+  // the backend stored. Send the saved value instead unless it was edited.
+  const dueDateChanged = (dueDate || "") !== (task.dueDateValue || "");
+  const dueDatePayload = dueDateChanged ? dueDate || null : task.dueDateIso;
+
   const hasChanges =
     title.trim() !== task.title ||
     categoryId !== task.categoryId ||
     (description || "") !== (task.description || "") ||
-    (dueDate || "") !== (task.dueDateValue || "") ||
+    dueDateChanged ||
     JSON.stringify([...assignedIds].sort()) !==
       JSON.stringify([...task.assigneeIds].sort());
 
@@ -61,7 +66,7 @@ export default function TaskDetailModal({
           description: task.description || null,
           status,
           category_id: task.categoryId,
-          due_date: task.dueDateValue || null,
+          due_date: task.dueDateIso,
         }),
       status === "completed"
         ? "Failed to submit task"
@@ -89,7 +94,7 @@ export default function TaskDetailModal({
           description: description || null,
           status: task.status === "Completed" ? "completed" : "in_progress",
           category_id: categoryId,
-          due_date: dueDate || null,
+          due_date: dueDatePayload,
           assignees: assignedIds,
         }),
       "Failed to update task",
