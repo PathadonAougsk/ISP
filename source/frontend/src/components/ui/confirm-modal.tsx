@@ -60,7 +60,7 @@ export default function ConfirmModal({
             event.stopPropagation();
             if (!busy) close();
           }}
-          className="flex flex-col gap-5 p-7 outline-none"
+          className="flex flex-col gap-4 p-7 outline-none"
         >
           <h1 className="text-2xl font-bold text-black">{title}</h1>
 

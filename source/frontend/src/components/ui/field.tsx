@@ -5,27 +5,32 @@ import type { ComponentPropsWithRef, ReactNode } from "react";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
 
-// Three looks, one per surface the app has:
+// Four looks, one per surface the app has:
 //   filled   - grey box inside a white modal
 //   outlined - bordered pill in the settings dialog
+//   outlined-sm - bordered pill in the settings dialog but smaller
 //   panel    - white pill on a green panel (the request table controls)
-export type FieldLook = "filled" | "outlined" | "panel";
+export type InputLook = "filled" | "outlined" | "outlined-sm" | "panel";
+export type SelectLook = "filled" | "outlined" | "panel";
+type FieldLook = InputLook | SelectLook;
 
-export const INPUT_LOOK: Record<FieldLook, string> = {
+export const INPUT_LOOK: Record<InputLook, string> = {
   filled:
     "w-full rounded-[20px] bg-gray-100 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-300",
   outlined:
-    "h-10 rounded-full border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
+    "h-10 rounded-full text-base border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
+  "outlined-sm":
+    "h-8 rounded-full text-base border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
   panel:
     "h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-(--primary-color-2)",
 };
 
 // Same looks, minus the native arrow and with room kept for ours. The select
 // is always full width, so a width on the component sizes the wrapper.
-const SELECT_LOOK: Record<FieldLook, string> = {
+const SELECT_LOOK: Record<SelectLook, string> = {
   filled: `${INPUT_LOOK.filled} appearance-none`,
   outlined:
-    "h-10 w-full text-sm appearance-none rounded-full border-2 border-(--primary-color-3) bg-white pl-3 pr-8 outline-none focus:border-(--primary-color-2) disabled:opacity-50",
+    "h-8 w-full text-sm appearance-none rounded-full border-2 border-(--primary-color-3) bg-white pl-3 pr-8 outline-none focus:border-(--primary-color-2) disabled:opacity-50",
   panel: `${INPUT_LOOK.panel} w-full appearance-none truncate pr-8`,
 };
 
@@ -175,7 +180,8 @@ export function Select({
   readOnlyText = "",
   className = "",
   disabled,
-}: Shared & {
+}: Omit<Shared, "look"> & {
+  look?: SelectLook;
   value: string | number;
   onChange: (value: string) => void;
   options: SelectOption[];
@@ -216,9 +222,7 @@ export function Select({
     return wrap(<ReadOnlyBox>{readOnlyText}</ReadOnlyBox>);
   }
 
-  const rows: SelectOption[] = firstItem
-    ? [firstItem, ...options]
-    : options;
+  const rows: SelectOption[] = firstItem ? [firstItem, ...options] : options;
 
   // Only search actual options for the displayed value.
   const current = options.find((row) => String(row.value) === String(value));
@@ -259,9 +263,7 @@ export function Select({
               title={row.title}
               onClick={() => pick(row.value)}
               className={`block w-full transform-none! cursor-pointer px-3 py-2 text-left text-sm font-normal whitespace-nowrap hover:bg-gray-200 ${
-                index === 0 && (firstItem)
-                  ? "text-gray-600"
-                  : "text-black"
+                index === 0 && firstItem ? "text-gray-600" : "text-black"
               }`}
             >
               {row.label}

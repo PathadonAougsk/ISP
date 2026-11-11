@@ -12,11 +12,13 @@ export default function Sidebar({
   role,
   active,
   onSelect,
+  isAdmin,
 }: {
   username?: string;
   role?: string;
   active: string;
   onSelect: (label: string) => void;
+  isAdmin: boolean;
 }) {
   // signOut hard navigates, so this only has to survive until the page goes
   // away - it is here to stop a second click firing another sign out.
@@ -35,7 +37,11 @@ export default function Sidebar({
         </div>
       </div>
 
-      <Nav items={accountNav} active={active} onSelect={onSelect} />
+      <Nav
+        items={accountNav.filter((item) => isAdmin || item.label !== "Log")}
+        active={active}
+        onSelect={onSelect}
+      />
 
       {/* mt-auto pins it to the bottom however short the nav is. */}
       <button

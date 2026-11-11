@@ -34,7 +34,7 @@ export default function AnnouncementDetail({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-2">
-          <Icon src="/user.svg" className="h-auto w-4 shrink-0" />
+          <Icon src="/account.svg" className="h-auto w-4 shrink-0" />
           {authorName}
         </span>
 
@@ -46,7 +46,7 @@ export default function AnnouncementDetail({
         {canManage && (
           <div className="ml-auto flex items-center gap-2">
             <Button
-              variant="green"
+              variant="outline-white"
               size="sm"
               onClick={onEdit}
               className="w-15 font-semibold"
@@ -55,7 +55,7 @@ export default function AnnouncementDetail({
             </Button>
 
             <Button
-              variant="red"
+              variant="outline-white"
               size="sm"
               onClick={onDelete}
               className="w-15 font-semibold"

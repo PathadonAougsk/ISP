@@ -33,7 +33,7 @@ export default function AnnouncementCard({
         </span>
 
         <span className="flex items-center gap-2">
-          <Icon src="/user.svg" alt="" className="h-4 w-auto shrink-0" />
+          <Icon src="/account.svg" alt="" className="h-4 w-auto shrink-0" />
           {authorName}
         </span>
       </div>
