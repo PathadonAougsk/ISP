@@ -206,12 +206,16 @@ export default function MemberRow({
   return (
     <div className="flex min-h-10 flex-col justify-center rounded-full bg-white pl-4 pr-2 py-1">
       <div className={`${cols} text-sm items-center gap-3`}>
-        <span className="truncate">
-          {member.username}
-          {isMe && <span className={MUTED}> (You)</span>}
+        <span className="flex min-w-0 items-center">
+          <span className="truncate" title={member.username}>
+            {member.username}
+          </span>
+          {isMe && <span className={`${MUTED} shrink-0 ml-1`}>(You)</span>}
         </span>
 
-        <span className="truncate">{email}</span>
+        <span className="truncate" title={email}>
+          {email}
+        </span>
 
         {canEdit ? (
           <Select
@@ -260,18 +264,18 @@ export default function MemberRow({
                 setQuotaDraft(member.quota === null ? "" : String(member.quota))
               }
               title="Ticket quota. Leave it blank for no cap."
-              className="h-8 w-full font-normal text-sm"
+              className="h-8 w-full font-normal text-sm text-center"
             >
               {member.quota ?? "No cap"}
             </Button>
           )
         ) : (
-          <span className="text-left">{member.quota ?? "-"}</span>
+          <span className="text-center">{member.quota ?? "-"}</span>
         )}
 
         {canEdit ? (
           <Button
-            variant="outline"
+            variant="outline-white"
             size="sm"
             disabled={busy}
             onClick={() =>
@@ -282,7 +286,7 @@ export default function MemberRow({
             {member.active ? "Deactivate" : "Activate"}
           </Button>
         ) : (
-          <span className="text-left">
+          <span className="text-center">
             {member.active ? "Active" : "Inactive"}
           </span>
         )}
@@ -291,7 +295,7 @@ export default function MemberRow({
           <div className="flex justify-end">
             {canEdit && (
               <Button
-                variant="outline"
+                variant="outline-white"
                 size="sm"
                 disabled={busy}
                 onClick={onToggleReset}
