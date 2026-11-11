@@ -7,14 +7,14 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from supabase_auth.types import User as AuthUser
 
+from app.auth import AuthUser, get_current_auth_user
 from app.database import getSession
 from app.limits import USERNAME_MAX
 from app.model import Account, AccountRole
 from app.service import account_service
 
-accountRouter = APIRouter(prefix="/account", dependencies=[Depends(account_service.get_current_auth_user)])
+accountRouter = APIRouter(prefix="/account", dependencies=[Depends(get_current_auth_user)])
 
 class CreateAccountRequest(BaseModel):
     username: str = Field(min_length=1, max_length=USERNAME_MAX)
@@ -80,7 +80,7 @@ async def retrieve_accounts(
 async def create_my_account(
     body: CreateAccountRequest,
     session: Annotated[AsyncSession, Depends(getSession)],
-    auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)],
+    auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
 ):
     """Claim the account row for the signed in user. A user who has a login
     but no account row picks their username here - the row does not exist

@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from supabase_auth.types import User as AuthUser
 
+from app.auth import AuthUser, get_current_auth_user
 from app.database import getSession
 from app.datetime_utils import to_due_date, to_utc
 from app.limits import DESCRIPTION_MAX, NAME_MAX
@@ -35,7 +35,7 @@ class TaskUpdate(BaseModel):
     assignees: list[uuid.UUID] | None = None
 
 
-taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get_current_auth_user)])
+taskRouter = APIRouter(prefix="/task", dependencies=[Depends(get_current_auth_user)])
 
 # Filter params here are optional. If given none, then get all.
 # Filters: id, categories, users (assignees), status, limit
@@ -130,7 +130,7 @@ async def retrieve_tasks(
 
 
 @taskRouter.post("/", tags=["Task"])
-async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
+async def create_task(auth_user: Annotated[AuthUser, Depends(get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
     # Create new task based on the body.
     conv_duedate = to_due_date(body.due_date)
 
@@ -168,7 +168,7 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
 
 @taskRouter.put("/{task_id}", tags=["Task"])
 async def update_task(
-    auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)],
+    auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
     task_id: int,
     session: Annotated[AsyncSession, Depends(getSession)],
     body: TaskUpdate
@@ -239,7 +239,7 @@ async def update_task(
 
 
 @taskRouter.delete("/{task_id}", tags=["Task"])
-async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)]):
+async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(get_current_auth_user)]):
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )

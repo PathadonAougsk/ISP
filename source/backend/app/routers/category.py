@@ -6,12 +6,13 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import get_current_auth_user
 from app.database import getSession
 from app.limits import CATEGORY_NAME_MAX
 from app.model import Account, Category
 from app.service import category_service, account_service
 
-categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(account_service.get_current_auth_user)])
+categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(get_current_auth_user)])
 
 class CategoryRequestBody(BaseModel):
     name : str = Field(min_length=1, max_length=CATEGORY_NAME_MAX)
