@@ -12,6 +12,7 @@ import {
   type AccountRole,
 } from "@/lib/account";
 import Button from "@/components/ui/button";
+import ConfirmModal from "@/components/ui/confirm-modal";
 import { Select, TextInput } from "@/components/ui/field";
 import { LABEL, MUTED } from "./settings-style";
 
@@ -159,6 +160,7 @@ export default function MemberRow({
   onToggleReset,
   onCloseReset,
   run,
+  error,
   onError,
 }: {
   member: Account;
@@ -172,7 +174,8 @@ export default function MemberRow({
   onToggleReset: () => void;
   onCloseReset: () => void;
   run: RunAction;
-  onError: (message: string) => void;
+  error: string | null;
+  onError: (message: string | null) => void;
 }) {
   // Inline quota editing. A trial is capped; blank means no cap at all.
   const [quotaDraft, setQuotaDraft] = useState<string | null>(null);
@@ -195,12 +198,20 @@ export default function MemberRow({
     await run(() => updateAccount(member.id, { quota }));
   }
 
-  function handleDelete() {
-    const confirmed = window.confirm(
-      `Delete ${member.username}? This cannot be undone. Deactivate instead if they own any tasks or tickets.`,
-    );
+  // Which confirmation is on screen. Deleting and deactivating both need one;
+  // switching somebody back on does not, so that one just happens.
+  const [confirming, setConfirming] = useState<"delete" | "deactivate" | null>(
+    null,
+  );
 
-    if (confirmed) run(() => deleteAccount(member.id));
+  // A message left over from another row should not greet a fresh dialog.
+  function openConfirm(which: "delete" | "deactivate") {
+    onError(null);
+    setConfirming(which);
+  }
+
+  function setActive(active: boolean) {
+    return run(() => updateAccount(member.id, { active }));
   }
 
   return (
@@ -275,7 +286,7 @@ export default function MemberRow({
             size="md"
             disabled={busy}
             onClick={() =>
-              run(() => updateAccount(member.id, { active: !member.active }))
+              member.active ? openConfirm("deactivate") : setActive(true)
             }
             className="w-full font-normal"
           >
@@ -311,7 +322,7 @@ export default function MemberRow({
                 variant="red"
                 size="md"
                 disabled={busy}
-                onClick={handleDelete}
+                onClick={() => openConfirm("delete")}
                 className="w-full font-bold"
               >
                 Delete
@@ -329,6 +340,38 @@ export default function MemberRow({
           onDone={onCloseReset}
           onError={onError}
         />
+      )}
+
+      {confirming === "deactivate" && (
+        <ConfirmModal
+          title={`Deactivate ${member.username}?`}
+          confirmLabel="Deactivate"
+          busyLabel="Deactivating..."
+          error={error}
+          onConfirm={() => setActive(false)}
+          onClose={() => setConfirming(null)}
+        >
+          <p>
+            {member.username} keeps everything they own, but cannot sign in
+            again until you activate them.
+          </p>
+        </ConfirmModal>
+      )}
+
+      {confirming === "delete" && (
+        <ConfirmModal
+          title={`Delete ${member.username}?`}
+          confirmLabel="Delete"
+          busyLabel="Deleting..."
+          error={error}
+          onConfirm={() => run(() => deleteAccount(member.id))}
+          onClose={() => setConfirming(null)}
+        >
+          <p>
+            This cannot be undone. Deactivate {member.username} instead if they
+            own any tasks or tickets.
+          </p>
+        </ConfirmModal>
       )}
     </div>
   );
