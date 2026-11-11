@@ -46,7 +46,7 @@ export default function AnnouncementDetail({
         {canManage && (
           <div className="ml-auto flex items-center gap-2">
             <Button
-              variant="green"
+              variant="outline-white"
               size="sm"
               onClick={onEdit}
               className="w-15 font-semibold"
@@ -55,7 +55,7 @@ export default function AnnouncementDetail({
             </Button>
 
             <Button
-              variant="red"
+              variant="outline-white"
               size="sm"
               onClick={onDelete}
               className="w-15 font-semibold"
