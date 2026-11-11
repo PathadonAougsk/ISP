@@ -3,13 +3,14 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
+from app.limits import DESCRIPTION_MAX, NAME_MAX
 from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
 
@@ -22,8 +23,8 @@ def to_utc(value: datetime | None) -> datetime | None:
 
 # Base Task model.
 class TaskRequest(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
     due_date: datetime | None = None
@@ -31,8 +32,8 @@ class TaskRequest(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus | None = None
     category_id: int | None = None
     due_date: datetime | None = None

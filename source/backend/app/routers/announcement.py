@@ -1,23 +1,24 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import getSession
+from app.limits import DESCRIPTION_MAX, NAME_MAX
 from app.model import Announcement, Account, AuditLog
 from app.service import account_service
 
 
 class AnnouncementCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
 
 
 class AnnouncementUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
 
 
 announcementRouter = APIRouter(prefix="/announcement", dependencies=[Depends(account_service.get_current_auth_user)])
