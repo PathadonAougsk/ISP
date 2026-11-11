@@ -72,6 +72,7 @@ export type TaskRow = {
   createdBy: string;
   dueDate: string;
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
+  dueDateIso: string | null; // as stored, to send back when the field is untouched
   createdDate: string;
   lastUpdate: string;
   status: "Completed" | "In progress";
@@ -137,6 +138,7 @@ function mapTask(task: Task, { categoryById, accountById }: Lookups): TaskRow {
     createdBy: accountById.get(task.created_by) ?? "-",
     dueDate: formatShortDateTime(task.due_date),
     dueDateValue: toDateInputValue(task.due_date),
+    dueDateIso: task.due_date,
     createdDate: formatShortDateTime(task.created, "created"),
     lastUpdate: formatShortDateTime(task.updated, "updated"),
     status: task.status === "completed" ? "Completed" : "In progress",

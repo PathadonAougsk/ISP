@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,14 +10,9 @@ from sqlalchemy.orm import selectinload
 from supabase_auth.types import User as AuthUser
 
 from app.database import getSession
+from app.datetime_utils import to_due_date, to_utc
 from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
-
-
-def to_utc(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
-    return value.astimezone(timezone.utc)
 
 
 # Base Task model.
@@ -136,9 +131,7 @@ async def retrieve_tasks(
 @taskRouter.post("/", tags=["Task"])
 async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
     # Create new task based on the body.
-    conv_duedate = None
-    if body.due_date != None:
-        conv_duedate = body.due_date.astimezone(timezone.utc)
+    conv_duedate = to_due_date(body.due_date)
 
     task = Task(
         name=body.name,
@@ -225,11 +218,8 @@ async def update_task(
         task.category_id = body.category_id
 
     if body.due_date is not None:
-        # TIME ZONE PROBLEM!!!! THIS IS A TEMPORARY FIX!!!
-        dt1 = None
-        if (task.due_date != None):
-            dt1 = task.due_date.astimezone(timezone.utc)
-        dt2 = body.due_date.astimezone(timezone.utc)
+        dt1 = to_utc(task.due_date)
+        dt2 = to_due_date(body.due_date)
         audit_list.append(update_helper("due_date", dt1, dt2))
         task.due_date = dt2
 

@@ -50,10 +50,15 @@ export default function TicketDetailModal({
   const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
   const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
 
+  // The date input only holds a day, so sending it back would drop the time
+  // the backend stored. Send the saved value instead unless it was edited.
+  const dueDateChanged = (dueDate || "") !== (ticket.dueDateValue || "");
+  const dueDatePayload = dueDateChanged ? dueDate || null : ticket.dueDateIso;
+
   const hasChanges =
     title.trim() !== ticket.title ||
     (description || "") !== (ticket.description || "") ||
-    (dueDate || "") !== (ticket.dueDateValue || "") ||
+    dueDateChanged ||
     categoryId !== ticket.categoryId ||
     ticket.status === "Rejected";
 
@@ -71,7 +76,7 @@ export default function TicketDetailModal({
     const name = canEdit ? title.trim() : ticket.title;
     const text = canEdit ? description : ticket.description;
     const category = canEdit ? categoryId : ticket.categoryId;
-    const due = canEdit ? dueDate : ticket.dueDateValue;
+    const due = canEdit ? dueDatePayload : ticket.dueDateIso;
 
     if (!name || category === "") {
       setError("Title and category are required.");
@@ -85,7 +90,7 @@ export default function TicketDetailModal({
         name,
         description: text || null,
         category_id: category,
-        due_date: due || null,
+        due_date: due,
         status: newStatus.toLowerCase(),
       });
 
@@ -97,7 +102,7 @@ export default function TicketDetailModal({
           name,
           description: text || null,
           category_id: category,
-          due_date: due || null,
+          due_date: due,
           assignees: assignedIds,
         });
       } catch (taskError) {
@@ -131,7 +136,7 @@ export default function TicketDetailModal({
           name: title.trim(),
           description: description || null,
           category_id: categoryId,
-          due_date: dueDate || null,
+          due_date: dueDatePayload,
           status: ticket.status === "Rejected" ? "pending" : undefined,
         }),
       "Failed to update ticket",

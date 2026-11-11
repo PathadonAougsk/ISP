@@ -13,6 +13,8 @@ const VARIANT = {
   dark: "bg-black text-white enabled:hover:bg-gray-700 disabled:bg-gray-700",
   outline:
     "border-2 border-(--primary-color-3) bg-white text-black enabled:hover:bg-(--panel-bg) disabled:opacity-50",
+  "outline-white":
+    "border-2 border-gray-300 bg-white text-black enabled:hover:bg-gray-100 disabled:opacity-50",
   // waiting on a request: flat grey instead of a faded colour
   busy: "bg-gray-200 text-white",
 } as const;
