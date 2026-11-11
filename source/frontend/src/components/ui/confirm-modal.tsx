@@ -69,7 +69,7 @@ export default function ConfirmModal({
           <div className="flex items-center justify-end gap-3">
             {error && <p className="mr-auto text-sm text-red-500">{error}</p>}
 
-            <FormButton variant="green" onClick={close} disabled={busy}>
+            <FormButton variant="outline-white" onClick={close} disabled={busy}>
               Cancel
             </FormButton>
 

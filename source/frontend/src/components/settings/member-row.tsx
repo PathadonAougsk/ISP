@@ -368,8 +368,8 @@ export default function MemberRow({
           onClose={() => setConfirming(null)}
         >
           <p>
-            This cannot be undone. Deactivate {member.username} instead if they
-            own any tasks or tickets.
+            This action cannot be undone. If {member.username} owns any tasks or
+            tickets, consider deactivating their account instead.
           </p>
         </ConfirmModal>
       )}
