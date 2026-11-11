@@ -48,7 +48,7 @@ function AuthForm() {
   }
 
   return (
-    <div className="relative flex h-full flex-1 flex-row items-center justify-center gap-10 overflow-hidden bg-(--background) p-8 text-(--foreground)">
+    <div className="relative flex h-full flex-1 flex-row items-center justify-center gap-10 overflow-hidden bg-white p-8 text-black">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -60,7 +60,7 @@ function AuthForm() {
         <div className="mb-6 flex">
           <div
             className={
-              "flex-1 py-4 text-sm tracking-wide bg-white text-(--foreground) text-center"
+              "flex-1 py-4 text-sm tracking-wide bg-white text-black text-center"
             }
           >
             <h1 className="font-bold text-3xl">Welcome Back!</h1>
@@ -78,7 +78,7 @@ function AuthForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-(--panel-bg) px-3 py-2 text-(--foreground) outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)"
+              className="bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)"
               placeholder="you@example.com"
             />
           </label>
@@ -90,7 +90,7 @@ function AuthForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-(--panel-bg) px-3 py-2 text-(--foreground) outline-none focus:border-(--primary-color-1) border border-(--panel-bg-hover) rounded-xl"
+              className="bg-(--panel-bg) px-3 py-2 text-black outline-none focus:border-(--primary-color-1) border border-(--panel-bg-hover) rounded-xl"
               placeholder="••••••••"
             />
           </label>
