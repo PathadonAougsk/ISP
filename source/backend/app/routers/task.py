@@ -55,7 +55,7 @@ async def retrieve_tasks(
     due_after: datetime | None = None,
     due_before: datetime | None = None,
     get_count: bool = False,
-    limit: int = Query(default=20, ge=0),
+    limit: int = Query(default=0, ge=0),
     offset: int = Query(default=0, ge=0),
 ):
     from sqlalchemy import cast, String, or_, func

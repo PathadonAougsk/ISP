@@ -9,7 +9,6 @@ import {
   dueBucketColor,
   dueBucketMeta,
   getDueBucketLimits,
-  withMore,
   type BucketCounts,
   type DashboardItem,
   type DashboardView,
@@ -67,13 +66,11 @@ export function ScopeToggle({
 
 export function Summary({
   items,
-  overflowItems,
   counts,
   loading,
   view,
 }: {
   items: DashboardItem[];
-  overflowItems: DashboardItem[];
   counts: BucketCounts;
   loading: boolean;
   view: DashboardView;
@@ -92,9 +89,6 @@ export function Summary({
 
   const dueToday = items.filter(isDueToday).length;
 
-  // due today can hide behind a past due one
-  const moreDueToday = overflowItems.some(isDueToday);
-
   const isTicket = view === "ticket";
 
   // hide empty range, but show all of them while loading
@@ -112,25 +106,16 @@ export function Summary({
     ? [
         {
           label: "Rejected",
-          value: withMore(
-            items.filter((item) => item.status === "rejected").length,
-            overflowItems.some((item) => item.status === "rejected"),
-          ),
+          value: items.filter((item) => item.status === "rejected").length,
         },
         {
           label: "Pending",
-          value: withMore(
-            items.filter((item) => item.status === "pending").length,
-            overflowItems.some((item) => item.status === "pending"),
-          ),
+          value: items.filter((item) => item.status === "pending").length,
         },
       ]
     : [
-        { label: "Due Today", value: withMore(dueToday, moreDueToday) },
-        {
-          label: "Active Task",
-          value: withMore(items.length, overflowItems.length > 0),
-        },
+        { label: "Due Today", value: dueToday },
+        { label: "Active Task", value: items.length },
       ];
 
   return (
@@ -188,7 +173,7 @@ export function Summary({
                     className={`h-5 w-5 rounded-full ${dueBucketColor[bucket.key]}`}
                   />
                 </div>
-                <div className="flex w-6 items-center text-base">
+                <div className="flex w-6 items-center text-base tabular-nums">
                   <p>{loading ? "-" : bucket.count}</p>
                 </div>
                 <div className="flex flex-1 items-center text-base">
