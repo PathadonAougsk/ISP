@@ -71,7 +71,7 @@ export default function CreateTaskModal({
           onClick={() => handleCreate(close)}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Submit"}
+          {saving ? "Creating…" : "Create"}
         </FormButton>
       )}
     >
