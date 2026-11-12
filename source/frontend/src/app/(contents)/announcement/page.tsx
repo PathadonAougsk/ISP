@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import AnnouncementDetail from "@/components/announcement/AnnouncementDetail";
 import AnnouncementList from "@/components/announcement/AnnouncementList";
 import CreateAnnouncementModal from "@/components/announcement/CreateAnnouncementModal";
@@ -38,7 +39,11 @@ export default function AnnouncementPage() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // opened by /announcement/id link, else null
+  const idParam = Number(useParams<{ id?: string }>().id);
+  const [selectedId, setSelectedId] = useState<number | null>(
+    Number.isInteger(idParam) ? idParam : null,
+  );
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -77,12 +82,28 @@ export default function AnnouncementPage() {
     if (!fetching) void load(list.limit + PAGE_SIZE);
   }, [fetching, list.limit, load]);
 
+  // opened by link: load more til id found
+  useEffect(() => {
+    if (selectedId === null || fetching || error !== null || !list.hasMore) {
+      return;
+    }
+    if (list.items.some((item) => item.id === selectedId)) return;
+
+    void load(list.limit + PAGE_SIZE);
+  }, [selectedId, fetching, error, list, load]);
+
   // nothing on screen yet, so the error takes over the whole panel
   const blank = error !== null && list.items.length === 0;
 
   // first one selected by default
   const selected =
     list.items.find((item) => item.id === selectedId) ?? list.items[0] ?? null;
+
+  // clear [id] from url when other one picked
+  const handleSelect = (id: number) => {
+    setSelectedId(id);
+    window.history.replaceState(null, "", "/announcement");
+  };
 
   const authorName = (id: string) =>
     members.find((member) => member.id === id)?.name ?? "Unknown";
@@ -101,6 +122,7 @@ export default function AnnouncementPage() {
   const handleDelete = async () => {
     if (!selected) return;
     await deleteAnnouncement(selected.id);
+    setSelectedId(null);
     reload();
   };
 
@@ -129,7 +151,7 @@ export default function AnnouncementPage() {
             announcements={list.items}
             selectedId={selected?.id ?? null}
             getAuthorName={authorName}
-            onSelect={setSelectedId}
+            onSelect={handleSelect}
             hasMore={list.hasMore}
             loadingMore={fetching}
             loadMoreError={error !== null && list.items.length > 0}

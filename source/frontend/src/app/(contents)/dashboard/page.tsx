@@ -57,7 +57,6 @@ export default function Dashboard() {
   // summary and overview use same items as the list. mine first, others after
   const {
     items: viewItems,
-    overflowItems: viewOverflowItems,
     loading: loadingViewItems,
     error: errorViewItems,
     bucketCounts,
@@ -77,7 +76,6 @@ export default function Dashboard() {
           </div>
           <Summary
             items={viewItems}
-            overflowItems={viewOverflowItems}
             counts={bucketCounts.total}
             loading={loadingViewItems || errorViewItems}
             view={view}
