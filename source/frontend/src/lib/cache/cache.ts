@@ -1,4 +1,4 @@
-import { getUserId } from "@/lib/cache/cache-utils";
+import { getPaging, getUserId } from "@/lib/cache/cache-utils";
 import { resolveFamilyExpiry } from "@/lib/cache/cache-family";
 import {
   getCache,
@@ -59,10 +59,16 @@ export function cached<A extends unknown[], T>(
   ttlMs: number,
   name: string,
   family?: (...args: A) => string,
+  slice?: (result: T, limit: number) => T,
 ) {
   const pending = new Map<string, Entry<T>>();
   const familyExpirations = new Map<string, number>();
   const familyInitializations = new Map<string, Promise<number>>();
+  // familyKey -> request key -> its offset and limit
+  const familySiblings = new Map<
+    string,
+    Map<string, { offset: number; limit: number }>
+  >();
   const cacheName = `${CACHE_PREFIX}-${name}`;
 
   // bump on every clear(), so old requests can't save stale results
@@ -114,10 +120,45 @@ export function cached<A extends unknown[], T>(
 
         const fetchFresh = () => fn(...args);
 
+        // bigger fresh result overwrite smaller sibling, same offset
+        const overwriteSmaller = async (
+          familyKey: string,
+          result: T,
+          expiresAt: number,
+        ) => {
+          const paging = getPaging(args);
+
+          if (!slice || !paging || !ctx.guard.isActive()) return;
+
+          for (const [otherKey, other] of familySiblings.get(familyKey) ?? []) {
+            if (other.offset !== paging.offset || other.limit >= paging.limit) {
+              continue;
+            }
+
+            const smaller = slice(result, other.limit);
+
+            await saveResult(
+              { cache, request: getKey(otherKey), guard: ctx.guard },
+              smaller,
+              expiresAt,
+            );
+
+            if (!ctx.guard.isSameGeneration()) return;
+
+            pending.set(otherKey, {
+              promise: Promise.resolve(smaller),
+              at: Date.now(),
+              settled: true,
+              expiresAt,
+            });
+          }
+        };
+
         // read cache, else fetch and save
         const readOrFetch = async (
           isValid: (response: Response) => boolean,
           expiresAt?: number,
+          familyKey?: string,
         ): Promise<T> => {
           const cached = await readResult<T>(ctx, isValid);
 
@@ -126,6 +167,10 @@ export function cached<A extends unknown[], T>(
           const result = await fetchFresh();
 
           await saveResult(ctx, result, expiresAt);
+
+          if (familyKey && expiresAt !== undefined) {
+            await overwriteSmaller(familyKey, result, expiresAt);
+          }
 
           return result;
         };
@@ -145,6 +190,7 @@ export function cached<A extends unknown[], T>(
 
           if (fresh) {
             await saveResult(ctx, fresh.value, expiresAt);
+            await overwriteSmaller(familyKey, fresh.value, expiresAt);
             return fresh.value;
           }
 
@@ -152,6 +198,7 @@ export function cached<A extends unknown[], T>(
           return readOrFetch(
             (response) => isFresh(response, ttlMs, expiresAt),
             expiresAt,
+            familyKey,
           );
         };
 
@@ -165,6 +212,17 @@ export function cached<A extends unknown[], T>(
     };
 
     pending.set(key, entry);
+
+    const paging = getPaging(args);
+
+    if (slice && familyKey && paging) {
+      const group =
+        familySiblings.get(familyKey) ??
+        new Map<string, { offset: number; limit: number }>();
+
+      group.set(key, paging);
+      familySiblings.set(familyKey, group);
+    }
 
     entry.promise.then(
       () => {
@@ -185,6 +243,7 @@ export function cached<A extends unknown[], T>(
     pending.clear();
     familyExpirations.clear();
     familyInitializations.clear();
+    familySiblings.clear();
     generation += 1;
 
     if (typeof window !== "undefined" && "caches" in window) {
