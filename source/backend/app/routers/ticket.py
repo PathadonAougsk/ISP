@@ -46,7 +46,7 @@ async def retrieve_tickets(
     notOwned: bool = False,
     get_count: bool = False,
     offset: int = Query(default=0, ge=0),
-    limit: int = Query(default=0, ge=0)
+    limit: int = Query(default=100, ge=0)
 ):
     query = select(Ticket)
 

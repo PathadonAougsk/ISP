@@ -6,7 +6,6 @@ import { getCategories, type Category } from "@/lib/category";
 import { getTasks } from "@/lib/task";
 import { getTickets } from "@/lib/ticket";
 import {
-  formatCount,
   type DashboardItem,
   type GroupState,
 } from "@/components/dashboard/dashboard-data";
@@ -18,11 +17,10 @@ const INITIAL_LIMIT = 10;
 const INCREMENT = 10;
 
 // loading + error flag of one request
-// refreshing = any fetch running. only for disable Load More, never show loading text
-type Flags = { loading: boolean; error: boolean; refreshing: boolean };
+type Flags = { loading: boolean; error: boolean };
 
-const LOADING: Flags = { loading: true, error: false, refreshing: false };
-const DONE: Flags = { loading: false, error: false, refreshing: false };
+const LOADING: Flags = { loading: true, error: false };
+const DONE: Flags = { loading: false, error: false };
 
 // due date asc, null last. both null or same date, sort by id asc
 function sortByDueDate<T extends { id: number; due_date: string | null }>(
@@ -47,25 +45,21 @@ type AccountState = {
   error: boolean;
 };
 
-// One list in the dashboard. Fetches limit + 1, where the extra item only says
-// the list has more. The group owns its limit, so a failed Load More leaves the
-// old items and the old limit alone.
+// One list in the dashboard. Fetches everything once. The group owns how many
+// items are visible (limit), and Load More only raises it, no new request.
 function useGroup<T extends DashboardItem & { id: number }>(
   account: AccountState,
   enabled: boolean,
   reloadKey: number,
-  fetchItems: (accountId: string, limit: number) => Promise<T[]>,
+  fetchItems: (accountId: string) => Promise<T[]>,
 ): GroupState<T> {
-  // keep the limit that items were fetched with, so old page stay right while refetch
-  const [data, setData] = useState<{ items: T[]; limit: number }>({
-    items: [],
-    limit: INITIAL_LIMIT,
-  });
+  const [all, setAll] = useState<T[]>([]);
+  // how many items are visible, Load More only raise this
+  const [limit, setLimit] = useState(INITIAL_LIMIT);
   const [flags, setFlags] = useState<Flags>(LOADING);
 
-  // latest fetcher and committed limit, so effect deps stay short
+  // latest fetcher, so effect deps stay short
   const fetchRef = useRef(fetchItems);
-  const limitRef = useRef(data.limit);
   // every load bump this. older load see the change and get ignored
   const requestRef = useRef(0);
 
@@ -74,30 +68,27 @@ function useGroup<T extends DashboardItem & { id: number }>(
   });
 
   // only the newest request can commit. failed one never touch old data
-  const load = useCallback(async (accountId: string, limit: number) => {
+  const load = useCallback(async (accountId: string) => {
     const requestId = ++requestRef.current;
     const isStale = () => requestRef.current !== requestId;
 
-    setFlags((prev) => ({ ...prev, refreshing: true }));
-
     try {
-      const items = await fetchRef.current(accountId, limit + 1);
+      const items = await fetchRef.current(accountId);
       if (isStale()) return;
 
-      limitRef.current = limit;
-      setData({ items: sortByDueDate(items), limit });
+      setAll(sortByDueDate(items));
       setFlags(DONE);
     } catch {
       // keep whatever is on screen, just say the refresh failed
       if (!isStale()) {
-        setFlags({ loading: false, error: true, refreshing: false });
+        setFlags({ loading: false, error: true });
       }
     }
   }, []);
 
   // new account or role = start over
   useEffect(() => {
-    setData((prev) => ({ items: [], limit: prev.limit }));
+    setAll([]);
     setFlags((prev) => ({ ...prev, loading: true, error: false }));
   }, [account.id, enabled]);
 
@@ -114,7 +105,7 @@ function useGroup<T extends DashboardItem & { id: number }>(
       return;
     }
 
-    void load(account.id, limitRef.current);
+    void load(account.id);
 
     return () => {
       requestRef.current += 1;
@@ -122,24 +113,16 @@ function useGroup<T extends DashboardItem & { id: number }>(
   }, [account.id, account.loading, account.error, enabled, reloadKey, load]);
 
   const loadMore = useCallback(() => {
-    if (account.id !== undefined) {
-      void load(account.id, limitRef.current + INCREMENT);
-    }
-  }, [account.id, load]);
+    setLimit((prev) => prev + INCREMENT);
+  }, []);
 
-  const items = useMemo(
-    () => data.items.slice(0, data.limit),
-    [data.items, data.limit],
-  );
+  const items = useMemo(() => all.slice(0, limit), [all, limit]);
 
   return {
     items,
-    all: data.items,
-    overflow: data.items[data.limit] ?? null,
-    count: formatCount(data.items.length, data.limit),
+    all,
     loading: flags.loading,
     error: flags.error,
-    refreshing: flags.refreshing,
     loadMore,
   };
 }
@@ -214,53 +197,48 @@ export function useDashboardFetching(
       account,
       true,
       tasksReloadKey,
-      async (id, limit) =>
-        (await getTasks({ status: "in_progress", assignsTo: id, limit })).Tasks,
+      async (id) =>
+        (await getTasks({ status: "in_progress", assignsTo: id })).Tasks,
     ),
 
     otherTasks: useGroup(
       account,
       canSeeOthers,
       tasksReloadKey,
-      async (id, limit) =>
-        (await getTasks({ status: "in_progress", notassignsTo: id, limit }))
-          .Tasks,
+      async (id) =>
+        (await getTasks({ status: "in_progress", notassignsTo: id })).Tasks,
     ),
 
     myRejectedTickets: useGroup(
       account,
       true,
       ticketsReloadKey,
-      async (_id, limit) =>
-        (await getTickets({ status: "rejected", onlyOwned: true, limit }))
-          .Tickets,
+      async () =>
+        (await getTickets({ status: "rejected", onlyOwned: true })).Tickets,
     ),
 
     myPendingTickets: useGroup(
       account,
       true,
       ticketsReloadKey,
-      async (_id, limit) =>
-        (await getTickets({ status: "pending", onlyOwned: true, limit }))
-          .Tickets,
+      async () =>
+        (await getTickets({ status: "pending", onlyOwned: true })).Tickets,
     ),
 
     otherRejectedTickets: useGroup(
       account,
       canSeeOthers,
       ticketsReloadKey,
-      async (_id, limit) =>
-        (await getTickets({ status: "rejected", notOwned: true, limit }))
-          .Tickets,
+      async () =>
+        (await getTickets({ status: "rejected", notOwned: true })).Tickets,
     ),
 
     otherPendingTickets: useGroup(
       account,
       canSeeOthers,
       ticketsReloadKey,
-      async (_id, limit) =>
-        (await getTickets({ status: "pending", notOwned: true, limit }))
-          .Tickets,
+      async () =>
+        (await getTickets({ status: "pending", notOwned: true })).Tickets,
     ),
   };
 
