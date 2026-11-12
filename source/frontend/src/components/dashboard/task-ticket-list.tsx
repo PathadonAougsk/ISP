@@ -56,13 +56,7 @@ function ListSection({
         <span className="text-lg font-bold text-green-800">{count}</span>
       </div>
       {children}
-      {onLoadMore && (
-        <LoadMoreButton
-          label="Show more"
-          disabled={false}
-          onClick={onLoadMore}
-        />
-      )}
+      {onLoadMore && <LoadMoreButton disabled={false} onClick={onLoadMore} />}
       <div className="h-2 shrink-0" />
     </div>
   );

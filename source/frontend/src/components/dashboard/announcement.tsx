@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
 import { formatFullDateTime } from "@/lib/format";
@@ -9,6 +8,7 @@ import {
   getAnnouncements,
   type Announcement as AnnouncementItem,
 } from "@/lib/announcement";
+import { AnnouncementButton } from "@/components/dashboard/dashboard-utils";
 
 export default function Announcement({
   usernames,
@@ -68,14 +68,7 @@ export default function Announcement({
         </div>
 
         <div className="-mx-5 mt-auto">
-          <Link
-            href="/announcement"
-            className="group block rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center hover:bg-(--primary-color-3-hover)"
-          >
-            <span className="text-base font-semibold text-black group-hover:text-gray-800">
-              Read more
-            </span>
-          </Link>
+          <AnnouncementButton id={item.id} label="Read more" />
         </div>
       </div>
     </div>
