@@ -61,7 +61,7 @@ export default function CreateTicketModal({
           onClick={() => handleCreate(close)}
           disabled={saving}
         >
-          {saving ? "Submitting…" : "Submit"}
+          {saving ? "Creating…" : "Create"}
         </FormButton>
       )}
     >
