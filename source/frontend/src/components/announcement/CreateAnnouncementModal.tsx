@@ -20,7 +20,7 @@ export default function CreateAnnouncementModal({
   onSubmit: (input: CreateAnnouncementInput) => Promise<void>;
 }) {
   const isEdit = Boolean(announcement);
-  
+
   // announcement given = edit mode, prefill
   const [name, setName] = useState(announcement?.name ?? "");
   const [description, setDescription] = useState(
@@ -54,7 +54,7 @@ export default function CreateAnnouncementModal({
           disabled={saving}
         >
           {isEdit
-            ? saving ? "Saving…" : "Save"
+            ? saving ? "Saving…" : "Save Changes"
             : saving ? "Creating…" : "Create"}
         </FormButton>
       )}

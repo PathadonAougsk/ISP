@@ -41,6 +41,9 @@ export default function TicketDetailModal({
   const [categoryId, setCategoryId] = useState<number | "">(ticket.categoryId);
   const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const { saving, error, setError, run } = useFormSubmit();
+  const [action, setAction] = useState<"update" | "accept" | "reject" | null>(
+    null,
+  );
 
   const canEdit =
     ticket.createdById === currentUserId &&
@@ -83,6 +86,7 @@ export default function TicketDetailModal({
       return;
     }
 
+    setAction(newStatus === "Accepted" ? "accept" : "reject");
     const ok = await run(async () => {
       // 1. Save the edits and the new status together. "Accepted" ->
       // "accepted", the backend uses lowercase
@@ -130,6 +134,7 @@ export default function TicketDetailModal({
       return;
     }
 
+    setAction("update");
     const ok = await run(
       () =>
         putTicket(ticket.id, {
@@ -161,7 +166,7 @@ export default function TicketDetailModal({
               onClick={() => handleUpdate(close)}
               disabled={saving || !hasChanges}
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving && action === "update" ? "Saving…" : "Save Changes"}
             </FormButton>
           )}
 
@@ -172,14 +177,14 @@ export default function TicketDetailModal({
                 onClick={() => handleDecision("Rejected", close)}
                 disabled={saving || ticket.status === "Rejected"}
               >
-                Reject
+                {saving && action === "reject" ? "Rejecting…" : "Reject"}
               </FormButton>
               <FormButton
                 variant="green"
                 onClick={() => handleDecision("Accepted", close)}
                 disabled={saving || ticket.status === "Accepted"}
               >
-                {saving ? "Saving…" : "Accept"}
+                {saving && action === "accept" ? "Accepting…" : "Accept"}
               </FormButton>
             </>
           )}

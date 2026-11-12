@@ -38,6 +38,7 @@ export default function TaskDetailModal({
   const [dueDate, setDueDate] = useState(task.dueDateValue);
   const [assignedIds, setAssignedIds] = useState<string[]>(task.assigneeIds);
   const { saving, error, setError, run } = useFormSubmit();
+  const [action, setAction] = useState<"update" | "status" | null>(null);
 
   const isAdmin = userRole === "Lab Admin";
 
@@ -59,6 +60,7 @@ export default function TaskDetailModal({
     status: "completed" | "in_progress",
     close: () => void,
   ) {
+    setAction("status");
     const ok = await run(
       () =>
         putTask(task.id, {
@@ -87,6 +89,7 @@ export default function TaskDetailModal({
       return;
     }
 
+    setAction("update");
     const ok = await run(
       () =>
         putTask(task.id, {
@@ -121,7 +124,7 @@ export default function TaskDetailModal({
               onClick={() => handleUpdate(close)}
               disabled={saving || !hasChanges}
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving && action === "update" ? "Saving…" : "Save Changes"}
             </FormButton>
           )}
 
@@ -133,7 +136,13 @@ export default function TaskDetailModal({
               }
               disabled={saving}
             >
-              {saving ? "Saving…" : completed ? "Unsubmit" : "Submit"}
+              {saving && action === "status"
+                ? completed
+                  ? "Unsubmitting…"
+                  : "Submitting…"
+                : completed
+                  ? "Unsubmit"
+                  : "Submit"}
             </FormButton>
           )}
         </>
