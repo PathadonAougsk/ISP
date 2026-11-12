@@ -96,6 +96,10 @@ export const getTasks = cached(
   TASKS_CACHE_TTL,
   "tasks",
   withoutPagination,
+  (result, limit) => ({
+    ...result,
+    Tasks: result.Tasks.slice(0, limit),
+  }),
 );
 
 // data changed, so drop cached lists
