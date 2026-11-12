@@ -12,7 +12,7 @@ import { renderWithLinks } from "@/components/ui/linkify";
 //   panel    - white pill on a green panel (the request table controls)
 export type InputLook = "filled" | "outlined" | "outlined-sm" | "panel";
 export type SelectLook = "filled" | "outlined" | "panel";
-type FieldLook = InputLook | SelectLook;
+export type FieldLook = InputLook | SelectLook;
 
 export const INPUT_LOOK: Record<InputLook, string> = {
   filled:
