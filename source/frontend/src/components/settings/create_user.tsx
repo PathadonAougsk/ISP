@@ -131,7 +131,7 @@ export default function CreateUser({
               value={username}
               onChange={setUsername}
               disabled={busy}
-              maxLength={100}
+              maxLength={30}
               placeholder="Another Win"
             />
           </label>
@@ -145,6 +145,7 @@ export default function CreateUser({
               onChange={setEmail}
               disabled={busy}
               placeholder="Anawin.c@Chula.th"
+              maxLength={255}
             />
           </label>
 

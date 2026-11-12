@@ -242,7 +242,7 @@ export default function AccountPanel({
                   value={username}
                   onChange={draft("username", setUsername)}
                   disabled={busy}
-                  maxLength={100}
+                  maxLength={30}
                   placeholder="What everyone sees you as"
                 />
               </label>
@@ -280,6 +280,7 @@ export default function AccountPanel({
                     onChange={draft("email", setEmail)}
                     disabled={busy}
                     placeholder="you@chula.th"
+                    maxLength={255}
                   />
                 </label>
 
@@ -293,6 +294,7 @@ export default function AccountPanel({
                     disabled={busy}
                     autoComplete="current-password"
                     placeholder="••••••••"
+                    maxLength={72}
                   />
                 </label>
               </div>
@@ -332,6 +334,7 @@ export default function AccountPanel({
                     disabled={busy}
                     autoComplete="current-password"
                     placeholder="••••••••"
+                    maxLength={72}
                   />
                 </label>
 

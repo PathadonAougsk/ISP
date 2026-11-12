@@ -84,5 +84,7 @@ export function FormModal({
 
 // one column of the modal body. fields stack here
 export function FormColumn({ children }: { children: ReactNode }) {
-  return <div className="flex min-w-0 flex-1 flex-col gap-4">{children}</div>;
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">{children}</div>
+  );
 }

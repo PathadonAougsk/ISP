@@ -154,6 +154,7 @@ export default function TaskDetailModal({
           value={title}
           onChange={setTitle}
           placeholder="Enter a title"
+          maxLength={255}
           readOnly={!isAdmin}
         />
 
@@ -200,6 +201,7 @@ export default function TaskDetailModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           readOnly={!isAdmin}
           grow
         />

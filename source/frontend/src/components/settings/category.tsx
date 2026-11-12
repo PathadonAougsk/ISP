@@ -109,6 +109,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
             value={newName}
             onChange={setNewName}
             placeholder="New category name"
+            maxLength={30}
             className="flex-1"
           />
           <Button
@@ -163,6 +164,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                 <TextInput
                   look="outlined"
                   autoFocus
+                  maxLength={30}
                   value={editingName}
                   onChange={setEditingName}
                   onBlur={() => handleRename(category.id)}

@@ -93,6 +93,7 @@ function ResetForm({
             onChange={setEmail}
             disabled={busy}
             placeholder={member.email}
+            maxLength={255}
           />
         </label>
         <label className={LABEL}>
@@ -118,6 +119,7 @@ function ResetForm({
             disabled={busy}
             autoComplete="current-password"
             placeholder="••••••••"
+            maxLength={72}
           />
         </label>
       </div>
