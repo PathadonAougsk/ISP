@@ -56,7 +56,7 @@ export default function CreateAnnouncementModal({
           {isEdit
             ? saving
               ? "Saving…"
-              : "Save Changes"
+              : "Save"
             : saving
               ? "Creating…"
               : "Create"}

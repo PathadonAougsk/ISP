@@ -166,7 +166,7 @@ export default function TicketDetailModal({
               onClick={() => handleUpdate(close)}
               disabled={saving || !hasChanges}
             >
-              {saving && action === "update" ? "Saving…" : "Save Changes"}
+              {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
           )}
 
