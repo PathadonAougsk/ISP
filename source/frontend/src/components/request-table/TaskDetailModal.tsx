@@ -114,6 +114,7 @@ export default function TaskDetailModal({
   return (
     <FormModal
       title="Task detail"
+      id={task.id}
       onClose={onClose}
       error={error}
       footer={(close) => (
