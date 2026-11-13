@@ -28,9 +28,9 @@ export default function AnnouncementDetail({
 
   return (
     <div className="flex h-full flex-col overflow-y-auto rounded-t-[15px] bg-white p-4">
-      <h2 className="text-2xl font-bold wrap-break-word">
+      <h1 className="text-2xl font-bold wrap-break-word">
         {renderWithLinks(announcement.name)}
-      </h2>
+      </h1>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-12 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-2">

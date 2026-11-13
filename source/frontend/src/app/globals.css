@@ -39,6 +39,16 @@ h1 {
   font-family: var(--font-noto-sans-thai);
 }
 
+p,
+span,
+button,
+input,
+select,
+textarea,
+label {
+  font-family: var(--font-anuphan);
+}
+
 button {
   cursor: pointer;
   transition: transform 50ms ease;
@@ -50,15 +60,6 @@ button:disabled {
 
 button:active:not(:disabled) {
   transform: scale(0.99);
-}
-
-p,
-button,
-input,
-select,
-textarea,
-label {
-  font-family: var(--font-anuphan);
 }
 
 /* ==========================================================

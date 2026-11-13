@@ -42,6 +42,7 @@ export default function TaskTable({
   onPageChange,
   hasNext,
   totalPages,
+  totalResults,
   onSelect,
   onCreate,
 }: {
@@ -55,6 +56,7 @@ export default function TaskTable({
   onPageChange: (page: number) => void;
   hasNext: boolean;
   totalPages: number;
+  totalResults: number;
   onSelect: (task: TaskRow) => void;
   onCreate: () => void;
 }) {
@@ -75,6 +77,7 @@ export default function TaskTable({
       onPageChange={onPageChange}
       hasNext={hasNext}
       totalPages={totalPages}
+      totalResults={totalResults}
       titles={titles}
       gridClassName={gridClassName}
       onSelect={onSelect}
