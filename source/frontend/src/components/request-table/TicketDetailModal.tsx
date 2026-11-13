@@ -156,6 +156,7 @@ export default function TicketDetailModal({
   return (
     <FormModal
       title="Judge ticket"
+      id={ticket.id}
       onClose={onClose}
       error={error}
       footer={(close) => (
