@@ -116,7 +116,7 @@ export default function TaskSlideup({
               <SlideupDescription description={task.description} />
             </div>
 
-            <div className="flex w-9/40 shrink-0 flex-col">
+            <div className="flex min-w-55 w-9/40 shrink-0 flex-col">
               <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
                 <h1 className="text-base font-bold text-black">
                   Responsible person
@@ -135,8 +135,10 @@ export default function TaskSlideup({
                         />
                         <span className="truncate text-base font-normal text-gray-800">
                           {assignee.username}
-                          {assignee.id === currentUserId && " (You)"}
                         </span>
+                        {assignee.id === currentUserId && (
+                          <span className="text-gray-500"> (You)</span>
+                        )}
                       </div>
                     ))}
                   </div>

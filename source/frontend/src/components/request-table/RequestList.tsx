@@ -120,9 +120,9 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
   return (
     <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) px-3 pt-3">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center gap-2">
         {/* type and create button */}
-        <h1 className="flex h-9 items-center gap-3 pl-4 text-lg font-semibold">
+        <h1 className="flex h-9 w-32 shrink-0 gap-2 items-center pl-4 text-lg font-semibold">
           {title}
           {canCreate && (
             <Button
@@ -130,15 +130,16 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
               size="circle"
               onClick={onCreate}
               aria-label={`Create new ${noun}`}
+              className="pb-0.5!"
             >
               +
             </Button>
           )}
         </h1>
 
-        <div className="flex h-9 items-center gap-2">
+        <div className="flex h-9 flex-1 items-center gap-2">
           {/* searchbox */}
-          <div className="relative w-100">
+          <div className="relative min-w-0 flex-1">
             <TextInput
               ref={searchRef}
               look="panel"
@@ -169,7 +170,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <Select
             look="panel"
-            className="w-50"
+            className="w-35 shrink-0"
             value={filters.categoryId}
             placeholder={{ value: "All", label: "All categories" }}
             firstItem={{ value: "All", label: "All categories" }}
@@ -183,7 +184,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <Select
             look="panel"
-            className="w-50"
+            className="w-35 shrink-0"
             value={filters.status}
             placeholder={{ value: "All", label: "All statuses" }}
             firstItem={{ value: "All", label: "All statuses" }}
