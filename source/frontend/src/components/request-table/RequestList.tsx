@@ -119,7 +119,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   const { listRef, hasOverflow } = useListOverflow([rows.length, loading]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) p-3">
+    <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) px-3 pt-3">
       <div className="mb-3 flex items-center justify-between">
         {/* type and create button */}
         <h1 className="flex h-9 items-center gap-3 pl-4 text-lg font-semibold">
@@ -227,17 +227,19 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
           {!loading && !error && rows.length === 0 && (
             <ListMessage>No {noun} match your search.</ListMessage>
           )}
+
+          {/* floating page selection */}
+          <div className="pointer-events-none sticky bottom-0 mt-auto flex justify-center pb-2">
+            <Pagination
+              page={filters.page}
+              totalPages={totalPages}
+              hasNext={hasNext}
+              loading={loading}
+              onChange={onPageChange}
+            />
+          </div>
         </div>
       </div>
-
-      {/* footer for page selection */}
-      <Pagination
-        page={filters.page}
-        totalPages={totalPages}
-        hasNext={hasNext}
-        loading={loading}
-        onChange={onPageChange}
-      />
     </div>
   );
 }
