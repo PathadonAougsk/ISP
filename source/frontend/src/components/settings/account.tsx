@@ -130,7 +130,7 @@ export default function AccountPanel({
       onChanged();
     } catch (err) {
       say(field, {
-        error: err instanceof Error ? err.message : "Something went wrong.",
+        error: err instanceof Error ? err.message : "Something went wrong. Please try again.",
         done: null,
       });
     } finally {
@@ -151,7 +151,7 @@ export default function AccountPanel({
     run(
       "username",
       () => updateAccount(account.id, { username: name }),
-      `Username changed to ${name}.`,
+      `Your username has been changed to ${name}.`,
     );
   }
 
@@ -168,7 +168,7 @@ export default function AccountPanel({
     run(
       "email",
       () => changeEmail(account.id, next, emailPassword),
-      `Email changed to ${next}. That is what you sign in with from now on.`,
+      `Your email address has been changed to ${next}. Use this address to sign in.`,
     );
   }
 
@@ -186,7 +186,7 @@ export default function AccountPanel({
 
     if (newPassword !== confirmPassword) {
       say("password", {
-        error: "Those two passwords do not match.",
+        error: "Passwords do not match.",
         done: null,
       });
       return;
@@ -195,7 +195,7 @@ export default function AccountPanel({
     run(
       "password",
       () => changePassword(account.id, currentPassword, newPassword),
-      "Password changed. You are still signed in here.",
+      "Your password has been changed successfully.",
     );
   }
 
@@ -221,7 +221,7 @@ export default function AccountPanel({
   return (
     <>
       <section className="flex flex-col gap-4">
-        <h1 className={TITLE}>Account Info</h1>
+        <h1 className={TITLE}>Account Information</h1>
 
         <Row
           label="Username"
@@ -243,7 +243,7 @@ export default function AccountPanel({
                   onChange={draft("username", setUsername)}
                   disabled={busy}
                   maxLength={30}
-                  placeholder="What everyone sees you as"
+                  placeholder="Enter your username"
                 />
               </div>
             </EditForm>
@@ -265,8 +265,9 @@ export default function AccountPanel({
               disabled={!email.trim() || !emailPassword}
             >
               <p className={MUTED}>
-                There will be no email sent for verification, so double check
-                your email before save or else you will need to contact admin.
+                Your new email address will not be verified. Make sure it is
+                correct before saving. Contact an administrator if you need help
+                correcting it.
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -305,7 +306,7 @@ export default function AccountPanel({
       <hr className="my-10 border-gray-200" />
 
       <section className="flex flex-col gap-4">
-        <h1 className={TITLE}>Password & Security</h1>
+        <h1 className={TITLE}>Password and Security</h1>
 
         <Row label="Password" action={editAction("password")}>
           {open === "password" && (
@@ -315,8 +316,8 @@ export default function AccountPanel({
               disabled={!currentPassword || !newPassword}
             >
               <p className={MUTED}>
-                Please remember your password, if forgot you will need to
-                contact admin for resetting password.
+                Keep your password somewhere safe. If you forget it, contact an
+                administrator to reset it.
               </p>
 
               <div className="flex items-start gap-3">
@@ -349,12 +350,12 @@ export default function AccountPanel({
                     maxLength={72}
                     showCounter={false}
                     autoComplete="new-password"
-                    placeholder={`at least ${MIN_PASSWORD} characters`}
+                    placeholder={`At least ${MIN_PASSWORD} characters`}
                   />
 
                   {missing > 0 && newPassword.length > 0 && (
                     <span className={`${MUTED} text-sm`}>
-                      {missing} more character{missing === 1 ? "" : "s"} to go.
+                      {missing} more character{missing === 1 ? "" : "s"} required.
                     </span>
                   )}
                 </div>

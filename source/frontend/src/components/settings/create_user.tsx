@@ -14,12 +14,12 @@ const MIN_PASSWORD = 8;
 const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
     value: "member",
-    label: "Member",
-    blurb: "No cap - they can file as many tickets as they need.",
+    label: "Permanent Member",
+    blurb: "No ticket limit. This user can submit unlimited tickets.",
   },
   {
     value: "trial",
-    label: "Trial",
+    label: "Trial Member",
     blurb: "Capped at a ticket quota, counted down as they file tickets.",
   },
 ];
@@ -102,8 +102,8 @@ export default function CreateUser({
   return (
     <div className={CARD}>
       <div className="flex flex-col gap-1.5">
-        <p className="font-semibold">Create A User</p>
-        <p className={MUTED}>Create a user here!</p>
+        <p className="font-semibold">Create a User</p>
+        <p className={MUTED}>Add a new user to your lab.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -113,14 +113,14 @@ export default function CreateUser({
             onClick: () => setKind(option.value),
           }))}
           selectedIndex={KINDS.findIndex((k) => k.value === kind)}
-          ariaLabel="User kind"
-          widthClassName="w-60"
+          ariaLabel="Account type"
+          widthClassName="w-120"
         />
 
         <p className={MUTED}>
-          {KINDS.find((k) => k.value === kind)?.blurb} They join as a Lab User
-          and can sign in straight away - nothing is emailed, so pass the
-          credentials on to them yourself.
+          {KINDS.find((k) => k.value === kind)?.blurb} The user will be created
+          as a Lab User and can sign in immediately. No credentials will be
+          emailed, so share them with the user yourself.
         </p>
 
         <div className="grid grid-cols-2 gap-3">
@@ -131,7 +131,7 @@ export default function CreateUser({
             onChange={setUsername}
             disabled={busy}
             maxLength={30}
-            placeholder="Another Win"
+            placeholder="Enter a username"
             autoComplete="off"
           />
 
@@ -142,7 +142,7 @@ export default function CreateUser({
             value={email}
             onChange={setEmail}
             disabled={busy}
-            placeholder="Anawin.c@Chula.th"
+            placeholder="user@example.com"
             maxLength={255}
           />
 
@@ -155,23 +155,21 @@ export default function CreateUser({
             disabled={busy}
             maxLength={72}
             showCounter={false}
-            placeholder={`at least ${MIN_PASSWORD} characters`}
+            placeholder={`At least ${MIN_PASSWORD} characters`}
             autoComplete="new-password"
           />
 
           {trial && (
-            <label className={LABEL}>
-              Ticket quota
-              <TextInput
-                look="outlined"
-                type="number"
-                min={0}
-                step={1}
-                value={quota}
-                onChange={setQuota}
-                disabled={busy}
-              />
-            </label>
+            <TextInput
+              label="Ticket quota"
+              look="outlined"
+              type="number"
+              min={0}
+              step={1}
+              value={quota}
+              onChange={setQuota}
+              disabled={busy}
+            />
           )}
         </div>
 

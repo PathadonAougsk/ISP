@@ -96,7 +96,7 @@ export default function Member({
       await refresh();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       return false;
     } finally {
       setBusyId(null);

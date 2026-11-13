@@ -73,7 +73,10 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
     if (!name) return;
 
     setNewName("");
-    await run(() => createCategory(name), `Could not create "${name}".`);
+    await run(
+      () => createCategory(name),
+      `Could not create the category "${name}".`,
+    );
   }
 
   async function handleRename(id: number) {
@@ -90,7 +93,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
     try {
       await run(
         () => updateCategory(id, name),
-        `Could not rename category ${id}.`,
+        `Could not rename the category.`,
       );
       setEditingId(null);
     } finally {
@@ -106,10 +109,10 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <section className="flex flex-col gap-5">
-      <h1 className={TITLE}>Category</h1>
+      <h1 className={TITLE}>Categories</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p className="font-semibold">Categories For Tickets And Tasks</p>
+        <p className="font-semibold">Categories for Tickets and Tasks</p>
         <p className={MUTED}>
           Categories group the tickets and tasks your lab handles. Renaming one
           updates it everywhere it is already in use.
@@ -135,12 +138,12 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
             disabled={!newName.trim()}
             className="h-10 min-w-25 px-4 font-bold"
           >
-            Add
+            Add New Category
           </Button>
         </form>
       ) : (
         <p className={MUTED}>
-          Only a Lab Owner or Lab Admin can add, rename or delete categories.
+          Only Lab Owners and Lab Admins can add, rename, or delete categories.
         </p>
       )}
 
@@ -155,7 +158,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
             look="outlined"
             value={query}
             onChange={setQuery}
-            placeholder="Search by name"
+            placeholder="Search categories"
             className="w-full"
           />
         </div>
@@ -170,12 +173,12 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
         </div>
 
         {loading ? (
-          <p className={MESSAGE}>Loading...</p>
+          <p className={MESSAGE}>Loading categories...</p>
         ) : visible.length === 0 ? (
           <p className={MESSAGE}>
             {categories.length === 0
-              ? "No categories yet."
-              : "No categories match that search."}
+              ? "No categories have been created yet."
+              : "No categories match your search."}
           </p>
         ) : (
           visible.map((category) => (
@@ -235,7 +238,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                     onClick={() =>
                       run(
                         () => deleteCategory(category.id),
-                        `Could not delete "${category.name}".`,
+                        `Could not delete the category "${category.name}".`,
                       )
                     }
                     className="w-25 font-bold"

@@ -74,9 +74,9 @@ function ResetForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 border-t border-gray-200 py-4"
+      className="flex flex-col gap-5 pt-3"
     >
-      <p className={MUTED}>
+      <p className={`${MUTED} text-sm!`}>
         Sets {member.username}&apos;s login directly. Nothing is emailed, so
         pass the new credentials on yourself. Leave a field blank to keep it as
         it is.
@@ -104,7 +104,7 @@ function ResetForm({
           maxLength={72}
           showCounter={false}
           autoComplete="new-password"
-          placeholder={`at least ${MIN_PASSWORD} characters`}
+          placeholder={`At least ${MIN_PASSWORD} characters`}
         />
         <TextInput
           label="Your own password"
@@ -120,10 +120,10 @@ function ResetForm({
         />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pb-3">
         <Button
           variant="green"
-          size="md"
+          size="base"
           type="submit"
           disabled={busy}
           className="min-w-25 px-4 font-bold"
@@ -132,7 +132,7 @@ function ResetForm({
         </Button>
         <Button
           variant="outline"
-          size="md"
+          size="base"
           onClick={onDone}
           disabled={busy}
           className="w-25 font-semibold"
