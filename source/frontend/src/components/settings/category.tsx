@@ -125,6 +125,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
               onChange={setNewName}
               placeholder="New category name"
               maxLength={30}
+              inlineCounter={true}
             />
           </div>
           <Button
