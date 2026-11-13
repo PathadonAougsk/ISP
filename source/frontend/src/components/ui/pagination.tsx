@@ -26,7 +26,7 @@ export default function Pagination({
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
-    <div className="pointer-events-auto flex w-fit flex-row items-center justify-center gap-3 rounded-full bg-white px-3 py-2 shadow-lg ring-1 ring-inset ring-gray-200">
+    <div className="pointer-events-auto flex w-fit flex-row items-center justify-center gap-3 rounded-full bg-white px-2 h-12 shadow-lg ring-1 ring-inset ring-gray-200">
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1 || loading}

@@ -227,6 +227,7 @@ export function useTickets(
     tickets: list.rows,
     ticketsHasNext: list.hasNext,
     ticketsTotalPages: list.totalPages,
+    ticketsTotalResults: list.totalResults,
     ticketsLoading: list.loading,
     ticketsError: list.error,
     reloadTickets: list.reload,

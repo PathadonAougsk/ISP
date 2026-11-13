@@ -194,6 +194,7 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
     tasks: list.rows,
     tasksHasNext: list.hasNext,
     tasksTotalPages: list.totalPages,
+    tasksTotalResults: list.totalResults,
     tasksLoading: list.loading,
     tasksError: list.error,
     reloadTasks: list.reload,
