@@ -213,7 +213,7 @@ export default function MemberRow({
   }
 
   return (
-    <div className="flex min-h-10 flex-col justify-center rounded-full bg-white pl-4 pr-2 py-1">
+    <div className="flex min-h-10 flex-col justify-center rounded-[20px] bg-white pl-4 pr-2 py-1">
       <div className={`${cols} text-sm items-center gap-3`}>
         <span className="flex min-w-0 items-center">
           <span className="truncate" title={member.username}>
