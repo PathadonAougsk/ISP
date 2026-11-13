@@ -11,7 +11,11 @@ export type CacheContext = {
   guard: SaveGuard;
 };
 
-export type ReadResult<T> = { hit: boolean; value?: T };
+export type ReadResult<T> = {
+  hit: boolean;
+  value?: T;
+  expiresAt?: number;
+};
 
 // run task, any error give fallback
 export const safe = async <R>(
@@ -46,34 +50,22 @@ export const getKey = (key: string): Request =>
     `${window.location.origin}/__api-cache__/${encodeURIComponent(key)}`,
   );
 
-// family entry use expiry header, normal entry use time header
-export const buildHeaders = (expiresAt?: number): Record<string, string> => ({
+export const buildHeaders = (expiresAt: number): Record<string, string> => ({
   "Content-Type": "application/json",
-  ...(expiresAt !== undefined
-    ? { "x-cache-expiry": String(expiresAt) }
-    : { "x-cache-time": String(Date.now()) }),
+  "x-cache-expiry": String(expiresAt),
 });
 
-export const isFresh = (
-  response: Response,
-  ttlMs: number,
-  expiresAt?: number,
-): boolean => {
-  if (expiresAt !== undefined) {
-    return (
-      Number(response.headers.get("x-cache-expiry")) === expiresAt &&
-      expiresAt > Date.now()
-    );
-  }
+// one expiry for all entries, hit never extend it
+export const isFresh = (response: Response): boolean => {
+  const expiresAt = Number(response.headers.get("x-cache-expiry"));
 
-  const cachedAt = Number(response.headers.get("x-cache-time"));
-  return Number.isFinite(cachedAt) && Date.now() - cachedAt < ttlMs;
+  return Number.isFinite(expiresAt) && expiresAt > Date.now();
 };
 
-export const readResult = async <T>(
-  { cache, request }: CacheContext,
-  isValid: (response: Response) => boolean,
-): Promise<ReadResult<T>> => {
+export const readResult = async <T>({
+  cache,
+  request,
+}: CacheContext): Promise<ReadResult<T>> => {
   const miss: ReadResult<T> = { hit: false };
 
   if (!cache || !request) return miss;
@@ -84,8 +76,12 @@ export const readResult = async <T>(
 
     if (!response) return miss;
 
-    if (isValid(response)) {
-      return { hit: true, value: (await response.json()) as T };
+    if (isFresh(response)) {
+      return {
+        hit: true,
+        value: (await response.json()) as T,
+        expiresAt: Number(response.headers.get("x-cache-expiry")),
+      };
     }
 
     await cache.delete(request);
@@ -97,7 +93,7 @@ export const readResult = async <T>(
 export const saveResult = async <T>(
   { cache, request, guard }: CacheContext,
   result: T,
-  expiresAt?: number,
+  expiresAt: number,
 ) => {
   if (!cache || !request || !guard.isActive()) return;
 
@@ -108,5 +104,28 @@ export const saveResult = async <T>(
     if (!guard.isSameGeneration()) {
       await cache.delete(request);
     }
+  }, undefined);
+};
+
+// one time sweep, remove expired entries (and old format without expiry)
+export const sweepExpired = async (prefix: string): Promise<void> => {
+  if (typeof window === "undefined" || !("caches" in window)) return;
+
+  await safe<void>(async () => {
+    const names = (await window.caches.keys()).filter((name) =>
+      name.startsWith(prefix),
+    );
+
+    await Promise.all(
+      names.map(async (name) => {
+        const cache = await window.caches.open(name);
+
+        for (const request of await cache.keys()) {
+          const response = await cache.match(request);
+
+          if (!response || !isFresh(response)) await cache.delete(request);
+        }
+      }),
+    );
   }, undefined);
 };

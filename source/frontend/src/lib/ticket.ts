@@ -101,6 +101,7 @@ export const getTickets = cached(
     ...result,
     Tickets: result.Tickets.slice(0, limit),
   }),
+  (r) => r.TicketCount,
 );
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {

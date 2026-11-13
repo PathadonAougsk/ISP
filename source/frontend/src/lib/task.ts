@@ -100,6 +100,7 @@ export const getTasks = cached(
     ...result,
     Tasks: result.Tasks.slice(0, limit),
   }),
+  (r) => r.TaskCount,
 );
 
 // data changed, so drop cached lists
