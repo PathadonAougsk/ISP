@@ -124,43 +124,40 @@ export default function CreateUser({
         </p>
 
         <div className="grid grid-cols-2 gap-3">
-          <label className={LABEL}>
-            Username
-            <TextInput
-              look="outlined"
-              value={username}
-              onChange={setUsername}
-              disabled={busy}
-              maxLength={30}
-              placeholder="Another Win"
-            />
-          </label>
+          <TextInput
+            label="Username"
+            look="outlined"
+            value={username}
+            onChange={setUsername}
+            disabled={busy}
+            maxLength={30}
+            placeholder="Another Win"
+            autoComplete="off"
+          />
 
-          <label className={LABEL}>
-            Email
-            <TextInput
-              look="outlined"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              disabled={busy}
-              placeholder="Anawin.c@Chula.th"
-              maxLength={255}
-            />
-          </label>
+          <TextInput
+            label="Email"
+            look="outlined"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            disabled={busy}
+            placeholder="Anawin.c@Chula.th"
+            maxLength={255}
+          />
 
-          <label className={LABEL}>
-            Password
-            <TextInput
-              look="outlined"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              disabled={busy}
-              maxLength={72}
-              placeholder={`at least ${MIN_PASSWORD} characters`}
-            />
-          </label>
+          <TextInput
+            label="Password"
+            look="outlined"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            disabled={busy}
+            maxLength={72}
+            showCounter={false}
+            placeholder={`at least ${MIN_PASSWORD} characters`}
+            autoComplete="new-password"
+          />
 
           {trial && (
             <label className={LABEL}>

@@ -17,11 +17,11 @@ export const INPUT_LOOK: Record<InputLook, string> = {
   filled:
     "w-full rounded-[20px] bg-gray-100 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-300",
   outlined:
-    "h-10 rounded-full text-base border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
+    "w-full h-10 rounded-full text-sm border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
   "outlined-sm":
-    "h-8 rounded-full text-base border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
+    "w-full h-8 rounded-full text-sm border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
   panel:
-    "h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-(--primary-color-2)",
+    "w-full h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-(--primary-color-2)",
 };
 
 // Same looks, minus the native arrow and with room kept for ours.
@@ -37,16 +37,24 @@ export function Field({
   label,
   className = "",
   counter,
+  look,
   children,
 }: {
   label: string;
   className?: string;
   counter?: ReactNode;
+  look?: FieldLook;
   children: ReactNode;
 }) {
   return (
     <div className={className}>
-      <p className="mb-1 flex items-end justify-between text-base font-bold text-black">
+      <p
+        className={`mb-1 flex items-end justify-between ${
+          look === "outlined" || look === "outlined-sm"
+            ? "text-sm font-semibold text-gray-500"
+            : "text-base font-bold text-black"
+        }`}
+      >
         {label}
         {counter}
       </p>
@@ -75,14 +83,23 @@ export function ReadOnlyBox({
 }
 
 // Shared field wrapper
-function withLabel(label: string | undefined, className: string) {
+function withLabel(
+  label: string | undefined,
+  className: string,
+  look?: FieldLook,
+) {
   return {
     controlClass: label === undefined ? className : "",
     wrap: (control: ReactNode, counter?: ReactNode) =>
       label === undefined ? (
         control
       ) : (
-        <Field label={label} className={className} counter={counter}>
+        <Field
+          label={label}
+          className={className}
+          counter={counter}
+          look={look}
+        >
           {control}
         </Field>
       ),
@@ -134,6 +151,8 @@ export type TextInputProps = Omit<Shared, "look"> & {
   value: string;
   onChange?: (value: string) => void;
   maxLength?: number;
+  showCounter?: boolean;
+  inlineCounter?: boolean;
 } & Omit<
     ComponentPropsWithRef<"input">,
     "value" | "onChange" | "className" | "maxLength"
@@ -146,6 +165,8 @@ export type TextAreaProps = Omit<Shared, "look"> & {
   onChange?: (value: string) => void;
   maxLength?: number;
   grow?: boolean;
+  showCounter?: boolean;
+  inlineCounter?: boolean;
 } & Omit<
     ComponentPropsWithRef<"textarea">,
     "value" | "onChange" | "className" | "maxLength"
@@ -157,19 +178,23 @@ export function TextInput({
   value,
   onChange,
   maxLength,
+  showCounter = true,
+  inlineCounter = false,
   type = "text",
   look = "filled",
   className = "",
   ...props
 }: TextInputProps) {
-  const { controlClass, wrap } = withLabel(label, className);
+  const { controlClass, wrap } = withLabel(label, className, look);
 
   const invalid =
     value.length > 0 && maxLength !== undefined && value.length >= maxLength;
 
-  const counter = <CharacterCounter value={value} maxLength={maxLength} />;
+  const counter = showCounter ? (
+    <CharacterCounter value={value} maxLength={maxLength} />
+  ) : null;
 
-  const control = (
+  const input = (
     <input
       type={type}
       value={value}
@@ -181,10 +206,26 @@ export function TextInput({
     />
   );
 
+  // Counter inside box, centered vertically
+  const control = inlineCounter ? (
+    <div className="relative">
+      {input}
+      <span
+        className={`pointer-events-none pb-1 absolute top-1/2 -translate-y-1/2 ${
+          look === "filled" ? "right-3" : "right-4"
+        }`}
+      >
+        {counter}
+      </span>
+    </div>
+  ) : (
+    input
+  );
+
   return (
     <div className="flex flex-col gap-1">
-      {wrap(control, counter)}
-      {label === undefined && counter}
+      {wrap(control, inlineCounter ? null : counter)}
+      {label === undefined && !inlineCounter && counter}
     </div>
   );
 }
@@ -195,6 +236,8 @@ export function TextArea({
   value,
   onChange,
   maxLength,
+  showCounter = true,
+  inlineCounter = false,
   look = "filled",
   grow = false,
   className = "",
@@ -203,14 +246,17 @@ export function TextArea({
   const { controlClass, wrap } = withLabel(
     label,
     `${grow ? "flex min-h-0 flex-1 flex-col" : ""} ${className}`,
+    look,
   );
 
   const invalid =
     value.length > 0 && maxLength !== undefined && value.length >= maxLength;
 
-  const counter = <CharacterCounter value={value} maxLength={maxLength} />;
+  const counter = showCounter ? (
+    <CharacterCounter value={value} maxLength={maxLength} />
+  ) : null;
 
-  const control = (
+  const textarea = (
     <textarea
       value={value}
       onChange={(event) => onChange?.(event.target.value)}
@@ -221,14 +267,30 @@ export function TextArea({
     />
   );
 
+  // Counter stays bottom right inside box
+  const control = inlineCounter ? (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {textarea}
+      <span
+        className={`pointer-events-none absolute bottom-2 ${
+          look === "filled" ? "right-3" : "right-4"
+        }`}
+      >
+        {counter}
+      </span>
+    </div>
+  ) : (
+    textarea
+  );
+
   return (
     <div
       className={`flex flex-col gap-1 ${
         label !== undefined || grow ? "min-h-0 flex-1" : ""
       }`}
     >
-      {wrap(control, counter)}
-      {label === undefined && counter}
+      {wrap(control, inlineCounter ? null : counter)}
+      {label === undefined && !inlineCounter && counter}
     </div>
   );
 }
