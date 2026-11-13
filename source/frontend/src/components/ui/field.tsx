@@ -15,13 +15,13 @@ export type FieldLook = InputLook | SelectLook;
 
 export const INPUT_LOOK: Record<InputLook, string> = {
   filled:
-    "w-full rounded-[20px] bg-gray-100 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-300",
+    "w-full rounded-[20px] bg-gray-100 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-300 read-only:focus:ring-0",
   outlined:
     "w-full h-10 rounded-full text-sm border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
   "outlined-sm":
     "w-full h-8 rounded-full text-sm border-2 border-(--primary-color-3) bg-white px-4 outline-none placeholder:text-gray-400 focus:border-(--primary-color-2) disabled:opacity-50",
   panel:
-    "w-full h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-(--primary-color-2)",
+    "w-full h-9 rounded-full bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-(--primary-color-2) read-only:focus:ring-0",
 };
 
 // Same looks, minus the native arrow and with room kept for ours.
@@ -180,6 +180,7 @@ export function TextInput({
   maxLength,
   showCounter = true,
   inlineCounter = false,
+  readOnly = false,
   type = "text",
   look = "filled",
   className = "",
@@ -190,9 +191,10 @@ export function TextInput({
   const invalid =
     value.length > 0 && maxLength !== undefined && value.length >= maxLength;
 
-  const counter = showCounter ? (
-    <CharacterCounter value={value} maxLength={maxLength} />
-  ) : null;
+  const counter =
+    !readOnly && showCounter ? (
+      <CharacterCounter value={value} maxLength={maxLength} />
+    ) : null;
 
   const input = (
     <input
@@ -200,6 +202,8 @@ export function TextInput({
       value={value}
       onChange={(event) => onChange?.(event.target.value)}
       {...props}
+      readOnly={readOnly}
+      tabIndex={readOnly ? -1 : undefined}
       maxLength={maxLength}
       aria-invalid={invalid}
       className={`${INPUT_LOOK[look]} ${controlClass}`}
@@ -238,6 +242,7 @@ export function TextArea({
   maxLength,
   showCounter = true,
   inlineCounter = false,
+  readOnly = false,
   look = "filled",
   grow = false,
   className = "",
@@ -252,15 +257,18 @@ export function TextArea({
   const invalid =
     value.length > 0 && maxLength !== undefined && value.length >= maxLength;
 
-  const counter = showCounter ? (
-    <CharacterCounter value={value} maxLength={maxLength} />
-  ) : null;
+  const counter =
+    !readOnly && showCounter ? (
+      <CharacterCounter value={value} maxLength={maxLength} />
+    ) : null;
 
   const textarea = (
     <textarea
       value={value}
       onChange={(event) => onChange?.(event.target.value)}
       {...props}
+      readOnly={readOnly}
+      tabIndex={readOnly ? -1 : undefined}
       maxLength={maxLength}
       aria-invalid={invalid}
       className={`${INPUT_LOOK[look]} min-h-24 flex-1 resize-none scrollbar-thin ${controlClass}`}
