@@ -54,8 +54,12 @@ export default function CreateAnnouncementModal({
           disabled={saving}
         >
           {isEdit
-            ? saving ? "Saving…" : "Save Changes"
-            : saving ? "Creating…" : "Create"}
+            ? saving
+              ? "Saving…"
+              : "Save"
+            : saving
+              ? "Creating…"
+              : "Create"}
         </FormButton>
       )}
     >
@@ -72,6 +76,7 @@ export default function CreateAnnouncementModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           grow
         />
       </FormColumn>

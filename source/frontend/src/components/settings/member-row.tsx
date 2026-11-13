@@ -14,7 +14,7 @@ import {
 import Button from "@/components/ui/button";
 import ConfirmModal from "@/components/ui/confirm-modal";
 import { Select, TextInput } from "@/components/ui/field";
-import { LABEL, MUTED } from "./settings-style";
+import { MUTED } from "./settings-style";
 
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
 
@@ -83,43 +83,41 @@ function ResetForm({
       </p>
 
       <div className="grid grid-cols-3 gap-3">
-        <label className={LABEL}>
-          New email
-          <TextInput
-            look="outlined"
-            autoFocus
-            type="email"
-            value={email}
-            onChange={setEmail}
-            disabled={busy}
-            placeholder={member.email}
-          />
-        </label>
-        <label className={LABEL}>
-          New password
-          <TextInput
-            look="outlined"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            disabled={busy}
-            maxLength={72}
-            autoComplete="new-password"
-            placeholder={`at least ${MIN_PASSWORD} characters`}
-          />
-        </label>
-        <label className={LABEL}>
-          Your own password
-          <TextInput
-            look="outlined"
-            type="password"
-            value={myPassword}
-            onChange={setMyPassword}
-            disabled={busy}
-            autoComplete="current-password"
-            placeholder="••••••••"
-          />
-        </label>
+        <TextInput
+          label="New email"
+          look="outlined"
+          autoFocus
+          type="email"
+          value={email}
+          onChange={setEmail}
+          disabled={busy}
+          placeholder={member.email}
+          maxLength={255}
+        />
+        <TextInput
+          label="New password"
+          look="outlined"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          disabled={busy}
+          maxLength={72}
+          showCounter={false}
+          autoComplete="new-password"
+          placeholder={`at least ${MIN_PASSWORD} characters`}
+        />
+        <TextInput
+          label="Your own password"
+          look="outlined"
+          type="password"
+          value={myPassword}
+          onChange={setMyPassword}
+          disabled={busy}
+          autoComplete="current-password"
+          placeholder="••••••••"
+          maxLength={72}
+          showCounter={false}
+        />
       </div>
 
       <div className="flex items-center gap-3">

@@ -71,6 +71,7 @@ export default function CreateTicketModal({
           value={title}
           onChange={setTitle}
           placeholder="Enter a title"
+          maxLength={255}
         />
         <div className="grid grid-cols-2 gap-4">
           <Select
@@ -88,6 +89,7 @@ export default function CreateTicketModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           grow
         />
       </FormColumn>

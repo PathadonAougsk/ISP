@@ -55,7 +55,7 @@ export default function DateInput({
   className = "",
 }: {
   label?: string;
-  value: string; // "yyyy-MM-dd" or ""
+  value: string;
   onChange: (value: string) => void;
   onValidityChange?: (invalid: boolean) => void;
   look?: FieldLook;
@@ -64,13 +64,11 @@ export default function DateInput({
   className?: string;
 }) {
   const [draft, setDraft] = useState(toDisplay(value));
-  // only judge what the user typed, so an old past due date isn't flagged on open
   const [touched, setTouched] = useState(false);
   const [focused, setFocused] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const today = todayIso();
 
-  // Follow the value when it changes from outside (e.g. the calendar picker)
   useEffect(() => {
     setDraft(toDisplay(value));
   }, [value]);
@@ -81,12 +79,15 @@ export default function DateInput({
 
   let message: string | null = null;
   if (invalid) {
-    if (typedIso !== null) message = "Due date can't be in the past.";
-    else if (draft.length === 10) message = "This date doesn't exist.";
-    else if (!focused) message = "Enter a full date as dd/mm/yyyy.";
+    if (typedIso !== null) {
+      message = "Due date can't be in the past.";
+    } else if (draft.length === 10) {
+      message = "This date doesn't exist.";
+    } else {
+      message = "Enter a full date as dd/mm/yyyy.";
+    }
   }
 
-  // tell the parent so it can block create/save
   useEffect(() => {
     onValidityChange?.(invalid);
   }, [invalid, onValidityChange]);
@@ -100,8 +101,8 @@ export default function DateInput({
       onChange("");
       return;
     }
+
     const iso = toIso(formatted);
-    // past date not allowed, so skip it (iso string compare is ok)
     if (iso && iso >= today) onChange(iso);
   }
 
@@ -117,11 +118,10 @@ export default function DateInput({
           value={draft}
           onChange={(event) => handleType(event.target.value)}
           onFocus={() => setFocused(true)}
-          // keep the text on blur so the error stays visible
           onBlur={() => setFocused(false)}
           aria-invalid={invalid}
-          className={`${INPUT_LOOK[look]} pr-10 ${
-            invalid ? "outline outline-red-500" : ""
+          className={`${INPUT_LOOK[look]} rounded-[20px] pr-10 ${
+            invalid ? "ring-1 ring-inset ring-red-500" : ""
           }`}
         />
 
@@ -141,7 +141,6 @@ export default function DateInput({
           value={value}
           min={today}
           onChange={(event) => {
-            // picking a date replaces whatever invalid text was typed
             setDraft(toDisplay(event.target.value));
             onChange(event.target.value);
           }}
@@ -150,27 +149,20 @@ export default function DateInput({
           className="pointer-events-none absolute right-0 bottom-0 h-0 w-0 opacity-0"
         />
       </div>
-
-      {/* with a label: sits on the label row, right side. without: below the box */}
-      {message && (
-        <p
-          className={`text-xs text-red-500 ${
-            label === undefined
-              ? "mt-1"
-              : "absolute right-0 bottom-full mb-1 whitespace-nowrap"
-          }`}
-        >
-          {message}
-        </p>
-      )}
     </div>
   );
 
   return label === undefined ? (
-    field
+    <>
+      {field}
+      {message && <p className="mt-1 text-xs text-red-500">{message}</p>}
+    </>
   ) : (
     <Field label={label} className={className}>
-      {field}
+      <div>
+        {field}
+        {message && <p className="mt-1 text-xs text-red-500">{message}</p>}
+      </div>
     </Field>
   );
 }

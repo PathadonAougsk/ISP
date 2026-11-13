@@ -136,19 +136,21 @@ export default function Member({
       {isAdmin && <CreateUser onCreated={refresh} />}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold w-50">
+        <p className="text-lg font-semibold w-40">
           All Members
           {!loading && !error && (
             <span className={MUTED}> ({members.length})</span>
           )}
         </p>
-        <TextInput
-          look="outlined"
-          value={query}
-          onChange={setQuery}
-          placeholder="Search by name or email"
-          className="w-full"
-        />
+        <div className="flex-1">
+          <TextInput
+            look="outlined"
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by name or email"
+            className="w-full"
+          />
+        </div>
       </div>
 
       {error && <p className={ERROR}>{error}</p>}

@@ -21,7 +21,7 @@ import {
 const TABLES = ["account", "announcement", "category", "task", "ticket"];
 
 // One screenful. The server caps `limit` at 500 either way.
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 
 // fr cols. grid! because HEAD and ROW are flex
 const COLS =

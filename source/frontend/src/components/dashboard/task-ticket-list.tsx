@@ -91,7 +91,7 @@ function ListPanel({
       ) : (
         <div
           ref={listRef}
-          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
+          className="flex min-h-0 max-h-120 flex-col gap-2 overflow-y-auto scrollbar-thin"
         >
           {children}
         </div>
@@ -293,7 +293,7 @@ export function TicketList({
 // layout only, the two lists are passed as children
 export default function TaskTicketList({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-[80vh] min-w-0 flex-1 shrink-0 min-[1000px]:min-h-0">
+    <div className="relative flex min-h-[80vh] min-w-0 flex-1 shrink-0 min-[1100px]:min-h-0">
       <div className="absolute inset-0 grid grid-rows-[minmax(0,auto)_minmax(0,auto)] content-start gap-2 rounded-t-[30px] rounded-b-none bg-(--panel-bg) p-3">
         {children}
       </div>

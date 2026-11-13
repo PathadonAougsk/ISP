@@ -166,7 +166,7 @@ export default function TicketDetailModal({
               onClick={() => handleUpdate(close)}
               disabled={saving || !hasChanges}
             >
-              {saving && action === "update" ? "Saving…" : "Save Changes"}
+              {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
           )}
 
@@ -197,19 +197,20 @@ export default function TicketDetailModal({
           value={title}
           onChange={setTitle}
           placeholder="Enter a title"
+          maxLength={255}
           readOnly={!canEdit}
         />
 
         <div className="flex gap-4">
           <TextInput
             label="Created By"
-            className="w-[40%] min-w-0"
+            className="flex-1 min-w-0"
             value={ticket.createdBy}
             readOnly
           />
           <Select
             label="Category"
-            className="w-[40%] min-w-0"
+            className="flex-1 min-w-0"
             value={categoryId}
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
@@ -219,7 +220,7 @@ export default function TicketDetailModal({
           />
           <DateInput
             label="Due Date"
-            className="w-[20%] min-w-0"
+            className="flex-1 min-w-0"
             value={dueDate}
             onChange={setDueDate}
             readOnly={!canEdit}
@@ -232,6 +233,7 @@ export default function TicketDetailModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           readOnly={!canEdit}
           grow
         />

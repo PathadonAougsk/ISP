@@ -124,7 +124,7 @@ export default function TaskDetailModal({
               onClick={() => handleUpdate(close)}
               disabled={saving || !hasChanges}
             >
-              {saving && action === "update" ? "Saving…" : "Save Changes"}
+              {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
           )}
 
@@ -154,6 +154,7 @@ export default function TaskDetailModal({
           value={title}
           onChange={setTitle}
           placeholder="Enter a title"
+          maxLength={255}
           readOnly={!isAdmin}
         />
 
@@ -200,6 +201,7 @@ export default function TaskDetailModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           readOnly={!isAdmin}
           grow
         />

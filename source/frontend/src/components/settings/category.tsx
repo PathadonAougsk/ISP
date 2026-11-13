@@ -29,6 +29,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   // Caching. The request GET /Categories
   const refresh = useCallback(
@@ -77,18 +78,31 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
   async function handleRename(id: number) {
     const name = editingName.trim();
-    setEditingId(null);
-    if (!isAdmin || !name) return;
+    if (!isAdmin || !name || savingId !== null) return;
 
-    await run(
-      () => updateCategory(id, name),
-      `Could not rename category ${id}.`,
-    );
+    if (name === categories.find((c) => c.id === id)?.name) {
+      setEditingId(null);
+      return;
+    }
+
+    setSavingId(id);
+
+    try {
+      await run(
+        () => updateCategory(id, name),
+        `Could not rename category ${id}.`,
+      );
+      setEditingId(null);
+    } finally {
+      setSavingId(null);
+    }
   }
 
-  const visible = categories.filter((category) =>
-    category.name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const visible = categories
+    .filter((category) =>
+      category.name.toLowerCase().includes(query.trim().toLowerCase()),
+    )
+    .sort((a, b) => a.id - b.id);
 
   return (
     <section className="flex flex-col gap-5">
@@ -103,20 +117,23 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       {isAdmin ? (
-        <form onSubmit={handleCreate} className="flex items-center gap-3">
-          <TextInput
-            look="outlined"
-            value={newName}
-            onChange={setNewName}
-            placeholder="New category name"
-            className="flex-1"
-          />
+        <form onSubmit={handleCreate} className="flex items-start gap-3">
+          <div className="flex-1">
+            <TextInput
+              look="outlined"
+              value={newName}
+              onChange={setNewName}
+              placeholder="New category name"
+              maxLength={30}
+              inlineCounter={true}
+            />
+          </div>
           <Button
             variant="green"
             size="md"
             type="submit"
             disabled={!newName.trim()}
-            className="min-w-25 px-4 font-bold"
+            className="h-10 min-w-25 px-4 font-bold"
           >
             Add
           </Button>
@@ -128,21 +145,27 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold w-40">All Categories</p>
-        <TextInput
-          look="outlined"
-          value={query}
-          onChange={setQuery}
-          placeholder="Search by name"
-          className="w-full"
-        />
+        <p className="text-lg font-semibold w-40">
+          All Categories
+          <span className={MUTED}> ({categories.length})</span>
+        </p>
+
+        <div className="flex-1">
+          <TextInput
+            look="outlined"
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by name"
+            className="w-full"
+          />
+        </div>
       </div>
 
       {error && <p className={ERROR}>{error}</p>}
 
       <div className={LIST_PANEL}>
         <div className={HEAD}>
-          <span className="w-10">ID</span>
+          <span className="w-15 shrink-0">ID</span>
           <span className="flex-1">Name</span>
         </div>
 
@@ -157,21 +180,24 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
         ) : (
           visible.map((category) => (
             <div key={category.id} className={ROW}>
-              <span className="w-15 text-gray-500">{category.id}</span>
+              <span className="w-15 shrink-0 text-gray-500">{category.id}</span>
 
               {isAdmin && editingId === category.id ? (
-                <TextInput
-                  look="outlined"
-                  autoFocus
-                  value={editingName}
-                  onChange={setEditingName}
-                  onBlur={() => handleRename(category.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") handleRename(category.id);
-                    if (event.key === "Escape") setEditingId(null);
-                  }}
-                  className="flex-1"
-                />
+                <div className="min-w-0 flex-1">
+                  <TextInput
+                    look="outlined"
+                    autoFocus
+                    maxLength={30}
+                    inlineCounter={true}
+                    value={editingName}
+                    onChange={setEditingName}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") handleRename(category.id);
+                      if (event.key === "Escape") setEditingId(null);
+                    }}
+                    className="h-8!"
+                  />
+                </div>
               ) : (
                 <span className="flex-1">{category.name}</span>
               )}
@@ -179,15 +205,29 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
               {isAdmin && (
                 <>
                   <Button
-                    variant="outline"
+                    variant={editingId === category.id ? "green" : "outline"}
                     size="base"
+                    disabled={
+                      savingId !== null ||
+                      (editingId === category.id &&
+                        (editingName.trim() === category.name ||
+                          !editingName.trim()))
+                    }
                     onClick={() => {
-                      setEditingId(category.id);
-                      setEditingName(category.name);
+                      if (editingId === category.id) {
+                        handleRename(category.id);
+                      } else {
+                        setEditingId(category.id);
+                        setEditingName(category.name);
+                      }
                     }}
                     className="w-25 font-semibold"
                   >
-                    Edit
+                    {savingId === category.id
+                      ? "Saving..."
+                      : editingId === category.id
+                        ? "Save"
+                        : "Edit"}
                   </Button>
                   <Button
                     variant="red"
