@@ -37,6 +37,26 @@ class TaskUpdate(BaseModel):
 
 taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get_current_auth_user)])
 
+
+# Assignees are logged by username, the way the log shows every other actor -
+# a list of uuids tells a reader nothing, and the old value (Account rows) and
+# the new one (uuids from the body) have to end up in the same shape or an
+# unchanged assignee list reads as a change on every save.
+def assignee_label(accounts: list[Account]) -> str | None:
+    return ", ".join(sorted(account.username for account in accounts)) or None
+
+
+def task_audit(task_id: int, column_name: str, old_value, new_value, by_whom) -> AuditLog:
+    return AuditLog(
+        from_table="task",
+        row_id=str(task_id),
+        column_name=column_name,
+        old_value=str(old_value) if old_value is not None else None,
+        new_value=str(new_value) if new_value is not None else None,
+        by_whom=by_whom,
+    )
+
+
 # Filter params here are optional. If given none, then get all.
 # Filters: id, categories, users (assignees), status, limit
 # Admins and the lab owner see every task, a plain lab user only sees their own.
@@ -143,23 +163,31 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
         created_by=auth_user.id,
     )
 
-    # Create an audit log for the creation!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=TaskStatus.IN_PROGRESS.value,
-        by_whom=auth_user.id
-    )
-
     if body.assignees:
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
         task.assignees = list(assignees.all())
 
-    # Add it to session, and update.
-    session.add(al)
+    # Postgres assigns the id, so the task has to reach the database before the
+    # audit rows can point at it.
     session.add(task)
+    await session.flush()
+
+    # Create an audit log for the creation! One row per column the create
+    # filled in, so a create reads the same way as an update does. A column
+    # left empty is skipped - "nothing to nothing" is not a change to record.
+    audit_fields = {
+        "name": task.name,
+        "description": task.description,
+        "status": task.status.value,
+        "category_id": task.category_id,
+        "due_date": task.due_date,
+        "assignees": assignee_label(task.assignees),
+    }
+
+    for col_name, new_value in audit_fields.items():
+        if new_value is not None:
+            session.add(task_audit(task.id, col_name, None, new_value, auth_user.id))
+
     await session.commit()
     await session.refresh(task)
 
@@ -179,27 +207,21 @@ async def update_task(
         .where(Task.id == task_id)
     )
 
-    # Create an audit log for the update!
-    def update_helper(col_name, old_val, new_value):
-
-        al = AuditLog(
-            from_table="task",
-            row_id=str(task.id),
-            column_name=col_name,
-            old_value=f"{old_val}",
-            new_value=f"{new_value}",
-            by_whom=auth_user.id
-        )
-        if (al.old_value == al.new_value):
-            return 0
-        else:
-            return al
-
-    audit_list = []
-
     # If it does not exist, 404!
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
+
+    # Create an audit log for the update! None when the column did not actually
+    # change - an untouched column should not leave a row that reads as a change.
+    def update_helper(col_name, old_val, new_value):
+        al = task_audit(task.id, col_name, old_val, new_value, auth_user.id)
+
+        if al.old_value == al.new_value:
+            return None
+
+        return al
+
+    audit_list = []
 
     # If it exists, then you definetly should update it!
     if body.name is not None:
@@ -211,7 +233,7 @@ async def update_task(
         task.description = body.description
 
     if body.status is not None:
-        audit_list.append(update_helper("status", task.status, body.status))
+        audit_list.append(update_helper("status", task.status.value, body.status.value))
         task.status = body.status
 
     if body.category_id is not None:
@@ -225,13 +247,20 @@ async def update_task(
         task.due_date = dt2
 
     if body.assignees is not None:
-        audit_list.append(update_helper("assignees", task.assignees, body.assignees))
         assignees = await session.scalars(select(Account).where(Account.id.in_(body.assignees)))
-        task.assignees = list(assignees.all())
+        new_assignees = list(assignees.all())
 
-    for i in audit_list:
-        if i != 0:
-            session.add(i)
+        # Compared as the resolved accounts, not as the ids that came in: an id
+        # with no account behind it is dropped, and that is not a change.
+        audit_list.append(update_helper(
+            "assignees", assignee_label(task.assignees), assignee_label(new_assignees)
+        ))
+        task.assignees = new_assignees
+
+    for audit in audit_list:
+        if audit is not None:
+            session.add(audit)
+
     await session.commit()
     await session.refresh(task)
 
@@ -241,23 +270,30 @@ async def update_task(
 @taskRouter.delete("/{task_id}", tags=["Task"])
 async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)]):
     task = await session.scalar(
-        select(Task).where(Task.id == task_id)
+        select(Task)
+        .options(selectinload(Task.assignees))
+        .where(Task.id == task_id)
     )
 
-    # Create an audit log for the deletes!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=None,
-        by_whom=auth_user.id
-    )
-    # If it does not exist, 404!
+    # If it does not exist, 404! Before anything reads off the task.
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
-    session.add(al)
+    # Create an audit log for the deletes! The row is about to go, so the log is
+    # the only place its last values survive.
+    audit_fields = {
+        "name": task.name,
+        "description": task.description,
+        "status": task.status.value,
+        "category_id": task.category_id,
+        "due_date": task.due_date,
+        "assignees": assignee_label(task.assignees),
+    }
+
+    for col_name, old_value in audit_fields.items():
+        if old_value is not None:
+            session.add(task_audit(task.id, col_name, old_value, None, auth_user.id))
+
     await session.delete(task)
     await session.commit()
 

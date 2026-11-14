@@ -159,9 +159,9 @@ class DB:
         self.client = client
         self.engine = client.engine
         self.me_id: uuid.UUID = client.me_id
+        self._me_username: str | None = None
         self.tracked: dict[str, set] = defaultdict(set)
         self.logins: set[uuid.UUID] = set()
-        self.started_at = self.run(self._now)
         self.category_id: int = self.run(self._make_category)
         self.track("category", self.category_id)
 
@@ -172,10 +172,6 @@ class DB:
 
     def session(self) -> AsyncSession:
         return AsyncSession(self.engine, expire_on_commit=False)
-
-    async def _now(self):
-        async with self.session() as s:
-            return await s.scalar(select(func.now()))
 
     async def _make_category(self) -> int:
         async with self.session() as s:
@@ -267,6 +263,15 @@ class DB:
 
         return self.run(go)
 
+    @property
+    def me_username(self) -> str:
+        """The caller's username, which is how the audit log records assignees."""
+        if self._me_username is None:
+            self._me_username = self.scalar(
+                select(Account.username).where(Account.id == self.me_id)
+            )
+        return self._me_username
+
     def audit_rows(self, table: str, row_id) -> list[AuditLog]:
         return self.scalars(
             select(AuditLog)
@@ -293,16 +298,6 @@ class DB:
                             AuditLog.row_id.in_([str(i) for i in ids]),
                         )
                     )
-            # create_task writes its audit row before the task has an id, so
-            # the row_id is the string "None". Take ours by actor and time.
-            await s.execute(
-                delete(AuditLog).where(
-                    AuditLog.from_table == "task",
-                    AuditLog.row_id == "None",
-                    AuditLog.by_whom.in_(list({self.me_id, *self.tracked["account"]})),
-                    AuditLog.occurred_at >= self.started_at,
-                )
-            )
 
             for table, model in (
                 ("task", Task),
