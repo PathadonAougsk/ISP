@@ -411,7 +411,7 @@ async def admin_create_account(
     )
     session.add(account)
 
-    account_service.audit_account(session, user_id, "created", None, username, me.id)
+    account_service.audit_account(session, user_id, "username", None, username, me.id)
     if quota is not None:
         account_service.audit_account(session, user_id, "quota", None, quota, me.id)
 

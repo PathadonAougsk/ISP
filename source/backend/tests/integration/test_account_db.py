@@ -50,7 +50,7 @@ def test_admin_creates_trial_user_with_login_and_audit(client, db):
     assert login_exists(user_id)
 
     audit = {r.column_name: r.new_value for r in db.audit_rows("account", user_id)}
-    assert audit == {"created": row.username, "quota": "10"}
+    assert audit == {"username": row.username, "quota": "10"}
 
     duplicate = client.post(
         "/account/admin",
