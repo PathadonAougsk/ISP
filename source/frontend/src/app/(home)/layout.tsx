@@ -1,20 +1,10 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Thai, Anuphan } from "next/font/google";
-import "../globals.css";
+import { notoSansThai, anuphan } from "@/app/font";
+import "@/app/globals.css";
 
 type LayoutProps = {
   children: React.ReactNode;
 };
-
-const notoSansThai = Noto_Sans_Thai({
-  variable: "--font-noto-sans-thai",
-  subsets: ["thai", "latin"],
-});
-
-const anuphan = Anuphan({
-  variable: "--font-anuphan",
-  subsets: ["thai", "latin"],
-});
 
 export const metadata: Metadata = {
   title: "Labrador",
