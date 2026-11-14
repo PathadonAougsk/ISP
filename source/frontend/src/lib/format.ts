@@ -40,6 +40,22 @@ export function formatShortDateTime(iso: string | null, label = "due") {
   return `${datePart(d, "short")}, ${timePart(d)}`;
 }
 
+// formatLogDateTime("2026-11-14T08:47:00Z") -> "14/11/2026, 15:47"
+export function formatLogDateTime(iso: string | null) {
+  if (iso === null) return "";
+
+  const d = new Date(iso);
+
+  const date = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: TIME_ZONE,
+  });
+
+  return `${date}, ${timePart(d)}`;
+}
+
 // formatFullDateTime("2026-08-28T02:47:00Z") -> "Friday 28 August 2026, 09:47"
 export function formatFullDateTime(iso: string | null, label = "due") {
   if (iso === null) return `No ${label} date`;

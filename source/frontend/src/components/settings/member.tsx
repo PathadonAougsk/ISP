@@ -33,10 +33,10 @@ const ROLE_ORDER: Record<AccountRole, number> = {
 
 // fr cols. grid! because HEAD is flex. admin has 2 more action cols
 const COLS_ADMIN =
-  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(80px,0.8fr)_minmax(80px,0.8fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(110px,1.2fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_24px_24px]";
 
 const COLS_USER =
-  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(110px,1.2fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)]";
 
 function byRoleThenName(a: Account, b: Account) {
   return (
@@ -73,7 +73,7 @@ export default function Member({
         })
         .catch(() => {
           setMembers([]);
-          setError("Could not load members.");
+          setError("Could not load the user list.");
         })
         .finally(() => {
           setLoading(false);
@@ -96,7 +96,11 @@ export default function Member({
       await refresh();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
       return false;
     } finally {
       setBusyId(null);
@@ -126,18 +130,18 @@ export default function Member({
 
   return (
     <section className="flex flex-col gap-5">
-      <h1 className={TITLE}>Member</h1>
+      <h1 className={TITLE}>Users</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p className="font-semibold">People In Your Lab</p>
-        <p className={MUTED}>Everyone is here!</p>
+        <p className="font-semibold">Users of Your Lab</p>
+        <p className={MUTED}>View and manage everyone in your lab.</p>
       </div>
 
       {isAdmin && <CreateUser onCreated={refresh} />}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold w-40">
-          All Members
+        <p className="text-lg font-semibold w-fit">
+          All Users
           {!loading && !error && (
             <span className={MUTED}> ({members.length})</span>
           )}
@@ -147,7 +151,7 @@ export default function Member({
             look="outlined"
             value={query}
             onChange={setQuery}
-            placeholder="Search by name or email"
+            placeholder="Search users by username or email"
             className="w-full"
           />
         </div>
@@ -157,20 +161,20 @@ export default function Member({
 
       <div className={LIST_PANEL}>
         <div className={`${HEAD} ${cols}`}>
-          <span>Username</span>
-          <span>Email</span>
+          <span className="truncate">Username</span>
+          <span className="truncate">Email Address</span>
           <span>Role</span>
-          <span className="text-center">Quota</span>
+          <span className="text-center">Ticket Quota</span>
           <span className="text-center">Status</span>
         </div>
 
         {loading ? (
-          <p className={MESSAGE}>Loading...</p>
+          <p className={MESSAGE}>Loading users...</p>
         ) : visible.length === 0 ? (
           <p className={MESSAGE}>
             {members.length === 0
-              ? "No members yet."
-              : "No members match that search."}
+              ? "No users have been added yet."
+              : "No users match your search."}
           </p>
         ) : (
           visible.map((member) => (

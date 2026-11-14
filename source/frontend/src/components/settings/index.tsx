@@ -38,9 +38,9 @@ export default function Settings({
     Account: (
       <AccountPanel account={account} loading={loading} onChanged={reload} />
     ),
-    Category: <Categories isAdmin={isAdmin} />,
-    Member: <Member account={account} isAdmin={isAdmin} />,
-    Log: <Log accountLoading={loading} />,
+    Categories: <Categories isAdmin={isAdmin} />,
+    Users: <Member account={account} isAdmin={isAdmin} />,
+    "Activity Log": <Log accountLoading={loading} />,
   };
 
   return (

@@ -25,7 +25,7 @@ export default function DeleteAnnouncementModal({
   const { saving, error, run } = useFormSubmit();
 
   async function handleDelete(close: () => void) {
-    const ok = await run(onConfirm, "Something went wrong.");
+    const ok = await run(onConfirm, "Something went wrong. Please try again.");
 
     if (ok) close();
   }

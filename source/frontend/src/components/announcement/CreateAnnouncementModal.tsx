@@ -36,7 +36,7 @@ export default function CreateAnnouncementModal({
 
     const ok = await run(
       () => onSubmit({ name: name.trim(), description: description.trim() }),
-      "Something went wrong.",
+      "Something went wrong. Please try again.",
     );
 
     if (ok) close();

@@ -15,12 +15,13 @@ const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
     value: "member",
     label: "Member",
-    blurb: "No cap - they can file as many tickets as they need.",
+    blurb: "No ticket limit. This user can submit unlimited tickets.",
   },
   {
     value: "trial",
     label: "Trial",
-    blurb: "Capped at a ticket quota, counted down as they file tickets.",
+    blurb:
+      "Limited by a ticket quota that decreases with each submitted ticket.",
   },
 ];
 
@@ -59,7 +60,7 @@ export default function CreateUser({
     if (trial) {
       cap = Number(quota);
       if (!Number.isInteger(cap) || cap < 0) {
-        setError("Quota has to be a whole number, 0 or more.");
+        setError("Enter a whole number greater than or equal to 0.");
         return;
       }
     }
@@ -90,7 +91,7 @@ export default function CreateUser({
       await onCreated();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not create that member.",
+        err instanceof Error ? err.message : "Could not create the user.",
       );
     } finally {
       setBusy(false);
@@ -102,8 +103,8 @@ export default function CreateUser({
   return (
     <div className={CARD}>
       <div className="flex flex-col gap-1.5">
-        <p className="font-semibold">Create A User</p>
-        <p className={MUTED}>Create a user here!</p>
+        <p className="font-semibold">Create a User</p>
+        <p className={MUTED}>Add a new user to your lab.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -113,14 +114,14 @@ export default function CreateUser({
             onClick: () => setKind(option.value),
           }))}
           selectedIndex={KINDS.findIndex((k) => k.value === kind)}
-          ariaLabel="User kind"
+          ariaLabel="Account type"
           widthClassName="w-60"
         />
 
         <p className={MUTED}>
-          {KINDS.find((k) => k.value === kind)?.blurb} They join as a Lab User
-          and can sign in straight away - nothing is emailed, so pass the
-          credentials on to them yourself.
+          {KINDS.find((k) => k.value === kind)?.blurb} The user will be created
+          as a Lab User and can sign in immediately. No credentials will be
+          emailed, so share them with the user yourself.
         </p>
 
         <div className="grid grid-cols-2 gap-3">
@@ -131,7 +132,7 @@ export default function CreateUser({
             onChange={setUsername}
             disabled={busy}
             maxLength={30}
-            placeholder="Another Win"
+            placeholder="Enter a username"
             autoComplete="off"
           />
 
@@ -142,7 +143,7 @@ export default function CreateUser({
             value={email}
             onChange={setEmail}
             disabled={busy}
-            placeholder="Anawin.c@Chula.th"
+            placeholder="user@example.com"
             maxLength={255}
           />
 
@@ -155,23 +156,21 @@ export default function CreateUser({
             disabled={busy}
             maxLength={72}
             showCounter={false}
-            placeholder={`at least ${MIN_PASSWORD} characters`}
+            placeholder={`At least ${MIN_PASSWORD} characters`}
             autoComplete="new-password"
           />
 
           {trial && (
-            <label className={LABEL}>
-              Ticket quota
-              <TextInput
-                look="outlined"
-                type="number"
-                min={0}
-                step={1}
-                value={quota}
-                onChange={setQuota}
-                disabled={busy}
-              />
-            </label>
+            <TextInput
+              label="Ticket quota"
+              look="outlined"
+              type="number"
+              min={0}
+              step={1}
+              value={quota}
+              onChange={setQuota}
+              disabled={busy}
+            />
           )}
         </div>
 
@@ -183,12 +182,11 @@ export default function CreateUser({
             disabled={!ready || busy}
             className="min-w-25 px-4 font-bold"
           >
-            {busy ? "Creating..." : "Create"}
+            {busy ? "Creating user..." : "Create User"}
           </Button>
           {missing > 0 && password.length > 0 && (
             <span className={MUTED}>
-              Password needs {missing} more character
-              {missing === 1 ? "" : "s"}.
+              Password must be at least {MIN_PASSWORD} characters long.
             </span>
           )}
         </div>
@@ -199,15 +197,17 @@ export default function CreateUser({
       {handover && (
         <div className="flex flex-col gap-2 rounded-[20px] border-2 border-(--primary-color-2) bg-white p-4">
           <p className="font-semibold">
-            {handover.username} can sign in now. Pass these on:
+            User created successfully. Share these credentials with{" "}
+            {handover.username}:
           </p>
           <p className={MUTED}>
-            Email <span className="text-black">{handover.email}</span>
+            Email address <span className="text-black">{handover.email}</span>
             {" · "}
             Password <span className="text-black">{handover.password}</span>
           </p>
           <p className={MUTED}>
-            This is the only time the password is shown. Closing this clears it.
+            This password will only be displayed once. Dismissing this message
+            will permanently hide it.
           </p>
           <Button
             variant="outline"

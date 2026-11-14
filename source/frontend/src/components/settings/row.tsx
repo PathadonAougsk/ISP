@@ -55,7 +55,7 @@ export default function Row({
             onClick={() => setShown((s) => !s)}
             className="-ml-2 text-(--primary-color-deep) hover:underline"
           >
-            {shown ? "Hide" : "Reveal"}
+            {shown ? "Hide" : "Show"}
           </button>
         )}
         <div className="flex w-25 justify-end">{action}</div>
