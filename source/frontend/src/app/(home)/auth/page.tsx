@@ -71,22 +71,34 @@ function AuthForm() {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-base text-(--primary-color-deep)">
+          <label
+            htmlFor="email"
+            className="flex flex-col gap-1 text-base text-(--primary-color-deep)"
+          >
             Email
             <input
+              id="email"
+              name="email"
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)"
-              placeholder="you@example.com"
+              placeholder="user@example.com"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-base text-(--primary-color-deep)">
+          <label
+            htmlFor="password"
+            className="flex flex-col gap-1 text-base text-(--primary-color-deep)"
+          >
             Password
             <input
+              id="password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
