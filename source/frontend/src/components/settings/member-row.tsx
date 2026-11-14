@@ -49,15 +49,17 @@ function ResetForm({
     const nextEmail = email.trim().toLowerCase();
 
     if (!nextEmail && !password) {
-      onError("Give a new email, a new password, or both.");
+      onError("Enter a new email address, a new password, or both.");
       return;
     }
     if (password && password.length < MIN_PASSWORD) {
-      onError(`A new password needs at least ${MIN_PASSWORD} characters.`);
+      onError(
+        `The new password must be at least ${MIN_PASSWORD} characters long.`,
+      );
       return;
     }
     if (!myPassword) {
-      onError("Confirm with your own password.");
+      onError("Enter your password to confirm this change.");
       return;
     }
 
@@ -72,27 +74,24 @@ function ResetForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-5 pt-3"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 py-4">
       <p className={`${MUTED} text-sm!`}>
-        Sets {member.username}&apos;s login directly. Nothing is emailed, so
-        pass the new credentials on yourself. Leave a field blank to keep it as
-        it is.
+        Change {member.username}'s login credentials directly. No notification
+        email will be sent, so share the updated credentials with the user
+        yourself. Leave a field blank to keep its current value.
       </p>
 
       <div className="grid grid-cols-3 gap-3">
         <TextInput
-          label="New email"
+          label="New email address"
           look="outlined"
-          autoFocus
           type="email"
           value={email}
           onChange={setEmail}
           disabled={busy}
-          placeholder={member.email}
+          placeholder="user@example.com"
           maxLength={255}
+          autoComplete="off"
         />
         <TextInput
           label="New password"
@@ -107,7 +106,7 @@ function ResetForm({
           placeholder={`At least ${MIN_PASSWORD} characters`}
         />
         <TextInput
-          label="Your own password"
+          label="Your password"
           look="outlined"
           type="password"
           value={myPassword}
@@ -120,19 +119,19 @@ function ResetForm({
         />
       </div>
 
-      <div className="flex items-center gap-3 pb-3">
+      <div className="flex items-center gap-3">
         <Button
           variant="green"
-          size="base"
+          size="md"
           type="submit"
           disabled={busy}
           className="min-w-25 px-4 font-bold"
         >
-          {busy ? "Saving..." : "Save"}
+          {busy ? "Saving changes..." : "Save Changes"}
         </Button>
         <Button
           variant="outline"
-          size="base"
+          size="md"
           onClick={onDone}
           disabled={busy}
           className="w-25 font-semibold"
@@ -187,7 +186,7 @@ export default function MemberRow({
 
     if (quota !== null && (!Number.isInteger(quota) || quota < 0)) {
       onError(
-        "Quota has to be a whole number, 0 or more, or blank for no cap.",
+        "Enter a whole number greater than or equal to 0, or leave blank for unlimited tickets.",
       );
       return;
     }
@@ -261,7 +260,7 @@ export default function MemberRow({
                 if (event.key === "Enter") event.currentTarget.blur();
                 if (event.key === "Escape") setQuotaDraft(null);
               }}
-              placeholder="No cap"
+              placeholder="Unlimited"
               className="w-full text-right"
             />
           ) : (
@@ -272,10 +271,10 @@ export default function MemberRow({
               onClick={() =>
                 setQuotaDraft(member.quota === null ? "" : String(member.quota))
               }
-              title="Ticket quota. Leave it blank for no cap."
+              title="Ticket quota. Leave blank for unlimited tickets."
               className="h-8 w-full font-normal text-sm text-center"
             >
-              {member.quota ?? "No cap"}
+              {member.quota ?? "Unlimited"}
             </Button>
           )
         ) : (
@@ -308,7 +307,7 @@ export default function MemberRow({
                 size="sm"
                 disabled={busy}
                 onClick={onToggleReset}
-                title="Set a new email or password for this member."
+                title="Change this user's email address or password."
                 className="w-full font-medium text-base"
               >
                 {resetOpen ? "Cancel" : "Reset"}
@@ -346,7 +345,7 @@ export default function MemberRow({
 
       {confirming === "deactivate" && (
         <ConfirmModal
-          title={`Deactivate ${member.username}?`}
+          title={`Deactivate ${member.username}'s account?`}
           confirmLabel="Deactivate"
           busyLabel="Deactivating..."
           error={error}
@@ -354,15 +353,15 @@ export default function MemberRow({
           onClose={() => setConfirming(null)}
         >
           <p>
-            {member.username} keeps everything they own, but cannot sign in
-            again until you activate them.
+            {member.username} will keep their existing tasks and tickets but
+            will not be able to sign in until their account is reactivated.
           </p>
         </ConfirmModal>
       )}
 
       {confirming === "delete" && (
         <ConfirmModal
-          title={`Delete ${member.username}?`}
+          title={`Delete ${member.username}'s account?`}
           confirmLabel="Delete"
           busyLabel="Deleting..."
           error={error}
@@ -370,8 +369,8 @@ export default function MemberRow({
           onClose={() => setConfirming(null)}
         >
           <p>
-            This action cannot be undone. If {member.username} owns any tasks or
-            tickets, consider deactivating their account instead.
+            This action cannot be undone. If {member.username} is assigned to
+            any tasks or tickets, consider deactivating their account instead.
           </p>
         </ConfirmModal>
       )}

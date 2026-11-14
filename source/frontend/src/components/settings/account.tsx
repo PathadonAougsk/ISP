@@ -130,7 +130,10 @@ export default function AccountPanel({
       onChanged();
     } catch (err) {
       say(field, {
-        error: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
         done: null,
       });
     } finally {
@@ -178,7 +181,7 @@ export default function AccountPanel({
 
     if (newPassword.length < MIN_PASSWORD) {
       say("password", {
-        error: `A new password needs at least ${MIN_PASSWORD} characters.`,
+        error: `The new password must be at least ${MIN_PASSWORD} characters long.`,
         done: null,
       });
       return;
@@ -316,8 +319,8 @@ export default function AccountPanel({
               disabled={!currentPassword || !newPassword}
             >
               <p className={MUTED}>
-                Keep your password somewhere safe. If you forget it, contact an
-                administrator to reset it.
+                Keep your password somewhere safe. If you forget it, contact
+                an administrator to reset it.
               </p>
 
               <div className="flex items-start gap-3">
@@ -355,7 +358,8 @@ export default function AccountPanel({
 
                   {missing > 0 && newPassword.length > 0 && (
                     <span className={`${MUTED} text-sm`}>
-                      {missing} more character{missing === 1 ? "" : "s"} required.
+                      {missing} more character{missing === 1 ? "" : "s"}{" "}
+                      required.
                     </span>
                   )}
                 </div>

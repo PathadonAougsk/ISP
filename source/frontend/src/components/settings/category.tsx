@@ -93,7 +93,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
     try {
       await run(
         () => updateCategory(id, name),
-        `Could not rename the category.`,
+        "Could not rename the category.",
       );
       setEditingId(null);
     } finally {
@@ -138,7 +138,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
             disabled={!newName.trim()}
             className="h-10 min-w-25 px-4 font-bold"
           >
-            Add New Category
+            Add Category
           </Button>
         </form>
       ) : (
@@ -147,8 +147,10 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
         </p>
       )}
 
+      {error && <p className={ERROR}>{error}</p>}
+
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold w-40">
+        <p className="text-lg font-semibold w-fit">
           All Categories
           <span className={MUTED}> ({categories.length})</span>
         </p>
@@ -163,8 +165,6 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
           />
         </div>
       </div>
-
-      {error && <p className={ERROR}>{error}</p>}
 
       <div className={LIST_PANEL}>
         <div className={HEAD}>

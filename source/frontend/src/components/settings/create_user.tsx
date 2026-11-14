@@ -14,13 +14,14 @@ const MIN_PASSWORD = 8;
 const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
     value: "member",
-    label: "Permanent Member",
+    label: "Member",
     blurb: "No ticket limit. This user can submit unlimited tickets.",
   },
   {
     value: "trial",
-    label: "Trial Member",
-    blurb: "Capped at a ticket quota, counted down as they file tickets.",
+    label: "Trial",
+    blurb:
+      "Limited by a ticket quota that decreases with each submitted ticket.",
   },
 ];
 
@@ -59,7 +60,7 @@ export default function CreateUser({
     if (trial) {
       cap = Number(quota);
       if (!Number.isInteger(cap) || cap < 0) {
-        setError("Quota has to be a whole number, 0 or more.");
+        setError("Enter a whole number greater than or equal to 0.");
         return;
       }
     }
@@ -90,7 +91,7 @@ export default function CreateUser({
       await onCreated();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not create that member.",
+        err instanceof Error ? err.message : "Could not create the user.",
       );
     } finally {
       setBusy(false);
@@ -114,7 +115,7 @@ export default function CreateUser({
           }))}
           selectedIndex={KINDS.findIndex((k) => k.value === kind)}
           ariaLabel="Account type"
-          widthClassName="w-120"
+          widthClassName="w-60"
         />
 
         <p className={MUTED}>
@@ -181,12 +182,11 @@ export default function CreateUser({
             disabled={!ready || busy}
             className="min-w-25 px-4 font-bold"
           >
-            {busy ? "Creating..." : "Create"}
+            {busy ? "Creating user..." : "Create User"}
           </Button>
           {missing > 0 && password.length > 0 && (
             <span className={MUTED}>
-              Password needs {missing} more character
-              {missing === 1 ? "" : "s"}.
+              Password must be at least {MIN_PASSWORD} characters long.
             </span>
           )}
         </div>
@@ -197,15 +197,17 @@ export default function CreateUser({
       {handover && (
         <div className="flex flex-col gap-2 rounded-[20px] border-2 border-(--primary-color-2) bg-white p-4">
           <p className="font-semibold">
-            {handover.username} can sign in now. Pass these on:
+            User created successfully. Share these credentials with{" "}
+            {handover.username}:
           </p>
           <p className={MUTED}>
-            Email <span className="text-black">{handover.email}</span>
+            Email address <span className="text-black">{handover.email}</span>
             {" · "}
             Password <span className="text-black">{handover.password}</span>
           </p>
           <p className={MUTED}>
-            This is the only time the password is shown. Closing this clears it.
+            This password will only be displayed once. Dismissing this message
+            will permanently hide it.
           </p>
           <Button
             variant="outline"
