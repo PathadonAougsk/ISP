@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import get_current_auth_user
 from app.database import getSession
 from app.limits import DESCRIPTION_MAX, NAME_MAX
 from app.model import Announcement, Account, AuditLog
@@ -21,7 +22,7 @@ class AnnouncementUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
 
 
-announcementRouter = APIRouter(prefix="/announcement", dependencies=[Depends(account_service.get_current_auth_user)])
+announcementRouter = APIRouter(prefix="/announcement", dependencies=[Depends(get_current_auth_user)])
 
 
 @announcementRouter.get("/", tags=["Announcement"])

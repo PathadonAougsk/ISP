@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, case, update, func, or_, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import get_current_auth_user
 from app.database import getSession
 from app.datetime_utils import to_due_date, to_utc
 from app.limits import DESCRIPTION_MAX, NAME_MAX
@@ -29,7 +30,7 @@ class TicketUpdate(BaseModel):
 
 
 ticketRouter = APIRouter(
-    prefix="/ticket", dependencies=[Depends(account_service.get_current_auth_user)])
+    prefix="/ticket", dependencies=[Depends(get_current_auth_user)])
 
 
 @ticketRouter.get("/", tags=["Tickets"])

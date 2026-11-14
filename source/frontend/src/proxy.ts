@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export default async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
+  const { response, claims } = await updateSession(request);
 
-  if (!user) {
+  if (!claims) {
     const loginUrl = new URL("/auth", request.url);
     return NextResponse.redirect(loginUrl);
   }

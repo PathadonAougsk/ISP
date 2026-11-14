@@ -22,7 +22,6 @@ import os
 import uuid
 from collections import defaultdict
 from contextlib import suppress
-from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,6 +29,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.auth import AuthUser, get_current_auth_user
 from app.database import getSession
 from app.dependencies import supabase
 from app.main import app
@@ -134,10 +134,10 @@ def client(db_url, me_id):
             yield s
 
     def fake_auth_user():
-        return SimpleNamespace(id=str(current["id"]), email=current["email"])
+        return AuthUser(id=str(current["id"]), email=current["email"], claims={})
 
     app.dependency_overrides[getSession] = test_session
-    app.dependency_overrides[account_service.get_current_auth_user] = fake_auth_user
+    app.dependency_overrides[get_current_auth_user] = fake_auth_user
 
     # The context manager keeps one event loop for the whole test, which is
     # what lets the pooled connections be reused across requests.

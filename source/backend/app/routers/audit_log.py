@@ -6,11 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.auth import get_current_auth_user
 from app.database import getSession
 from app.model import Account, AuditLog
 from app.service import account_service
 
-auditLogRouter = APIRouter(prefix="/audit-log", dependencies=[Depends(account_service.get_current_auth_user)])
+auditLogRouter = APIRouter(prefix="/audit-log", dependencies=[Depends(get_current_auth_user)])
 
 
 def serialize_audit_log(entry: AuditLog) -> dict[str, Any]:
