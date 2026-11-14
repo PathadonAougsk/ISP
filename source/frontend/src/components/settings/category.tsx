@@ -197,6 +197,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                     inlineCounter={true}
                     value={editingName}
                     onChange={setEditingName}
+                    onBlur={() => handleRename(category.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") handleRename(category.id);
                       if (event.key === "Escape") setEditingId(null);
