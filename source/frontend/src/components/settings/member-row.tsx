@@ -91,7 +91,16 @@ function ResetForm({
           disabled={busy}
           placeholder="user@example.com"
           maxLength={255}
-          autoComplete="off"
+          autoComplete="new-email"
+        />
+        {/* Hidden username so browser can fill my password */}
+        <input
+          type="text"
+          name="username"
+          autoComplete="username"
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only"
         />
         <TextInput
           label="New password"

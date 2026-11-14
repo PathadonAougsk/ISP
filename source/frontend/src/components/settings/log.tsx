@@ -39,6 +39,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
   const [entries, setEntries] = useState<AuditLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [table, setTable] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Which filter the rows on screen came from, null before the first fetch.
   // Loading is derived from it, so a new filter cannot show the old rows.
@@ -53,8 +54,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
   // from before the filter changed knows it is stale and drops itself.
   const requestId = useRef(0);
 
-  // Refetches whenever the table filter changes - the filter is applied by the
-  // server, so it covers the whole log and not just the page already in hand.
+  // Refetches whenever the table filter or refresh key changes.
   // The server already refuses a Lab User, so dont spend a request on a 403.
   useEffect(() => {
     const id = requestId.current;
@@ -77,26 +77,27 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
         );
       })
       .finally(() => {
-        // Clears the loading state - on an error too, the message takes over.
         if (requestId.current === id) setLoadedTable(table);
       });
 
     return () => {
       requestId.current += 1;
     };
-  }, [table]);
+  }, [table, refreshKey]);
 
   // Keyset would be steadier, but offset matches the endpoint we have. A new
   // entry on top shifts every page down, so drop rows already in hand.
   async function loadMore() {
     const id = requestId.current;
     setLoadingMore(true);
+
     try {
       const { AuditLogs } = await getAuditLogs({
         limit: PAGE_SIZE,
         offset: entries.length,
         from_table: table || undefined,
       });
+
       if (requestId.current !== id) return;
 
       setEntries((current) => {
@@ -104,6 +105,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
         const fresh = AuditLogs.filter((entry) => !seen.has(entry.id));
         return [...current, ...fresh];
       });
+
       // On what the server sent, not on what survived the dedupe.
       setHasMore(AuditLogs.length === PAGE_SIZE);
       setError(null);
@@ -113,7 +115,6 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
         err instanceof Error ? err.message : "Could not load more entries.",
       );
     } finally {
-      // Unconditional - a stale run still has to let go of the button.
       setLoadingMore(false);
     }
   }
@@ -146,15 +147,28 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               )}
             </p>
 
-            <Select
-              look="outlined"
-              className="w-40"
-              value={table}
-              onChange={setTable}
-              placeholder={{ value: "", label: "All Tables" }}
-              firstItem={{ value: "", label: "All Tables" }}
-              options={TABLES.map((name) => ({ value: name, label: name }))}
-            />
+            <div className="flex items-center gap-3">
+              <Select
+                look="outlined"
+                className="w-40"
+                value={table}
+                onChange={setTable}
+                placeholder={{ value: "", label: "All Tables" }}
+                firstItem={{ value: "", label: "All Tables" }}
+                options={TABLES.map((name) => ({
+                  value: name,
+                  label: name,
+                }))}
+              />
+
+              <Button
+                variant={loading ? "busy" : "outline-white"}
+                icon="/reset.svg"
+                disabled={loading || loadingMore}
+                onClick={() => setRefreshKey((current) => current + 1)}
+                title="Refresh Log"
+              />
+            </div>
           </div>
 
           {error && <p className={ERROR}>{error}</p>}
@@ -182,7 +196,9 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                   <span className="truncate" title={entry.row_id ?? undefined}>
                     {valueOf(entry.row_id)}
                   </span>
+
                   <span>{formatLogDateTime(entry.occurred_at)}</span>
+
                   <span
                     className="truncate"
                     title={entry.by_username ?? undefined}
@@ -191,12 +207,15 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                       <span className="text-gray-500">Deleted User</span>
                     )}
                   </span>
+
                   <span className="truncate" title={entry.from_table}>
                     {entry.from_table}
                   </span>
+
                   <span className="truncate" title={entry.column_name}>
                     {entry.column_name}
                   </span>
+
                   <span
                     className="truncate"
                     title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
