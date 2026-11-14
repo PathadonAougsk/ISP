@@ -194,6 +194,7 @@ export default function TicketDetailModal({
     >
       <FormColumn>
         <TextInput
+          name="title"
           label="Title"
           value={title}
           onChange={setTitle}
@@ -204,6 +205,7 @@ export default function TicketDetailModal({
 
         <div className="flex gap-4">
           <TextInput
+            name="created_by"
             label="Created By"
             className="flex-1 min-w-0"
             value={ticket.createdBy}
@@ -230,6 +232,7 @@ export default function TicketDetailModal({
         </div>
 
         <TextArea
+          name="description"
           label="Description"
           value={description}
           onChange={setDescription}

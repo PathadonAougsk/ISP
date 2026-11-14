@@ -78,6 +78,7 @@ export default function CreateTaskModal({
       {/* Left column: form fields */}
       <FormColumn>
         <TextInput
+          name="title"
           label="Title"
           value={title}
           onChange={setTitle}
@@ -101,6 +102,7 @@ export default function CreateTaskModal({
           </div>
         </div>
         <TextArea
+          name="description"
           label="Description"
           value={description}
           onChange={setDescription}

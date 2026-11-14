@@ -65,6 +65,7 @@ export default function CreateAnnouncementModal({
     >
       <FormColumn>
         <TextInput
+          name="title"
           label="Title"
           value={name}
           onChange={setName}
@@ -72,6 +73,7 @@ export default function CreateAnnouncementModal({
           maxLength={255}
         />
         <TextArea
+          name="description"
           label="Description"
           value={description}
           onChange={setDescription}

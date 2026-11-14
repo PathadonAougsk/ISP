@@ -67,6 +67,7 @@ export default function CreateTicketModal({
     >
       <FormColumn>
         <TextInput
+          name="title"
           label="Title"
           value={title}
           onChange={setTitle}
@@ -85,6 +86,7 @@ export default function CreateTicketModal({
           <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
         </div>
         <TextArea
+          name="description"
           label="Description"
           value={description}
           onChange={setDescription}

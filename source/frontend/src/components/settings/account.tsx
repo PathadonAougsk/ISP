@@ -239,6 +239,7 @@ export default function AccountPanel({
             >
               <div className="w-75">
                 <TextInput
+                  name="username"
                   label="New username"
                   look="outlined"
                   autoFocus
@@ -247,6 +248,7 @@ export default function AccountPanel({
                   disabled={busy}
                   maxLength={30}
                   placeholder="Enter your username"
+                  autoComplete="username"
                 />
               </div>
             </EditForm>
@@ -275,6 +277,7 @@ export default function AccountPanel({
 
               <div className="grid grid-cols-2 gap-3">
                 <TextInput
+                  name="email"
                   label="New email"
                   look="outlined"
                   autoFocus
@@ -284,9 +287,11 @@ export default function AccountPanel({
                   disabled={busy}
                   placeholder="you@chula.th"
                   maxLength={255}
+                  autoComplete="email"
                 />
 
                 <TextInput
+                  name="password"
                   label="Confirm your password"
                   look="outlined"
                   type="password"
@@ -326,6 +331,7 @@ export default function AccountPanel({
               <div className="flex items-start gap-3">
                 <div className="w-1/2">
                   <TextInput
+                    name="password"
                     label="Current password"
                     look="outlined"
                     autoFocus
@@ -344,6 +350,7 @@ export default function AccountPanel({
               <div className="flex items-start gap-3">
                 <div className="flex w-1/2 flex-col gap-1.5">
                   <TextInput
+                    name="password"
                     label="New password"
                     look="outlined"
                     type="password"
@@ -366,6 +373,7 @@ export default function AccountPanel({
 
                 <div className="w-1/2">
                   <TextInput
+                    name="password"
                     label="Confirm new password"
                     look="outlined"
                     type="password"

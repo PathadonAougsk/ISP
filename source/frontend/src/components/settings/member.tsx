@@ -148,6 +148,7 @@ export default function Member({
         </p>
         <div className="flex-1">
           <TextInput
+            name="search"
             look="outlined"
             value={query}
             onChange={setQuery}

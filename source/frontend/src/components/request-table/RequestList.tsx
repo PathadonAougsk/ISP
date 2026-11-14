@@ -156,6 +156,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <div className="relative min-w-0 flex-1">
             <TextInput
+              name="search"
               ref={searchRef}
               look="panel"
               placeholder="Search"

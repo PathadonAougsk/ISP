@@ -114,6 +114,7 @@ export default function DateInput({
     <div className={`relative ${label === undefined ? className : ""}`}>
       <div className="relative">
         <input
+          name="date"
           type="text"
           inputMode="numeric"
           placeholder="dd/mm/yyyy"
@@ -136,6 +137,7 @@ export default function DateInput({
 
         {/* Hidden native picker, only used for the calendar popup */}
         <input
+          name="date"
           ref={pickerRef}
           type="date"
           value={value}

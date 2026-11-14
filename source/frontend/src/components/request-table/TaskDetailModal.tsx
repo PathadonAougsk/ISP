@@ -151,6 +151,7 @@ export default function TaskDetailModal({
     >
       <FormColumn>
         <TextInput
+          name="title"
           label="Title"
           value={title}
           onChange={setTitle}
@@ -172,6 +173,7 @@ export default function TaskDetailModal({
           />
 
           <TextInput
+            name="status"
             label="Status"
             className="min-w-0 flex-1"
             value={task.status}
@@ -181,6 +183,7 @@ export default function TaskDetailModal({
 
         <div className="flex gap-4">
           <TextInput
+            name="created_by"
             label="Created By"
             className="min-w-0 flex-1"
             value={task.createdBy}
@@ -198,6 +201,7 @@ export default function TaskDetailModal({
         </div>
 
         <TextArea
+          name="description"
           label="Description"
           value={description}
           onChange={setDescription}
@@ -209,6 +213,7 @@ export default function TaskDetailModal({
 
         {!isAdmin && (
           <TextInput
+            name="assigned"
             label="Assigned"
             value={task.assignedTo || "Unassigned"}
             readOnly

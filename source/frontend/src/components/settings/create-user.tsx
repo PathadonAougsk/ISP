@@ -126,6 +126,7 @@ export default function CreateUser({
 
         <div className="grid grid-cols-2 gap-3">
           <TextInput
+            name="username"
             label="Username"
             look="outlined"
             value={username}
@@ -137,6 +138,7 @@ export default function CreateUser({
           />
 
           <TextInput
+            name="email"
             label="Email"
             look="outlined"
             type="email"
@@ -145,9 +147,11 @@ export default function CreateUser({
             disabled={busy}
             placeholder="user@example.com"
             maxLength={255}
+            autoComplete="email"
           />
 
           <TextInput
+            name="password"
             label="Password"
             look="outlined"
             type="password"
@@ -162,6 +166,7 @@ export default function CreateUser({
 
           {trial && (
             <TextInput
+              name="ticket_quota"
               label="Ticket quota"
               look="outlined"
               type="number"
