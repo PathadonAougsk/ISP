@@ -232,7 +232,7 @@ export function TicketList({
         lead={
           <Icon
             src={overdue ? "/alert.svg" : ticketStatusIcon[ticket.status]}
-            className="h-4 w-auto shrink-0"
+            className="size-4 shrink-0"
             alt={ticket.status}
           />
         }

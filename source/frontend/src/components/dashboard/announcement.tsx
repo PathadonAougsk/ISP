@@ -52,11 +52,11 @@ export default function Announcement({
 
         <div className="mt-2 flex items-center gap-12 text-sm text-gray-600">
           <div className="flex items-center gap-2">
-            <Icon src="/clock.svg" alt="" className="h-4 w-auto" />
+            <Icon src="/clock.svg" alt="" className="size-4" />
             <span>{formatFullDateTime(item.created)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Icon src="/account.svg" alt="" className="h-4 w-auto" />
+            <Icon src="/account.svg" alt="" className="size-4" />
             <span>{usernames[item.created_by] ?? "-"}</span>
           </div>
         </div>

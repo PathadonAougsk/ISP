@@ -100,7 +100,7 @@ export default function TaskSlideup({
                 createdDate={task.created}
               >
                 <div className="flex items-center gap-2">
-                  <Icon src="/account.svg" alt="" className="h-4 w-auto" />
+                  <Icon src="/account.svg" alt="" className="size-4" />
                   <span>{usernames[task.created_by] ?? "-"}</span>
                 </div>
               </SlideupMeta>

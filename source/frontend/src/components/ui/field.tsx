@@ -398,7 +398,7 @@ export function Select({
 
         <Icon
           src="/dropdown_arrow.svg"
-          className={`pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 ${
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 size-4 ${
             look === "outlined" ? "right-2.5" : "right-2"
           }`}
         />

@@ -95,7 +95,7 @@ export default function TicketTable({
                   ? "/alert.svg"
                   : ticketStatusIcon[ticket.status.toLowerCase()]
               }
-              className="h-4 w-auto shrink-0"
+              className="size-4 shrink-0"
               alt={ticket.status}
             />
           ),

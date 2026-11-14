@@ -34,12 +34,12 @@ export default function AnnouncementDetail({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-12 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-2">
-          <Icon src="/account.svg" className="h-auto w-4 shrink-0" />
+          <Icon src="/account.svg" className="size-4 shrink-0" />
           {authorName}
         </span>
 
         <span className="flex items-center gap-2">
-          <Icon src="/clock.svg" className="h-auto w-4 shrink-0" />
+          <Icon src="/clock.svg" className="size-4 shrink-0" />
           {formatFullDateTime(announcement.created)}
         </span>
       </div>

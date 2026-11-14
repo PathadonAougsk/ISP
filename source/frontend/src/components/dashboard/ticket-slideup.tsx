@@ -111,11 +111,11 @@ export default function TicketSlideup({
             createdDate={ticket.created}
           >
             <div className="flex items-center gap-2">
-              <Icon src={ticketStatusIcon[ticket.status]} />
+              <Icon src={ticketStatusIcon[ticket.status]} className="size-4"/>
               <span>{ticketStatusText[ticket.status]}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Icon src="/account.svg" alt="" className="h-4 w-auto" />
+              <Icon src="/account.svg" alt="" className="size-4" />
               <span>{usernames[ticket.created_by] ?? "-"}</span>
             </div>
           </SlideupMeta>

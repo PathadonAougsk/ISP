@@ -57,12 +57,12 @@ export default function DeleteAnnouncementModal({
 
         <div className="flex flex-wrap items-center gap-x-6 pt-2 text-sm text-gray-600">
           <span className="flex items-center gap-2">
-            <Icon src="/clock.svg" className="h-auto w-4 shrink-0" />
+            <Icon src="/clock.svg" className="size-4 shrink-0" />
             {formatFullDateTime(announcement.created)}
           </span>
 
           <span className="flex items-center gap-2">
-            <Icon src="/account.svg" className="h-auto w-4 shrink-0" />
+            <Icon src="/account.svg" className="size-4 shrink-0" />
             {authorName}
           </span>
         </div>

@@ -82,11 +82,11 @@ export function SlideupMeta({
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
       <div className="flex items-center gap-2">
-        <Icon src="/header_donut_gray.svg" />
+        <Icon src="/header_donut_gray.svg" className="size-4" />
         <span>{categoryName}</span>
       </div>
       <div className="flex items-center gap-2">
-        <Icon src="/clock.svg" />
+        <Icon src="/clock.svg" className="size-4" />
         <span>{formatFullDateTime(createdDate, "created")}</span>
       </div>
       {children}

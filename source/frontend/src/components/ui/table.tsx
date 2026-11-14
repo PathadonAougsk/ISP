@@ -25,7 +25,7 @@ export function TableHeader({
         hasOverflow ? "pr-6" : "pr-4"
       }`}
     >
-      <Icon src="/header_donut_dark_green.svg" />
+      <Icon src="/header_donut_dark_green.svg" className="size-4" />
       <div className={grid(gridClassName)}>
         {titles.map((title) => (
           <h1 key={title} className="truncate text-base font-bold text-white">

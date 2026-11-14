@@ -70,7 +70,7 @@ export default function MemberPanel({
                 type="checkbox"
                 checked={selectedIds.includes(member.id)}
                 onChange={() => toggle(member.id)}
-                className="h-4 w-4 shrink-0 accent-(--primary-color-2)"
+                className="size-4 shrink-0 accent-(--primary-color-2)"
               />
               <Avatar name={member.name} className="h-6 w-auto shrink-0" />
               <div className="min-w-0">

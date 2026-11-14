@@ -58,12 +58,12 @@ export default function AnnouncementCard({
         className="flex flex-wrap items-center gap-x-12 text-sm text-gray-600"
       >
         <span className="flex items-center gap-2">
-          <Icon src="/clock.svg" alt="" className="h-4 w-auto shrink-0" />
+          <Icon src="/clock.svg" alt="" className="size-4 shrink-0" />
           {formatFullDateTime(announcement.created)}
         </span>
 
         <span className="flex items-center gap-2">
-          <Icon src="/account.svg" alt="" className="h-4 w-auto shrink-0" />
+          <Icon src="/account.svg" alt="" className="size-4 shrink-0" />
           {authorName}
         </span>
       </div>

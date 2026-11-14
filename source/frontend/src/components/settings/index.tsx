@@ -69,7 +69,7 @@ export default function Settings({
                 className="group flex items-center justify-center"
               >
                 <span className="flex size-9 items-center justify-center rounded-full group-hover:bg-gray-200">
-                  <Icon src="/close.svg" className="h-4 w-auto shrink-0" />
+                  <Icon src="/close.svg" className="size-4 shrink-0" />
                 </span>
               </button>
             </header>

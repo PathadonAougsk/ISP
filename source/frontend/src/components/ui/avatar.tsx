@@ -27,7 +27,7 @@ function draws(text: string) {
 
 export default function Avatar({
   name,
-  className = "h-6 w-auto",
+  className = "size-6",
 }: {
   name?: string | null;
   className?: string;

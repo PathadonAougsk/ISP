@@ -131,7 +131,7 @@ export default function DateInput({
           className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-800"
           aria-label="Open calendar"
         >
-          <Icon src="/calendar.svg" className="h-5 w-5" />
+          <Icon src="/calendar.svg" className="size-5" />
         </button>
 
         {/* Hidden native picker, only used for the calendar popup */}

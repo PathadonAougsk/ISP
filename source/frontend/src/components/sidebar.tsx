@@ -28,9 +28,7 @@ function getItemClass(active = false) {
 }
 
 function NavigationIcon({ name }: { name: string }) {
-  return (
-    <Icon src={`/${name}.svg`} className="h-auto w-5 shrink-0" alt={name} />
-  );
+  return <Icon src={`/${name}.svg`} className="size-5 shrink-0" alt={name} />;
 }
 
 function NavigationLabel({ children }: { children: string }) {

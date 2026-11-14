@@ -20,7 +20,7 @@ export function CloseButton({ onClose }: { onClose: () => void }) {
       className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
       aria-label="Close"
     >
-      <Icon src="/close.svg" className="h-auto w-5" />
+      <Icon src="/close.svg" className="size-5" />
     </button>
   );
 }

@@ -179,7 +179,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
                 className="absolute right-4 top-1/2 -translate-y-1/2"
                 aria-label="Clear search"
               >
-                <Icon src="/close.svg" className="h-3 w-3" />
+                <Icon src="/close.svg" className="size-3" />
               </button>
             )}
           </div>
