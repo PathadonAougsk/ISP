@@ -41,7 +41,7 @@ const ICON_SIZE: Record<ButtonSize, string> = {
 };
 
 // shrink on click
-const PRESS = "transition-transform duration-50 enabled:active:scale-95";
+const PRESS = "transition-transform duration-50 enabled:active:scale-99";
 
 export type ButtonVariant = keyof typeof VARIANT;
 export type ButtonSize = keyof typeof SIZE;
