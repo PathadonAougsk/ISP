@@ -122,7 +122,7 @@ function AuthForm() {
               className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
             >
               The email or password you entered is incorrect. If you need to
-              reset your credentials, please contact your Lab Owner.
+              reset your credentials, please contact Lab Owner or Lab Admin.
             </div>
           ) : (
             deactivated && (
