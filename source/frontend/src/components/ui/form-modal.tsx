@@ -55,7 +55,7 @@ export function FormModal({
   children,
 }: {
   title: string;
-  id: string;
+  id?: string;
   onClose: () => void;
   error?: string | null;
   footer: (close: () => void) => ReactNode;
@@ -68,7 +68,9 @@ export function FormModal({
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-baseline gap-2">
               <h1 className="text-2xl font-bold text-black">{title}</h1>
-              <h1 className="text-xl font-semibold text-gray-500">#{id}</h1>
+              {id && (
+                <h1 className="text-xl font-semibold text-gray-500">#{id}</h1>
+              )}
             </div>
             <CloseButton onClose={close} />
           </div>

@@ -168,7 +168,7 @@ export function SlideupDueRow({
       </div>
 
       {missing && (
-        <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+        <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) pb-0.75 px-3 text-sm font-bold text-white">
           Missing
         </div>
       )}

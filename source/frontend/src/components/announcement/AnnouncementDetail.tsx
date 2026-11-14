@@ -56,7 +56,7 @@ export default function AnnouncementDetail({
           </Button>
 
           <Button
-            variant="outline-white"
+            variant="red"
             size="sm"
             onClick={onDelete}
             className="w-15 font-semibold"
