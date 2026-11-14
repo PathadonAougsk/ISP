@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { maskEmail } from "@/lib/format";
+import Button from "@/components/ui/button";
+import { CARD } from "./settings-style";
 
 export function EditButton({
   onClick,
@@ -14,14 +16,15 @@ export function EditButton({
   disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="md"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+      className="w-25 font-semibold"
     >
       {open ? "Cancel" : "Edit"}
-    </button>
+    </Button>
   );
 }
 
@@ -31,22 +34,20 @@ export default function Row({
   value,
   reveal,
   action,
-  is_admin,
   children,
 }: {
   label: string;
   value?: string;
   reveal?: boolean;
   action: React.ReactNode;
-  is_admin?: boolean;
   children?: React.ReactNode;
 }) {
   const [shown, setShown] = useState(false);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={CARD}>
       <div className="flex items-center gap-3">
-        <span className="flex-1">{label}</span>
+        <span className="flex-1 font-semibold">{label}</span>
         {value && <span>{reveal && !shown ? maskEmail(value) : value}</span>}
         {reveal && value && (
           <button
@@ -54,7 +55,7 @@ export default function Row({
             onClick={() => setShown((s) => !s)}
             className="-ml-2 text-(--primary-color-deep) hover:underline"
           >
-            {is_admin ? "Hide" : shown ? "Hide" : "Reveal"}
+            {shown ? "Hide" : "Show"}
           </button>
         )}
         <div className="flex w-25 justify-end">{action}</div>

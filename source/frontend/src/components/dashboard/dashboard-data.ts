@@ -26,16 +26,10 @@ export type DashboardItem = {
 export type GroupState<T extends DashboardItem = DashboardItem> = {
   // cut to the limit, for the UI
   items: T[];
-  // full list with the extra item
+  // full list, everything fetched
   all: T[];
-  // the extra item, null = nothing more to load
-  overflow: T | null;
-  // ready-to-show count string, "{max}+" when list is overflow
-  count: string;
   loading: boolean;
   error: boolean;
-  // any fetch running. only for disable Load More, never show loading text
-  refreshing: boolean;
   loadMore: () => void;
 };
 
@@ -155,8 +149,3 @@ export const ticketStatusIcon: Record<string, string> = {
   accepted: "/accepted.svg",
   rejected: "/rejected.svg",
 };
-
-// count pass the max, show "{max}+"
-export function formatCount(count: number, max: number) {
-  return count > max ? `${max}+` : String(count);
-}

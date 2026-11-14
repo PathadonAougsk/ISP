@@ -1,29 +1,25 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from supabase_auth.types import User as AuthUser
 
+from app.auth import AuthUser, get_current_auth_user
 from app.database import getSession
+from app.datetime_utils import to_due_date, to_utc
+from app.limits import DESCRIPTION_MAX, NAME_MAX
 from app.model import Account, AccountRole, Task, TaskStatus, AuditLog
 from app.service import account_service
 
 
-def to_utc(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
-    return value.astimezone(timezone.utc)
-
-
 # Base Task model.
 class TaskRequest(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
     due_date: datetime | None = None
@@ -31,15 +27,15 @@ class TaskRequest(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus | None = None
     category_id: int | None = None
     due_date: datetime | None = None
     assignees: list[uuid.UUID] | None = None
 
 
-taskRouter = APIRouter(prefix="/task", dependencies=[Depends(account_service.get_current_auth_user)])
+taskRouter = APIRouter(prefix="/task", dependencies=[Depends(get_current_auth_user)])
 
 # Filter params here are optional. If given none, then get all.
 # Filters: id, categories, users (assignees), status, limit
@@ -51,19 +47,33 @@ async def retrieve_tasks(
     me: Annotated[Account, Depends(account_service.get_current_account)],
     session: Annotated[AsyncSession, Depends(getSession)],
     id: int | None = None,
+    search: str | None = None,
     categories: int | None = None,
     assignsTo: uuid.UUID | None = None,
     notassignsTo: uuid.UUID | None = None,
     status: TaskStatus | None = None,
     due_after: datetime | None = None,
     due_before: datetime | None = None,
-    limit: int = Query(default=20, ge=0),
+    get_count: bool = False,
     offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=0)
 ):
+    from sqlalchemy import cast, String, or_, func
+
     tasks = select(Task).options(selectinload(Task.assignees))
 
     if id:
         tasks = tasks.where(Task.id == id)
+
+    if search and search.strip():
+        search = search.strip()
+
+        conditions = [Task.name.ilike(f"%{search}%")]
+
+        if search.isdecimal():
+            conditions.append(cast(Task.id, String).ilike(f"%{search}%"))
+
+        tasks = tasks.where(or_(*conditions))
 
     if categories:
         tasks = tasks.where(Task.category_id == categories)
@@ -83,40 +93,46 @@ async def retrieve_tasks(
     if due_before:
         tasks = tasks.where(Task.due_date <= to_utc(due_before))
 
-    # lab user can sees tasks that are assigned to them only (cant see others' task)
     if me.role == AccountRole.LAB_USER:
         tasks = tasks.where(Task.assignees.any(Account.id == me.id))
 
-    # Most urgent due date first, and unfinished work first when they tie.
+    task_count: int | None = None
+
+    if get_count:
+        task_count = await session.scalar(
+            select(func.count()).select_from(tasks.subquery())
+        )
+
     status_order = case(
         (Task.status == TaskStatus.IN_PROGRESS, 1),
         (Task.status == TaskStatus.COMPLETED, 2),
     )
 
-    tasks = tasks.order_by(Task.due_date, status_order)
+    tasks = tasks.order_by(status_order, Task.due_date)  # status first then due_date
     tasks = tasks.offset(offset)
 
     if limit:
         tasks = tasks.limit(limit)
 
     result = await session.scalars(tasks)
-    tasks = result.all()
+    task_list = result.all()
 
-    if id and not tasks:
+    if id and not task_list:
         raise HTTPException(
             status_code=404,
             detail=f"Task with id {id} not found",
         )
 
-    return {"Tasks": tasks}
+    if get_count:
+        return {"Tasks": task_list, "TaskCount": task_count}
+
+    return {"Tasks": task_list}
 
 
 @taskRouter.post("/", tags=["Task"])
-async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
+async def create_task(auth_user: Annotated[AuthUser, Depends(get_current_auth_user)], body: TaskRequest, session: Annotated[AsyncSession, Depends(getSession)]):
     # Create new task based on the body.
-    conv_duedate = None
-    if body.due_date != None:
-        conv_duedate = body.due_date.astimezone(timezone.utc)
+    conv_duedate = to_due_date(body.due_date)
 
     task = Task(
         name=body.name,
@@ -152,7 +168,7 @@ async def create_task(auth_user: Annotated[AuthUser, Depends(account_service.get
 
 @taskRouter.put("/{task_id}", tags=["Task"])
 async def update_task(
-    auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)],
+    auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
     task_id: int,
     session: Annotated[AsyncSession, Depends(getSession)],
     body: TaskUpdate
@@ -203,11 +219,8 @@ async def update_task(
         task.category_id = body.category_id
 
     if body.due_date is not None:
-        # TIME ZONE PROBLEM!!!! THIS IS A TEMPORARY FIX!!!
-        dt1 = None
-        if (task.due_date != None):
-            dt1 = task.due_date.astimezone(timezone.utc)
-        dt2 = body.due_date.astimezone(timezone.utc)
+        dt1 = to_utc(task.due_date)
+        dt2 = to_due_date(body.due_date)
         audit_list.append(update_helper("due_date", dt1, dt2))
         task.due_date = dt2
 
@@ -226,7 +239,7 @@ async def update_task(
 
 
 @taskRouter.delete("/{task_id}", tags=["Task"])
-async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(account_service.get_current_auth_user)]):
+async def delete_task(task_id: int, session: Annotated[AsyncSession, Depends(getSession)], auth_user: Annotated[AuthUser, Depends(get_current_auth_user)]):
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )

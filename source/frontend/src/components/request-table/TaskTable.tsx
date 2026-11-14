@@ -1,13 +1,13 @@
 "use client";
+
 import type { TaskRow } from "@/lib/task";
-import type { TaskStatus } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
+import { isPastDate } from "@/lib/format";
 import {
   formatDueDate,
-  isPastDate,
-  RequestListRow,
   RequestTableFrame,
+  type TableFilters,
 } from "@/components/request-table/RequestList";
 
 const titles = [
@@ -23,7 +23,8 @@ const titles = [
 ];
 
 // full class string, tailwind need to see it
-const gridClassName = "grid-cols-[0.2fr_2fr_1.2fr_1fr_1.2fr_1.2fr_1fr_1fr_1fr]";
+const gridClassName =
+  "grid-cols-[0.2fr_1.2fr_0.67fr_0.67fr_0.67fr_0.8fr_0.8fr_1fr_1fr]";
 
 const statusOptions = [
   { value: "in_progress", label: "In progress" },
@@ -36,13 +37,12 @@ export default function TaskTable({
   error,
   userRole,
   categories,
-  status,
-  onStatusChange,
-  categoryId,
-  onCategoryChange,
-  page,
-  hasNext,
+  filters,
+  onFilterChange,
   onPageChange,
+  hasNext,
+  totalPages,
+  totalResults,
   onSelect,
   onCreate,
 }: {
@@ -51,13 +51,12 @@ export default function TaskTable({
   error: string | null;
   userRole: UserRole;
   categories: Category[];
-  status: TaskStatus | "All";
-  onStatusChange: (status: TaskStatus | "All") => void;
-  categoryId: number | "All";
-  onCategoryChange: (id: number | "All") => void;
-  page: number;
-  hasNext: boolean;
+  filters: TableFilters;
+  onFilterChange: (patch: Partial<Omit<TableFilters, "page">>) => void;
   onPageChange: (page: number) => void;
+  hasNext: boolean;
+  totalPages: number;
+  totalResults: number;
   onSelect: (task: TaskRow) => void;
   onCreate: () => void;
 }) {
@@ -72,56 +71,48 @@ export default function TaskTable({
       canCreate={userRole === "Lab Admin"}
       onCreate={onCreate}
       categories={categories}
-      categoryId={categoryId}
-      onCategoryChange={onCategoryChange}
-      status={status}
-      onStatusChange={(s) => onStatusChange(s as TaskStatus | "All")}
       statusOptions={statusOptions}
-      page={page}
-      hasNext={hasNext}
+      filters={filters}
+      onFilterChange={onFilterChange}
       onPageChange={onPageChange}
+      hasNext={hasNext}
+      totalPages={totalPages}
+      totalResults={totalResults}
       titles={titles}
       gridClassName={gridClassName}
-    >
-      {(rows) =>
-        rows.map((task) => {
-          const completed = task.status === "Completed";
-          // only unfinished task can be overdue
-          const overdue = !completed && isPastDate(task.dueDateValue);
+      onSelect={onSelect}
+      getRow={(task) => {
+        const completed = task.status === "Completed";
+        // only unfinished task can be overdue
+        const overdue = !completed && isPastDate(task.dueDateValue);
 
-          return (
-            <RequestListRow
-              key={task.id}
-              overdue={overdue}
-              spacingClassName="pl-2.5 pr-3.5 gap-6"
-              gridClassName={gridClassName}
-              lead={
-                <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    overdue
-                      ? "bg-(--primary-red)"
-                      : completed
-                        ? "bg-(--primary-color-1)"
-                        : "bg-(--primary-blue)"
-                  }`}
-                />
-              }
-              cells={[
-                task.id,
-                task.title,
-                task.category,
-                task.status,
-                task.assignedTo,
-                task.createdBy,
-                formatDueDate(task),
-                task.createdDate,
-                task.lastUpdate,
-              ]}
-              onClick={() => onSelect(task)}
+        return {
+          overdue,
+          spacingClassName: "pl-2.5 pr-3.5 gap-6",
+          lead: (
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${
+                overdue
+                  ? "bg-(--primary-red)"
+                  : completed
+                    ? "bg-(--primary-color-1)"
+                    : "bg-(--primary-blue)"
+              }`}
             />
-          );
-        })
-      }
-    </RequestTableFrame>
+          ),
+          cells: [
+            task.id,
+            task.title,
+            task.category,
+            task.status,
+            task.assignedTo,
+            task.createdBy,
+            formatDueDate(task),
+            task.createdDate,
+            task.lastUpdate,
+          ],
+        };
+      }}
+    />
   );
 }

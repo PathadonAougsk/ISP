@@ -1,7 +1,11 @@
 __pycache__
+.pytest_cache
 .venv
 .env
 .vscode/
+
+*.patch
+*.diff
 
 node_modules
 /.pnp

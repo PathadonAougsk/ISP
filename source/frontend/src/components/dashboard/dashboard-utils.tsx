@@ -1,267 +1,17 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { formatFullDateTime } from "@/lib/format";
-import Icon from "@/components/icon";
+import Button from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
 import {
   isMissingItem,
   type DashboardView,
 } from "@/components/dashboard/dashboard-data";
 
-// ==========================================================
-// Links
-// ==========================================================
-
-// bare domain (no http or www) only linked when its tld is in this list
-const BARE_TLDS = [
-  "com",
-  "net",
-  "org",
-  "edu",
-  "gov",
-  "io",
-  "co",
-  "dev",
-  "app",
-  "ai",
-  "info",
-  "me",
-  "th",
-];
-
-// one capture group only, because renderWithLinks use split
-// http(s):// or www. = any tld. bare domain = tld in the list above
-const urlRegex = new RegExp(
-  String.raw`(?<![\w.@-])((?:(?:https?:\/\/|www\.)[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+|[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.(?:${BARE_TLDS.join("|")})(?![a-zA-Z0-9-]|\.[a-zA-Z0-9]))(?::\d+)?(?:\/(?:[^\s]*[^\s.,!?;:])?)?)`,
-  "g",
-);
-
-// make plain text into text with clickable links
-export function renderWithLinks(text: string): ReactNode {
-  const parts = text.split(urlRegex);
-
-  return parts.map((part, index) =>
-    index % 2 === 1 ? (
-      <a
-        key={index}
-        href={/^https?:\/\//.test(part) ? part : `https://${part}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-800 italic underline"
-      >
-        {part}
-      </a>
-    ) : (
-      part
-    ),
-  );
-}
-
-// ==========================================================
-// List parts
-// ==========================================================
-
-// same grid for header and row, so column line up
-export const listGridClass =
-  "grid flex-1 grid-cols-[2fr_1.25fr_1.25fr_minmax(120px,1fr)] items-center gap-3";
-
-// loading, error or empty text for a list
-export function ListMessage({ children }: { children: ReactNode }) {
-  return (
-    <p className="py-6 text-center text-base font-medium text-gray-500">
-      {children}
-    </p>
-  );
-}
-
-// separator line + button. disabled while the list is refetching
-export function LoadMoreButton({
-  disabled,
-  onClick,
-}: {
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <div className="relative flex h-8 w-full shrink-0 items-center justify-center">
-      <div className="absolute left-4 right-4 top-1/2 h-px -translate-y-1/2 bg-gray-300" />
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onClick}
-        className={`relative z-10 rounded-full border border-gray-300 bg-white px-4 py-1 text-sm font-medium text-gray-500 ${
-          disabled
-            ? "cursor-wait opacity-60"
-            : "cursor-pointer hover:bg-gray-100"
-        }`}
-      >
-        Load More
-      </button>
-    </div>
-  );
-}
-
-// label + rows of one section
-// label = title + count (count already formatted into string and "+" sign)
-// label sticky, so it stay under column header while its section scroll
-// Load More show only when onLoadMore is given (list overflow)
-export function ListSection({
-  title,
-  count,
-  busy = false,
-  onLoadMore,
-  children,
-}: {
-  title: string;
-  count: string;
-  busy?: boolean;
-  onLoadMore?: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex shrink-0 flex-col gap-2">
-      <div className="sticky top-0 z-10 flex shrink-0 items-end gap-2 bg-(--panel-bg) pl-1">
-        <h1 className="text-base font-semibold text-black">{title}</h1>
-        <span className="text-xl font-bold text-green-800">{count}</span>
-      </div>
-      {children}
-      {onLoadMore && <LoadMoreButton disabled={busy} onClick={onLoadMore} />}
-      <div className="h-2 shrink-0" />
-    </div>
-  );
-}
-
-// one clickable row for task or ticket. lead = mark before cells, cells = column text
-export function ListRow({
-  overdue,
-  spacingClassName,
-  lead,
-  cells,
-  onClick,
-}: {
-  overdue: boolean;
-  spacingClassName: string;
-  lead: ReactNode;
-  cells: string[];
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex h-8 w-full shrink-0 cursor-pointer items-center rounded-[20px] border-2 bg-white text-left hover:bg-gray-100 ${spacingClassName} ${
-        overdue
-          ? "border-(--primary-red) text-red-700"
-          : "border-transparent text-black"
-      }`}
-    >
-      {lead}
-      <div className={listGridClass}>
-        {cells.map((cell, index) => (
-          // last cell is date, no truncate
-          <p
-            key={index}
-            className={
-              index === cells.length - 1 ? "text-sm" : "truncate text-sm"
-            }
-          >
-            {cell}
-          </p>
-        ))}
-      </div>
-    </button>
-  );
-}
-
-// green header bar (one title per column) + scroll body. show message when list is empty
-export function ListPanel({
-  titles,
-  hasOverflow,
-  listRef,
-  empty,
-  message,
-  children,
-}: {
-  titles: string[];
-  hasOverflow: boolean;
-  listRef: RefObject<HTMLDivElement | null>;
-  empty: boolean;
-  message: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex min-h-0 flex-col gap-2">
-      <div
-        className={`flex h-8 shrink-0 items-center gap-5 rounded-[20px] bg-(--primary-color-2) pl-2 ${
-          hasOverflow ? "pr-6" : "pr-4"
-        }`}
-      >
-        <Icon src="/header_donut_dark_green.svg" />
-        <div className={listGridClass}>
-          {titles.map((title) => (
-            <h1 key={title} className="truncate text-base font-bold text-white">
-              {title}
-            </h1>
-          ))}
-        </div>
-      </div>
-
-      {empty ? (
-        <ListMessage>{message}</ListMessage>
-      ) : (
-        <div
-          ref={listRef}
-          className="flex min-h-0 flex-col gap-2 overflow-y-auto scrollbar-thin"
-        >
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// overflown detection
-export function useListOverflow(dependencies: unknown[]) {
-  const [hasOverflow, setHasOverflow] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const element = listRef.current;
-
-    if (!element) {
-      return;
-    }
-
-    const checkOverflow = () => {
-      const hasVerticalOverflow = element.scrollHeight > element.clientHeight;
-
-      const scrollbarWidth =
-        element.offsetWidth - element.clientWidth - element.clientLeft * 2;
-
-      setHasOverflow(hasVerticalOverflow && scrollbarWidth > 0);
-    };
-
-    checkOverflow();
-
-    const observer = new ResizeObserver(checkOverflow);
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, dependencies);
-
-  return { listRef, hasOverflow };
-}
-
-// ==========================================================
-// Slideup parts
-// ==========================================================
+// The pieces a task or ticket slideup is built from.
 
 // black button, go to request-table. label is different per caller
 export function RequestTableButton({
@@ -277,39 +27,60 @@ export function RequestTableButton({
   const [redirecting, setRedirecting] = useState(false);
 
   return (
+    <Button
+      variant="dark"
+      onClick={() => {
+        setRedirecting(true);
+        router.push(`/request-table/${type}/${id}`);
+      }}
+      disabled={redirecting}
+      className="h-7.5 w-50 px-4 text-sm font-semibold"
+    >
+      {label}
+    </Button>
+  );
+}
+
+// read more footer, go to /announcement/id. label is from caller
+export function AnnouncementButton({
+  id,
+  label,
+}: {
+  id: number;
+  label: string;
+}) {
+  const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
+
+  return (
     <button
       type="button"
       onClick={() => {
         setRedirecting(true);
-        router.push(`/request-table?type=${type}&id=${id}`);
+        router.push(`/announcement/${id}`);
       }}
       disabled={redirecting}
-      className={`flex h-7.5 w-60 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ${
-        redirecting
-          ? "cursor-wait bg-gray-700"
-          : "cursor-pointer bg-black hover:bg-gray-700"
-      }`}
+      className="group block w-full rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center hover:bg-(--primary-color-3-hover)"
     >
-      {label}
+      <span className="text-base font-semibold text-black group-hover:text-gray-800">
+        {label}
+      </span>
     </button>
   );
 }
 
 // id + category + created date row. children are extra items added at the end
 export function SlideupMeta({
-  id,
   categoryName,
   createdDate,
   children,
 }: {
-  id: number;
   categoryName: string;
   createdDate: string | null;
   children?: ReactNode;
 }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
-      <span className="font-bold">#{id}</span>
       <div className="flex items-center gap-2">
         <Icon src="/header_donut_gray.svg" />
         <span>{categoryName}</span>
@@ -397,7 +168,7 @@ export function SlideupDueRow({
       </div>
 
       {missing && (
-        <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) px-3 text-sm font-bold text-white">
+        <div className="flex h-6 items-center rounded-[20px] bg-(--primary-red) pb-0.75 px-3 text-sm font-bold text-white">
           Missing
         </div>
       )}
@@ -412,9 +183,9 @@ export function SlideupDescription({
   description: string | null;
 }) {
   return (
-    <div className="mt-4 min-h-0 flex-1 flex flex-col">
+    <div className="mt-4 flex min-h-0 flex-1 flex-col">
       <div className="mb-4 border-t border-gray-300" />
-      <div className="min-h-0 pr-5 pb-25 flex-1 overflow-y-auto scrollbar-thin whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
+      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin pr-5 pb-25 whitespace-pre-line wrap-break-word text-base font-normal text-gray-700">
         {description ? (
           renderWithLinks(description)
         ) : (

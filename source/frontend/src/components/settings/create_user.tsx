@@ -3,6 +3,10 @@
 import { useState } from "react";
 
 import { adminCreateAccount, type UserKind } from "@/lib/account";
+import Button from "@/components/ui/button";
+import { TextInput } from "@/components/ui/field";
+import Toggle from "@/components/ui/toggle";
+import { CARD, ERROR, LABEL, MUTED } from "./settings-style";
 
 const DEFAULT_TRIAL_QUOTA = 10;
 const MIN_PASSWORD = 8;
@@ -11,18 +15,15 @@ const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
     value: "member",
     label: "Member",
-    blurb: "No cap - they can file as many tickets as they need.",
+    blurb: "No ticket limit. This user can submit unlimited tickets.",
   },
   {
     value: "trial",
     label: "Trial",
-    blurb: "Capped at a ticket quota, counted down as they file tickets.",
+    blurb:
+      "Limited by a ticket quota that decreases with each submitted ticket.",
   },
 ];
-
-const FIELD =
-  "h-10 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a] disabled:opacity-50";
-const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
 
 type Handover = { username: string; email: string; password: string };
 
@@ -59,7 +60,7 @@ export default function CreateUser({
     if (trial) {
       cap = Number(quota);
       if (!Number.isInteger(cap) || cap < 0) {
-        setError("Quota has to be a whole number, 0 or more.");
+        setError("Enter a whole number greater than or equal to 0.");
         return;
       }
     }
@@ -90,135 +91,132 @@ export default function CreateUser({
       await onCreated();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not create that member.",
+        err instanceof Error ? err.message : "Could not create the user.",
       );
     } finally {
       setBusy(false);
     }
   }
 
+  const missing = MIN_PASSWORD - password.length;
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className={CARD}>
       <div className="flex flex-col gap-1.5">
-        <p>Create A User</p>
-        <p className="text-[#8a8a8a]">Create a user here!</p>
+        <p className="font-semibold">Create a User</p>
+        <p className={MUTED}>Add a new user to your lab.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex gap-0.5">
-          {KINDS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setKind(option.value)}
-              className={`h-10 w-30 text-base ${
-                kind === option.value
-                  ? "bg-(--primary-color-2) text-white"
-                  : "bg-[#d4d4d4] hover:bg-[#c8c8c8]"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <Toggle
+          options={KINDS.map((option) => ({
+            label: option.label,
+            onClick: () => setKind(option.value),
+          }))}
+          selectedIndex={KINDS.findIndex((k) => k.value === kind)}
+          ariaLabel="Account type"
+          widthClassName="w-60"
+        />
 
-        <p className="text-[#8a8a8a]">
-          {KINDS.find((k) => k.value === kind)?.blurb} They join as a Lab User
-          and can sign in straight away - nothing is emailed, so pass the
-          credentials on to them yourself.
+        <p className={MUTED}>
+          {KINDS.find((k) => k.value === kind)?.blurb} The user will be created
+          as a Lab User and can sign in immediately. No credentials will be
+          emailed, so share them with the user yourself.
         </p>
 
         <div className="grid grid-cols-2 gap-3">
-          <label className={LABEL}>
-            Username
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={busy}
-              maxLength={100}
-              placeholder="Another Win"
-              className={FIELD}
-            />
-          </label>
+          <TextInput
+            label="Username"
+            look="outlined"
+            value={username}
+            onChange={setUsername}
+            disabled={busy}
+            maxLength={30}
+            placeholder="Enter a username"
+            autoComplete="off"
+          />
 
-          <label className={LABEL}>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={busy}
-              placeholder="Anawin.c@Chula.th"
-              className={FIELD}
-            />
-          </label>
+          <TextInput
+            label="Email"
+            look="outlined"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            disabled={busy}
+            placeholder="user@example.com"
+            maxLength={255}
+          />
 
-          <label className={LABEL}>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy}
-              maxLength={72}
-              placeholder={`at least ${MIN_PASSWORD} characters`}
-              className={FIELD}
-            />
-          </label>
+          <TextInput
+            label="Password"
+            look="outlined"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            disabled={busy}
+            maxLength={72}
+            showCounter={false}
+            placeholder={`At least ${MIN_PASSWORD} characters`}
+            autoComplete="new-password"
+          />
 
           {trial && (
-            <label className={LABEL}>
-              Ticket quota
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={quota}
-                onChange={(e) => setQuota(e.target.value)}
-                disabled={busy}
-                className={FIELD}
-              />
-            </label>
+            <TextInput
+              label="Ticket quota"
+              look="outlined"
+              type="number"
+              min={0}
+              step={1}
+              value={quota}
+              onChange={setQuota}
+              disabled={busy}
+            />
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="green"
+            size="md"
             type="submit"
             disabled={!ready || busy}
-            className="h-10 w-30 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
+            className="min-w-25 px-4 font-bold"
           >
-            {busy ? "Creating..." : "Create"}
-          </button>
-          {password.length > 0 && password.length < MIN_PASSWORD && (
-            <span className="text-[#8a8a8a]">
-              Password needs {MIN_PASSWORD - password.length} more character
-              {MIN_PASSWORD - password.length === 1 ? "" : "s"}.
+            {busy ? "Creating user..." : "Create User"}
+          </Button>
+          {missing > 0 && password.length > 0 && (
+            <span className={MUTED}>
+              Password must be at least {MIN_PASSWORD} characters long.
             </span>
           )}
         </div>
       </form>
 
-      {error && <p className="text-[#b3261e]">{error}</p>}
+      {error && <p className={ERROR}>{error}</p>}
 
       {handover && (
-        <div className="flex flex-col gap-2 border border-(--primary-color-2) bg-(--panel-bg) p-4">
-          <p>{handover.username} can sign in now. Pass these on:</p>
-          <p className="text-[#8a8a8a]">
-            Email <span className="text-[#1a1a1a]">{handover.email}</span>
+        <div className="flex flex-col gap-2 rounded-[20px] border-2 border-(--primary-color-2) bg-white p-4">
+          <p className="font-semibold">
+            User created successfully. Share these credentials with{" "}
+            {handover.username}:
+          </p>
+          <p className={MUTED}>
+            Email address <span className="text-black">{handover.email}</span>
             {" · "}
-            Password <span className="text-[#1a1a1a]">{handover.password}</span>
+            Password <span className="text-black">{handover.password}</span>
           </p>
-          <p className="text-[#8a8a8a]">
-            This is the only time the password is shown. Closing this clears it.
+          <p className={MUTED}>
+            This password will only be displayed once. Dismissing this message
+            will permanently hide it.
           </p>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="md"
             onClick={() => setHandover(null)}
-            className="h-10 w-25 self-start bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+            className="w-25 self-start font-semibold"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
     </div>

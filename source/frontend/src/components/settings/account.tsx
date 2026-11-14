@@ -8,18 +8,56 @@ import {
   updateAccount,
   type Account,
 } from "@/lib/account";
+import Button from "@/components/ui/button";
+import { TextInput } from "@/components/ui/field";
 import Row, { EditButton } from "./row";
+import { ERROR, MUTED, TITLE } from "./settings-style";
 
-// Matches MIN_PASSWORD on the backend; Supabase says so in `detail` if its own minimum is stricter.
 const MIN_PASSWORD = 8;
 
-const FIELD =
-  "h-10 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a] disabled:opacity-50";
-const LABEL = "flex flex-col gap-1.5 text-sm text-[#8a8a8a] uppercase";
-const SAVE =
-  "h-10 w-25 bg-(--primary-color-2) text-base text-white enabled:hover:bg-(--primary-color-2-hover) disabled:opacity-50";
+// the three things you can change about yourself, one open at a time
+type Editable = "username" | "email" | "password";
 
-type Field = "username" | "email" | "password";
+type Feedback = { error: string | null; done: string | null };
+
+const EMPTY_FEEDBACK: Feedback = { error: null, done: null };
+
+// what came of the last attempt on this row
+function FeedbackMessage({ error, done }: Feedback) {
+  if (error) return <p className={`mt-3 ${ERROR}`}>{error}</p>;
+  if (done) return <p className="mt-3 text-(--primary-color-deep)">{done}</p>;
+
+  return null;
+}
+
+// the editor under a row: fields, then one Save button
+function EditForm({
+  onSubmit,
+  busy,
+  disabled,
+  children,
+}: {
+  onSubmit: (event: React.FormEvent) => void;
+  busy: boolean;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      {children}
+
+      <Button
+        variant="green"
+        size="md"
+        type="submit"
+        disabled={busy || disabled}
+        className="min-w-25 self-start px-4 font-bold"
+      >
+        {busy ? "Saving..." : "Save"}
+      </Button>
+    </form>
+  );
+}
 
 // Your own account only - the member list is where an admin edits anyone else's.
 export default function AccountPanel({
@@ -33,11 +71,14 @@ export default function AccountPanel({
 }) {
   const placeholder = loading ? "Loading..." : "Not available";
 
-  // One editor at a time, so the message at the bottom is never ambiguous.
-  const [open, setOpen] = useState<Field | null>(null);
+  const [open, setOpen] = useState<Editable | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+
+  const [feedback, setFeedback] = useState<Record<Editable, Feedback>>({
+    username: EMPTY_FEEDBACK,
+    email: EMPTY_FEEDBACK,
+    password: EMPTY_FEEDBACK,
+  });
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -46,7 +87,6 @@ export default function AccountPanel({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Passwords never outlive the form they were typed into.
   function clearDrafts() {
     setUsername("");
     setEmail("");
@@ -56,32 +96,46 @@ export default function AccountPanel({
     setConfirmPassword("");
   }
 
-  function toggle(field: Field) {
+  function say(field: Editable, next: Feedback) {
+    setFeedback((prev) => ({ ...prev, [field]: next }));
+  }
+
+  function toggle(field: Editable) {
     const closing = open === field;
 
-    setError(null);
-    setDone(null);
+    say(field, EMPTY_FEEDBACK);
     clearDrafts();
     setOpen(closing ? null : field);
 
-    // Renaming is usually a tweak, not a fresh start.
-    if (!closing && field === "username") setUsername(account?.username ?? "");
+    if (!closing && field === "username") {
+      setUsername(account?.username ?? "");
+    }
   }
 
-  // Same ending for every form: show what the server said, or close up and reload the row.
-  async function run(action: () => Promise<void>, message: string) {
+  async function run(
+    field: Editable,
+    action: () => Promise<void>,
+    message: string,
+  ) {
     if (!account || busy) return;
 
     setBusy(true);
-    setError(null);
+    say(field, EMPTY_FEEDBACK);
+
     try {
       await action();
       clearDrafts();
       setOpen(null);
-      setDone(message);
+      say(field, { error: null, done: message });
       onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      say(field, {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+        done: null,
+      });
     } finally {
       setBusy(false);
     }
@@ -98,8 +152,9 @@ export default function AccountPanel({
     }
 
     run(
+      "username",
       () => updateAccount(account.id, { username: name }),
-      `Username changed to ${name}.`,
+      `Your username has been changed to ${name}.`,
     );
   }
 
@@ -114,8 +169,9 @@ export default function AccountPanel({
     }
 
     run(
+      "email",
       () => changeEmail(account.id, next, emailPassword),
-      `Email changed to ${next}. That is what you sign in with from now on.`,
+      `Your email address has been changed to ${next}. Use this address to sign in.`,
     );
   }
 
@@ -124,23 +180,38 @@ export default function AccountPanel({
     if (!account || !currentPassword) return;
 
     if (newPassword.length < MIN_PASSWORD) {
-      setError(`A new password needs at least ${MIN_PASSWORD} characters.`);
+      say("password", {
+        error: `The new password must be at least ${MIN_PASSWORD} characters long.`,
+        done: null,
+      });
       return;
     }
+
     if (newPassword !== confirmPassword) {
-      setError("Those two passwords do not match.");
+      say("password", {
+        error: "Passwords do not match.",
+        done: null,
+      });
       return;
     }
 
     run(
+      "password",
       () => changePassword(account.id, currentPassword, newPassword),
-      "Password changed. You are still signed in here.",
+      "Your password has been changed successfully.",
     );
   }
 
-  // Nothing is editable until we know whose account it is.
   const ready = Boolean(account) && !loading;
-  const editAction = (field: Field) => (
+
+  // typing again puts the last error away
+  const draft =
+    (field: Editable, set: (value: string) => void) => (value: string) => {
+      set(value);
+      say(field, EMPTY_FEEDBACK);
+    };
+
+  const editAction = (field: Editable) => (
     <EditButton
       onClick={() => toggle(field)}
       open={open === field}
@@ -148,39 +219,42 @@ export default function AccountPanel({
     />
   );
 
+  const missing = MIN_PASSWORD - newPassword.length;
+
   return (
     <>
-      <section className="flex flex-col gap-7">
-        <h2 className="text-[28px] leading-tight">Account Info</h2>
+      <section className="flex flex-col gap-4">
+        <h1 className={TITLE}>Account Information</h1>
+
         <Row
           label="Username"
           value={account?.username ?? placeholder}
           action={editAction("username")}
         >
           {open === "username" && (
-            <form onSubmit={submitUsername} className="flex flex-col gap-5">
-              <label className={LABEL}>
-                New username
-                <input
+            <EditForm
+              onSubmit={submitUsername}
+              busy={busy}
+              disabled={!username.trim()}
+            >
+              <div className="w-75">
+                <TextInput
+                  label="New username"
+                  look="outlined"
                   autoFocus
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={draft("username", setUsername)}
                   disabled={busy}
-                  maxLength={100}
-                  placeholder="What everyone sees you as"
-                  className={FIELD}
+                  maxLength={30}
+                  placeholder="Enter your username"
                 />
-              </label>
-              <button
-                type="submit"
-                disabled={busy || !username.trim()}
-                className={SAVE}
-              >
-                {busy ? "Saving..." : "Save"}
-              </button>
-            </form>
+              </div>
+            </EditForm>
           )}
+
+          <FeedbackMessage {...feedback.username} />
         </Row>
+
         <Row
           label="Email"
           value={account?.email ?? placeholder}
@@ -188,127 +262,129 @@ export default function AccountPanel({
           action={editAction("email")}
         >
           {open === "email" && (
-            <form onSubmit={submitEmail} className="flex flex-col gap-5">
-              <p className="text-[#8a8a8a]">
-                There will be no email sent for verification, so double check
-                your email before save or else you will need to contact admin.
+            <EditForm
+              onSubmit={submitEmail}
+              busy={busy}
+              disabled={!email.trim() || !emailPassword}
+            >
+              <p className={MUTED}>
+                Your new email address will not be verified. Make sure it is
+                correct before saving. Contact an administrator if you need help
+                correcting it.
               </p>
+
               <div className="grid grid-cols-2 gap-3">
-                <label className={LABEL}>
-                  New email
-                  <input
-                    autoFocus
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={busy}
-                    placeholder="you@chula.th"
-                    className={FIELD}
-                  />
-                </label>
-                <label className={LABEL}>
-                  Current password
-                  <input
-                    type="password"
-                    value={emailPassword}
-                    onChange={(e) => setEmailPassword(e.target.value)}
-                    disabled={busy}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    className={FIELD}
-                  />
-                </label>
+                <TextInput
+                  label="New email"
+                  look="outlined"
+                  autoFocus
+                  type="email"
+                  value={email}
+                  onChange={draft("email", setEmail)}
+                  disabled={busy}
+                  placeholder="you@chula.th"
+                  maxLength={255}
+                />
+
+                <TextInput
+                  label="Confirm your password"
+                  look="outlined"
+                  type="password"
+                  value={emailPassword}
+                  onChange={draft("email", setEmailPassword)}
+                  disabled={busy}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  maxLength={72}
+                  showCounter={false}
+                />
               </div>
-              <button
-                type="submit"
-                disabled={busy || !email.trim() || !emailPassword}
-                className={SAVE}
-              >
-                {busy ? "Saving..." : "Save"}
-              </button>
-            </form>
+            </EditForm>
           )}
+
+          <FeedbackMessage {...feedback.email} />
         </Row>
       </section>
 
-      <hr className="my-12 border-[#d0d0d0]" />
+      <hr className="my-10 border-gray-200" />
 
-      <section className="flex flex-col gap-7">
-        <h2 className="text-[28px] leading-tight">Password & Security</h2>
+      <section className="flex flex-col gap-4">
+        <h1 className={TITLE}>Password and Security</h1>
+
         <Row label="Password" action={editAction("password")}>
           {open === "password" && (
-            <form onSubmit={submitPassword} className="flex flex-col gap-5">
-              <p className="text-[#8a8a8a]">
-                Please remember your password, if forgot you will need to
-                contact admin for resetting password.
+            <EditForm
+              onSubmit={submitPassword}
+              busy={busy}
+              disabled={!currentPassword || !newPassword}
+            >
+              <p className={MUTED}>
+                Keep your password somewhere safe. If you forget it, contact
+                an administrator to reset it.
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <label className={LABEL}>
-                  Current password
-                  <input
+
+              <div className="flex items-start gap-3">
+                <div className="w-1/2">
+                  <TextInput
+                    label="Current password"
+                    look="outlined"
                     autoFocus
                     type="password"
                     value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    onChange={draft("password", setCurrentPassword)}
                     disabled={busy}
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className={FIELD}
+                    maxLength={72}
+                    showCounter={false}
                   />
-                </label>
-                <label className={LABEL}>
-                  New password
-                  <input
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="flex w-1/2 flex-col gap-1.5">
+                  <TextInput
+                    label="New password"
+                    look="outlined"
                     type="password"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={draft("password", setNewPassword)}
                     disabled={busy}
                     maxLength={72}
+                    showCounter={false}
                     autoComplete="new-password"
-                    placeholder={`at least ${MIN_PASSWORD} characters`}
-                    className={FIELD}
+                    placeholder={`At least ${MIN_PASSWORD} characters`}
                   />
-                </label>
-                <label className={LABEL}>
-                  New password again
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={busy}
-                    maxLength={72}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                    className={FIELD}
-                  />
-                </label>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={busy || !currentPassword || !newPassword}
-                  className={SAVE}
-                >
-                  {busy ? "Saving..." : "Save"}
-                </button>
-                {newPassword.length > 0 &&
-                  newPassword.length < MIN_PASSWORD && (
-                    <span className="text-[#8a8a8a]">
-                      {MIN_PASSWORD - newPassword.length} more character
-                      {MIN_PASSWORD - newPassword.length === 1 ? "" : "s"} to
-                      go.
+
+                  {missing > 0 && newPassword.length > 0 && (
+                    <span className={`${MUTED} text-sm`}>
+                      {missing} more character{missing === 1 ? "" : "s"}{" "}
+                      required.
                     </span>
                   )}
+                </div>
+
+                <div className="w-1/2">
+                  <TextInput
+                    label="Confirm new password"
+                    look="outlined"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={draft("password", setConfirmPassword)}
+                    disabled={busy}
+                    maxLength={72}
+                    showCounter={false}
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
-            </form>
+            </EditForm>
           )}
+
+          <FeedbackMessage {...feedback.password} />
         </Row>
       </section>
-
-      {error && <p className="mt-7 text-[#b3261e]">{error}</p>}
-      {done && !error && (
-        <p className="mt-7 text-(--primary-color-deep)">{done}</p>
-      )}
     </>
   );
 }

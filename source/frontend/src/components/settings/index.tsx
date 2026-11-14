@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useCurrentAccount } from "@/lib/account";
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
+import { Modal } from "@/components/ui/modal";
 import AccountPanel from "./account";
 import Categories from "./category";
-import Sidebar from "./sidebar";
+import Sidebar from "./setting-sidebar";
 import Member from "./member";
 import Log from "./log";
 
@@ -15,6 +16,7 @@ import Log from "./log";
 // sidebar.tsx contain user profile and nav
 // nav.tsx basically all the clickble goody that could change the contents
 // row.tsx reuseable components.
+// settings-style.ts all the shared tailwind classes, change look here first.
 //
 // So if you want to add another new features
 // make the function and put it in nav.tsx and const panels (This file)
@@ -29,62 +31,55 @@ export default function Settings({
   const [active, setActive] = useState("Account");
   const { account, loading, isAdmin, reload } = useCurrentAccount(open);
 
+  if (!open) return null;
+
   const panels: Record<string, React.ReactNode> = {
     // reload so a new username lands in the sidebar too, not just in the row that was edited.
     Account: (
       <AccountPanel account={account} loading={loading} onChanged={reload} />
     ),
-    Category: <Categories isAdmin={isAdmin} />,
-    Member: <Member account={account} isAdmin={isAdmin} />,
-    Log: <Log isAdmin={isAdmin} accountLoading={loading} />,
+    Categories: <Categories isAdmin={isAdmin} />,
+    Users: <Member account={account} isAdmin={isAdmin} />,
+    "Activity Log": <Log accountLoading={loading} />,
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 font-mono"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="flex h-[92vh] w-[92vw] overflow-hidden border border-(--primary-color-2) bg-[#ececec] text-[#1a1a1a] shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Sidebar
-          username={account?.username}
-          role={account?.role}
-          active={active}
-          onSelect={setActive}
-        />
-
-        {/* Content */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex items-center justify-between border-b border-[#d6d6d6] px-4 py-4">
-            <h1 className="text-base">{active}</h1>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close settings"
-              className="p-1 hover:bg-[#dcdcdc]"
-            >
-              <Icon src="/close.svg" className="size-5" />
-            </button>
-          </header>
-
-          <div className="flex-1 overflow-y-auto px-8">
-            <div className="mx-auto max-w-175 py-20">{panels[active]}</div>
+    <Modal onClose={onClose} className="flex h-[85vh] w-[85vw]">
+      {(close) => (
+        <>
+          {/* fixed width holder, sidebar overlay inside so no push */}
+          <div className="relative w-75 shrink-0 max-[1100px]:w-16">
+            <Sidebar
+              username={account?.username}
+              role={account?.role}
+              active={active}
+              onSelect={setActive}
+              isAdmin={isAdmin}
+            />
           </div>
-        </div>
-      </div>
-    </div>
+
+          {/* Content */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="flex items-start justify-between px-8 pt-6">
+              <h1 className="text-2xl font-bold text-black">{active}</h1>
+              <button
+                type="button"
+                onClick={close}
+                aria-label="Close settings"
+                className="group flex items-center justify-center"
+              >
+                <span className="flex size-9 items-center justify-center rounded-full group-hover:bg-gray-200">
+                  <Icon src="/close.svg" className="h-4 w-auto shrink-0" />
+                </span>
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto scrollbar-thin px-8">
+              <div className="mx-auto max-w-9/10 py-8">{panels[active]}</div>
+            </div>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }

@@ -2,8 +2,9 @@
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { cached } from "@/lib/cache/cache";
+import { useMemo } from "react";
+import { cached, clearAllApiCache } from "@/lib/cache/cache";
+import { useFetched } from "@/lib/hooks";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
 
@@ -24,30 +25,37 @@ export type AccountResponse = {
   Account: Account;
 };
 
-const ROLES: AccountRole[] = ["Lab Owner", "Lab Admin", "Lab User"];
 const ADMIN_ROLES: AccountRole[] = ["Lab Owner", "Lab Admin"];
-
-const ROLE_COOKIE = "account_role";
-const ROLE_COOKIE_MAX_AGE = 60 * 60; // an hour, so a role change is picked up soon enough
 
 // Several components (topbar, useCurrentAccount, page guards) ask for the same
 // row on every mount, so hold the answer here and share one request between
-// concurrent callers. Same lifetime as the role cookie.
-const ME_CACHE_TTL = ROLE_COOKIE_MAX_AGE * 1000;
+// concurrent callers.
+const ME_CACHE_TTL = 60 * 60 * 1000; // an hour, so a role change is picked up soon enough
 
-// Cache the promise + Cleared entry cant be re-cached by old request, it never writes here.
-let me: { promise: Promise<Account | undefined>; at: number } | null = null;
+// Cache API, not memory. Clear also drop old in-flight saves.
+const getMeCached = cached(fetchMe, ME_CACHE_TTL, "me");
 
-function primeMeCache(account: Account | undefined) {
-  me = { promise: Promise.resolve(account), at: Date.now() };
+// Drop every account related cache.
+export function clearAccountCache() {
+  return Promise.all([getMeCached.clear(), getAccounts.clear()]);
 }
 
-// Call after anything that can change the signed in user's own row.
-export function clearMeCache() {
-  me = null;
+// Listener, so a write refreshes them without a reload.
+const accountListeners = new Set<() => void>();
+
+export function onAccountChange(listener: () => void) {
+  accountListeners.add(listener);
+
+  return () => {
+    accountListeners.delete(listener);
+  };
 }
 
-export function isAdminRole(role: AccountRole): boolean {
+function notifyAccountChange() {
+  accountListeners.forEach((listener) => listener());
+}
+
+function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
@@ -63,39 +71,11 @@ export function outranks(actor: AccountRole, target: AccountRole): boolean {
   return ROLE_RANK[actor] > ROLE_RANK[target];
 }
 
-// The cached role is a UI hint only - anyone can edit their own cookies, so dont trust it too much.
-export function readCachedRole(): AccountRole | null {
-  if (typeof document === "undefined") return null;
-
-  const prefix = `${ROLE_COOKIE}=`;
-  const hit = document.cookie
-    .split("; ")
-    .find((part) => part.startsWith(prefix));
-  const value = hit && decodeURIComponent(hit.slice(prefix.length));
-
-  return ROLES.find((role) => role === value) ?? null;
-}
-
-export function cacheRole(role: AccountRole) {
-  if (typeof document === "undefined") return;
-
-  document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(role)}; path=/; max-age=${ROLE_COOKIE_MAX_AGE}; SameSite=Lax`;
-}
-
-export function clearCachedRole() {
-  clearMeCache();
-  getAccounts.clear();
-
-  if (typeof document === "undefined") return;
-
-  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
-}
-
 const ACCOUNTS_CACHE_TTL = 60 * 1000;
 
 async function fetchAccounts(): Promise<AccountsResponse> {
   const res = await apiFetch("/account/");
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  await apiOrThrow(res, `HTTP ${res.status}`);
   return res.json();
 }
 
@@ -105,56 +85,23 @@ export const getAccounts = cached(
   "accounts",
 );
 
-// Creates the caller's own row. A user who has a login but no account row
-// yet claims it here by picking a username, so this is step one of setup.
-export async function createMyAccount(username: string): Promise<Account> {
-  const res = await apiSendJson("/account/", "POST", { username });
-  await apiOrThrow(res, "Could not finish setting up your account.");
-
-  const { Account: account } = (await res.json()) as AccountResponse;
-  cacheRole(account.role);
-  primeMeCache(account);
-  getAccounts.clear();
-
-  return account;
-}
-
-export async function getAccount(userId: string): Promise<Account | undefined> {
-  return (await getAccounts()).Accounts.find((user) => user.id === userId);
-}
-
 // The signed in user's own account row, straight from /account/{account_id}.
 // Cached - pass { force: true } to go back to the network.
-export function getMe({ force = false }: { force?: boolean } = {}): Promise<
-  Account | undefined
-> {
-  if (force) clearMeCache();
+export async function getMe({
+  force = false,
+}: { force?: boolean } = {}): Promise<Account | undefined> {
+  if (force) await getMeCached.clear();
 
-  if (me && Date.now() - me.at < ME_CACHE_TTL) return me.promise;
-
-  const entry = { promise: fetchMe(), at: Date.now() };
-  me = entry;
-  // failed request should not stay cached
-  entry.promise.catch(() => {
-    if (me === entry) me = null;
-  });
-
-  return entry.promise;
+  return (await getMeCached()) ?? undefined;
 }
 
 async function endSession(search = "") {
-  clearCachedRole();
+  await clearAllApiCache();
   await createClient().auth.signOut();
 
   if (typeof window !== "undefined") {
     window.location.replace(`/auth${search}`);
   }
-}
-
-// Sends them back to the login page with a reason, rather than to a blank
-// dashboard that fails every request.
-function signOutDeactivated() {
-  return endSession("?deactivated=1");
 }
 
 // Logging out on purpose, so no reason flag - the login page has nothing to
@@ -163,42 +110,31 @@ export function signOut() {
   return endSession();
 }
 
-async function fetchMe(): Promise<Account | undefined> {
+async function fetchMe(): Promise<Account | null> {
   const {
     data: { session },
   } = await createClient().auth.getSession();
 
-  if (!session) return undefined;
+  if (!session) return null;
 
   const res = await apiFetch(`/account/${session.user.id}`);
-  let account: Account | undefined;
 
   if (res.ok) {
-    account = ((await res.json()) as AccountResponse).Account;
-  } else if (res.status === 403) {
-    await signOutDeactivated();
-    return undefined;
-  } else if (res.status === 404) {
-    const { Accounts } = await getAccounts();
-    account = Accounts.find((user) => user.email === session.user.email);
-  } else {
-    throw new Error(`HTTP ${res.status}`);
+    return ((await res.json()) as AccountResponse).Account;
   }
 
-  if (account) cacheRole(account.role);
+  // Sends them back to the login page with a reason, rather than to a blank
+  // dashboard that fails every request.
+  if (res.status === 403) {
+    await endSession("?deactivated=1");
+    return null;
+  }
 
-  return account;
-}
+  if (res.status !== 404) throw new Error(`HTTP ${res.status}`);
 
-// Reads the cookie first, and only falls back to the network on a cold start.
-export async function isAdmin(): Promise<boolean> {
-  const cached = readCachedRole();
+  const { Accounts } = await getAccounts();
 
-  if (cached) return isAdminRole(cached);
-
-  const account = await getMe();
-
-  return account ? isAdminRole(account.role) : false;
+  return Accounts.find((user) => user.email === session.user.email) ?? null;
 }
 
 export type UserRole = "Lab Admin" | "Lab User";
@@ -210,15 +146,6 @@ export type Member = {
   role: AccountRole;
 };
 
-export function mapAccountToMember(account: Account): Member {
-  return {
-    id: account.id,
-    name: account.username,
-    email: account.email,
-    role: account.role,
-  };
-}
-
 export type AccountPatch = {
   username?: string;
   quota?: number | null;
@@ -229,8 +156,8 @@ export type AccountPatch = {
 // Cheaper to drop the cache than to work out whether this was our own row.
 async function mutate(request: Promise<Response>, fallback: string) {
   await apiOrThrow(await request, fallback);
-  clearMeCache();
-  getAccounts.clear();
+  await clearAccountCache();
+  notifyAccountChange();
 }
 
 // Only the keys present in `patch` are written - see UpdateAccountRequest.
@@ -304,9 +231,7 @@ export type CreateUserPayload = {
 // Creates both halves of a member at once - the Supabase login and the account
 // row behind it - so they can sign in with the credentials the admin just
 // picked. Nothing is emailed; the admin passes those on themselves. Always a
-// Lab User: promoting them is a separate call to assignRole. POST /account/ is
-// the other way round, where the member claims their own row once they already
-// have a login.
+// Lab User: promoting them is a separate call to assignRole.
 export async function adminCreateAccount(
   payload: CreateUserPayload,
 ): Promise<Account> {
@@ -355,42 +280,6 @@ const SIGNED_OUT = {
   isAdmin: false,
 } as const;
 
-// Load once on mount, ignore result if unmounted. Pass a stable function.
-// `reload` bumps a counter the effect watches - `load` itself has to stay stable or the effect loops.
-function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
-  const [state, setState] = useState<{
-    data: T | null;
-    loading: boolean;
-    error: string | null;
-  }>({ data: null, loading: true, error: null });
-  const [attempt, setAttempt] = useState(0);
-  const reload = useCallback(() => setAttempt((n) => n + 1), []);
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-
-    load()
-      .then((data) => {
-        if (!cancelled) setState({ data, loading: false, error: null });
-      })
-      .catch((err) => {
-        if (!cancelled)
-          setState({
-            data: null,
-            loading: false,
-            error: err instanceof Error ? err.message : "Failed to load",
-          });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [load, enabled, attempt]);
-
-  return { ...state, reload };
-}
-
 // Resolves the signed in user against the account table, which is where the username lives - the Supabase access token only carries the id and email.
 export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
   const { data: account, loading, error, reload } = useFetched(getMe, enabled);
@@ -416,7 +305,13 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
 export function useMembers() {
   const { data, loading, error } = useFetched(getAccounts);
   const members = useMemo(
-    () => data?.Accounts.map(mapAccountToMember) ?? [],
+    () =>
+      data?.Accounts.map((account) => ({
+        id: account.id,
+        name: account.username,
+        email: account.email,
+        role: account.role,
+      })) ?? [],
     [data],
   );
 

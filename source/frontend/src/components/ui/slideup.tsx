@@ -1,67 +1,43 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import Icon from "@/components/icon";
+import { useEffect, useRef, type ReactNode } from "react";
+import Icon from "@/components/ui/icon";
+import { useAnimatedClose } from "@/components/ui/use-animated-close";
 
 // must match the slideup animation time in globals.css
-const POPUP_CLOSE_DELAY_MS = 125;
+const CLOSE_MS = 125;
 
 // things that can take focus inside the panel
 const FOCUSABLE =
   "a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
-// close with a short delay so the closing animation can play
-export function useSlideupClose(onClose: () => void) {
-  const [isClosing, setIsClosing] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleClose = useCallback(() => {
-    if (timerRef.current !== null) return;
-    setIsClosing(true);
-    timerRef.current = setTimeout(onClose, POPUP_CLOSE_DELAY_MS);
-  }, [onClose]);
-
-  // close with the Escape key
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") handleClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
-
-  // stop the timer if the slideup is removed early
-  useEffect(() => {
-    return () => {
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  return { isClosing, handleClose };
+// round close (X) button
+export function CloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClose}
+      className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
+      aria-label="Close"
+    >
+      <Icon src="/close.svg" className="h-auto w-5" />
+    </button>
+  );
 }
 
-// dark overlay + white panel. className is for layout that differs per slideup
-export function SlideupFrame({
-  isClosing,
+// Dark overlay + white panel sliding up from the bottom. A real modal: page
+// scroll is locked, Tab stays inside and focus goes back where it was.
+// `children` is given the close function, which plays the slide down first.
+export function Slideup({
   onClose,
-  className = "",
   children,
 }: {
-  isClosing: boolean;
   onClose: () => void;
-  className?: string;
-  children: ReactNode;
+  children: (close: () => void) => ReactNode;
 }) {
+  const { isClosing, handleClose } = useAnimatedClose(onClose, CLOSE_MS);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // real modal: lock page scroll, focus panel, Tab stay inside, restore on close
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -114,7 +90,7 @@ export function SlideupFrame({
     <div className="fixed inset-0 z-50">
       <div
         className={`blur-fade-in absolute inset-0 ${isClosing ? "blur-fade-out" : ""}`}
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       <div
@@ -122,24 +98,12 @@ export function SlideupFrame({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className={`slideup-panel absolute bottom-0 left-[10%] h-[90%] w-[80%] p-5 rounded-t-[30px] bg-white outline-none ${className} ${isClosing ? "slidedown-panel" : ""}`}
+        className={`slideup-panel absolute bottom-0 left-[10%] flex max-h-200 h-[90%] w-[80%] flex-col rounded-t-[30px] bg-white px-5 pt-5 pb-2 outline-none ${
+          isClosing ? "slidedown-panel" : ""
+        }`}
       >
-        {children}
+        {children(handleClose)}
       </div>
     </div>
-  );
-}
-
-// round close (X) button
-export function SlideupCloseButton({ onClose }: { onClose: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClose}
-      className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-white hover:bg-gray-200"
-      aria-label="Close"
-    >
-      <Icon src="/close.svg" className="h-auto w-5" />
-    </button>
   );
 }

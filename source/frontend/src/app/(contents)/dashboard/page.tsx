@@ -57,18 +57,17 @@ export default function Dashboard() {
   // summary and overview use same items as the list. mine first, others after
   const {
     items: viewItems,
-    overflowItems: viewOverflowItems,
     loading: loadingViewItems,
     error: errorViewItems,
     bucketCounts,
   } = useDashboardView(view, isAllScope, groups);
 
   return (
-    <main className="flex min-h-full w-full min-w-0 flex-col gap-5 overflow-x-auto bg-(--background) px-5 pt-5 max-[600px]:min-w-150 min-[1000px]:flex-row">
-      <div className="flex w-full shrink-0 flex-col gap-3 min-[1000px]:w-[40%] min-[1000px]:min-w-120 min-[1000px]:max-w-300">
-        <Announcement />
+    <div className="flex min-h-full w-full min-w-0 flex-col gap-5 overflow-x-auto bg-(--background) px-5 pt-5 max-[600px]:min-w-150 min-[1100px]:flex-row">
+      <div className="flex w-full shrink-0 flex-col gap-3 min-[1100px]:w-[40%] min-[1100px]:min-w-120 min-[1100px]:max-w-300">
+        <Announcement usernames={usernames} />
 
-        <div className="flex h-160 shrink-0 flex-col gap-4 overflow-hidden rounded-[30px] bg-(--panel-bg) p-3 pb-6 min-[1000px]:rounded-t-[30px] min-[1000px]:rounded-b-none min-[1000px]:pb-3">
+        <div className="flex min-h-180 flex-1 flex-col gap-4 overflow-hidden rounded-[30px] bg-(--panel-bg) p-3 pb-6 min-[1100px]:rounded-t-[30px] min-[1100px]:rounded-b-none min-[1100px]:pb-3">
           <div className="flex flex-wrap justify-between">
             <ViewToggle value={view} onChange={setView} />
             {showScope && (
@@ -77,7 +76,6 @@ export default function Dashboard() {
           </div>
           <Summary
             items={viewItems}
-            overflowItems={viewOverflowItems}
             counts={bucketCounts.total}
             loading={loadingViewItems || errorViewItems}
             view={view}
@@ -94,10 +92,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* contents: under 1000px the children become part of main */}
-      <div className="contents min-[1000px]:flex min-[1000px]:min-w-0 min-[1000px]:flex-1 min-[1000px]:flex-col min-[1000px]:gap-3">
+      {/* contents: under 1000px the children join the page's own flex */}
+      <div className="contents min-[1100px]:flex min-[1100px]:min-w-0 min-[1100px]:flex-1 min-[1100px]:flex-col min-[1100px]:gap-3">
         {/* empty:hidden so no gap when Missing render nothing */}
-        <div className="order-first empty:hidden min-[1000px]:order-0">
+        <div className="order-first empty:hidden min-[1100px]:order-0">
           <Missing
             myTasks={groups.myTasks}
             myPendingTickets={groups.myPendingTickets}
@@ -106,7 +104,7 @@ export default function Dashboard() {
         </div>
 
         {/* list need own height when stacked */}
-        <div className="order-last flex h-200 min-w-0 flex-col min-[1000px]:order-0 min-[1000px]:h-auto min-[1000px]:min-h-0 min-[1000px]:flex-1">
+        <div className="order-last flex h-200 min-w-0 flex-col min-[1100px]:order-0 min-[1100px]:h-auto min-[1100px]:min-h-0 min-[1100px]:flex-1">
           <TaskTicketList>
             <TaskList
               myTasks={groups.myTasks}
@@ -152,6 +150,6 @@ export default function Dashboard() {
           onUpdated={reloadTickets}
         />
       )}
-    </main>
+    </div>
   );
 }

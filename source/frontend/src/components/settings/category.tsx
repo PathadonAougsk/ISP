@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+
 import {
   createCategory,
   deleteCategory,
@@ -7,7 +9,17 @@ import {
   updateCategory,
   type Category,
 } from "@/lib/category";
-import { useCallback, useEffect, useState } from "react";
+import Button from "@/components/ui/button";
+import { TextInput } from "@/components/ui/field";
+import {
+  ERROR,
+  HEAD,
+  LIST_PANEL,
+  MESSAGE,
+  MUTED,
+  ROW,
+  TITLE,
+} from "./settings-style";
 
 export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -17,6 +29,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   // Caching. The request GET /Categories
   const refresh = useCallback(
@@ -60,132 +73,178 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
     if (!name) return;
 
     setNewName("");
-    await run(() => createCategory(name), `Could not create "${name}".`);
+    await run(
+      () => createCategory(name),
+      `Could not create the category "${name}".`,
+    );
   }
 
   async function handleRename(id: number) {
     const name = editingName.trim();
-    setEditingId(null);
-    if (!isAdmin || !name) return;
+    if (!isAdmin || !name || savingId !== null) return;
 
-    await run(
-      () => updateCategory(id, name),
-      `Could not rename category ${id}.`,
-    );
+    if (name === categories.find((c) => c.id === id)?.name) {
+      setEditingId(null);
+      return;
+    }
+
+    setSavingId(id);
+
+    try {
+      await run(
+        () => updateCategory(id, name),
+        "Could not rename the category.",
+      );
+      setEditingId(null);
+    } finally {
+      setSavingId(null);
+    }
   }
 
-  const visible = categories.filter((category) =>
-    category.name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const visible = categories
+    .filter((category) =>
+      category.name.toLowerCase().includes(query.trim().toLowerCase()),
+    )
+    .sort((a, b) => a.id - b.id);
 
   return (
-    <section className="flex flex-col gap-7">
-      <h2 className="text-[28px] leading-tight">Category</h2>
+    <section className="flex flex-col gap-5">
+      <h1 className={TITLE}>Categories</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p>Categories For Tickets And Tasks</p>
-        <p className="text-[#8a8a8a]">
+        <p className="font-semibold">Categories for Tickets and Tasks</p>
+        <p className={MUTED}>
           Categories group the tickets and tasks your lab handles. Renaming one
           updates it everywhere it is already in use.
         </p>
       </div>
 
       {isAdmin ? (
-        <form onSubmit={handleCreate} className="flex items-center gap-3">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="New category name"
-            className="h-10 flex-1 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
-          />
-          <button
+        <form onSubmit={handleCreate} className="flex items-start gap-3">
+          <div className="flex-1">
+            <TextInput
+              look="outlined"
+              value={newName}
+              onChange={setNewName}
+              placeholder="New category name"
+              maxLength={30}
+              inlineCounter={true}
+            />
+          </div>
+          <Button
+            variant="green"
+            size="md"
             type="submit"
-            className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8] disabled:opacity-50"
             disabled={!newName.trim()}
+            className="h-10 min-w-25 px-4 font-bold"
           >
-            Add
-          </button>
+            Add Category
+          </Button>
         </form>
       ) : (
-        <p className="text-[#8a8a8a]">
-          Only a Lab Owner or Lab Admin can add, rename or delete categories.
+        <p className={MUTED}>
+          Only Lab Owners and Lab Admins can add, rename, or delete categories.
         </p>
       )}
 
+      {error && <p className={ERROR}>{error}</p>}
+
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg">All Categories</p>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name"
-          className="h-10 w-62.5 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none placeholder:text-[#8a8a8a]"
-        />
+        <p className="text-lg font-semibold w-fit">
+          All Categories
+          <span className={MUTED}> ({categories.length})</span>
+        </p>
+
+        <div className="flex-1">
+          <TextInput
+            look="outlined"
+            value={query}
+            onChange={setQuery}
+            placeholder="Search categories"
+            className="w-full"
+          />
+        </div>
       </div>
 
-      {error && <p className="text-[#b3261e]">{error}</p>}
-
-      <div className="flex flex-col">
-        <div className="flex items-center gap-3 border-b border-[#d0d0d0] pb-2 text-sm text-[#8a8a8a] uppercase">
-          <span className="w-15">ID</span>
+      <div className={LIST_PANEL}>
+        <div className={HEAD}>
+          <span className="w-15 shrink-0">ID</span>
           <span className="flex-1">Name</span>
         </div>
 
         {loading ? (
-          <p className="py-4 text-[#8a8a8a]">Loading...</p>
+          <p className={MESSAGE}>Loading categories...</p>
         ) : visible.length === 0 ? (
-          <p className="py-4 text-[#8a8a8a]">
+          <p className={MESSAGE}>
             {categories.length === 0
-              ? "No categories yet."
-              : "No categories match that search."}
+              ? "No categories have been created yet."
+              : "No categories match your search."}
           </p>
         ) : (
           visible.map((category) => (
-            <div
-              key={category.id}
-              className="flex items-center gap-3 border-b border-[#e0e0e0] py-3"
-            >
-              <span className="w-15 text-[#8a8a8a]">{category.id}</span>
+            <div key={category.id} className={ROW}>
+              <span className="w-15 shrink-0 text-gray-500">{category.id}</span>
 
               {isAdmin && editingId === category.id ? (
-                <input
-                  autoFocus
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={() => handleRename(category.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRename(category.id);
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  className="h-10 flex-1 border border-[#d0d0d0] bg-[#dedede] px-3 outline-none"
-                />
+                <div className="min-w-0 flex-1">
+                  <TextInput
+                    look="outlined"
+                    autoFocus
+                    maxLength={30}
+                    inlineCounter={true}
+                    value={editingName}
+                    onChange={setEditingName}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") handleRename(category.id);
+                      if (event.key === "Escape") setEditingId(null);
+                    }}
+                    className="h-8!"
+                  />
+                </div>
               ) : (
                 <span className="flex-1">{category.name}</span>
               )}
 
               {isAdmin && (
                 <>
-                  <button
-                    type="button"
+                  <Button
+                    variant={editingId === category.id ? "green" : "outline"}
+                    size="base"
+                    disabled={
+                      savingId !== null ||
+                      (editingId === category.id &&
+                        (editingName.trim() === category.name ||
+                          !editingName.trim()))
+                    }
                     onClick={() => {
-                      setEditingId(category.id);
-                      setEditingName(category.name);
+                      if (editingId === category.id) {
+                        handleRename(category.id);
+                      } else {
+                        setEditingId(category.id);
+                        setEditingName(category.name);
+                      }
                     }}
-                    className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+                    className="w-25 font-semibold"
                   >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
+                    {savingId === category.id
+                      ? "Saving..."
+                      : editingId === category.id
+                        ? "Save"
+                        : "Edit"}
+                  </Button>
+                  <Button
+                    variant="red"
+                    size="base"
                     onClick={() =>
                       run(
                         () => deleteCategory(category.id),
-                        `Could not delete "${category.name}".`,
+                        `Could not delete the category "${category.name}".`,
                       )
                     }
-                    className="h-10 w-25 bg-[#d4d4d4] text-base hover:bg-[#c8c8c8]"
+                    className="w-25 font-bold"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

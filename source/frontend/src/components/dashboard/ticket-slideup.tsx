@@ -4,7 +4,10 @@ import { useState } from "react";
 import { outranks, type AccountRole } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import { putTicket, type Ticket } from "@/lib/ticket";
-import Icon from "@/components/icon";
+import Button from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
+import { renderWithLinks } from "@/components/ui/linkify";
+import { CloseButton, Slideup } from "@/components/ui/slideup";
 import {
   ticketStatusIcon,
   ticketStatusText,
@@ -17,11 +20,6 @@ import {
   SlideupError,
   SlideupMeta,
 } from "@/components/dashboard/dashboard-utils";
-import {
-  SlideupCloseButton,
-  SlideupFrame,
-  useSlideupClose,
-} from "@/components/modal-slideup";
 
 export default function TicketSlideup({
   ticket,
@@ -42,13 +40,10 @@ export default function TicketSlideup({
   onClose: () => void;
   onUpdated: () => void;
 }) {
-  const { isClosing, handleClose } = useSlideupClose(onClose);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isMyRejectedTicket =
-    ticket.status === "rejected" && ticket.created_by === currentUserId;
-  const isMyPendingTicket =
-    ticket.status === "pending" && ticket.created_by === currentUserId;
+
+  const isMine = ticket.created_by === currentUserId;
 
   // only higher role can judge pending ticket of lower role
   const creatorRole = creatorRoles[ticket.created_by];
@@ -56,10 +51,13 @@ export default function TicketSlideup({
     currentRole !== null &&
     creatorRole !== undefined &&
     ticket.status === "pending" &&
-    ticket.created_by !== currentUserId &&
+    !isMine &&
     outranks(currentRole, creatorRole);
 
-  async function handleJudge(status: "accepted" | "rejected") {
+  async function handleJudge(
+    status: "accepted" | "rejected",
+    close: () => void,
+  ) {
     setError(null);
     setSubmitting(true);
 
@@ -67,7 +65,7 @@ export default function TicketSlideup({
       await putTicket(ticket.id, { status });
 
       onUpdated();
-      handleClose();
+      close();
     } catch {
       setError(`Failed to ${status === "accepted" ? "accept" : "reject"}`);
     } finally {
@@ -75,85 +73,87 @@ export default function TicketSlideup({
     }
   }
 
-  const judgeButtonClass = (color: string) =>
-    `flex h-7.5 w-25 items-center justify-center rounded-full text-sm font-semibold text-white ${
-      submitting ? "cursor-not-allowed bg-gray-200" : `cursor-pointer ${color}`
-    }`;
+  const linkLabel =
+    isMine && ticket.status === "rejected"
+      ? "Revise in Request-table"
+      : isMine && ticket.status === "pending"
+        ? "Edit in Request-table"
+        : "Open in Request-table";
 
   return (
-    <SlideupFrame
-      isClosing={isClosing}
-      onClose={handleClose}
-      className="flex flex-col"
-    >
-      <div className="flex justify-end gap-4 pb-2">
-        <RequestTableButton
-          type="ticket"
-          id={ticket.id}
-          label={
-            isMyRejectedTicket
-              ? "Revise in Request-table"
-              : isMyPendingTicket
-                ? "Edit in Request-table"
-                : "Open in Request-table"
-          }
-        />
-        {canJudge && (
-          <>
-            {error && <SlideupError message={error} className="self-center" />}
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleJudge("rejected")}
-              className={judgeButtonClass(
-                "bg-(--primary-red) hover:bg-(--primary-red-hover)",
-              )}
-            >
-              Rejected
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleJudge("accepted")}
-              className={judgeButtonClass(
-                "bg-(--primary-color-2) hover:bg-(--primary-color-2-hover)",
-              )}
-            >
-              Accepted
-            </button>
-          </>
-        )}
-        <SlideupCloseButton onClose={handleClose} />
-      </div>
+    <Slideup onClose={onClose}>
+      {(close) => (
+        <>
+          <div className="flex items-center justify-between gap-4 pb-2">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-2xl font-bold text-black">Ticket</h1>
+              <h1 className="text-xl font-semibold text-gray-500">
+                #{ticket.id}
+              </h1>
+            </div>
 
-      <h1 className="min-w-0 wrap-break-word text-3xl font-bold text-black">
-        {ticket.name}
-      </h1>
+            <div className="flex items-center gap-4">
+              <RequestTableButton
+                type="ticket"
+                id={ticket.id}
+                label={linkLabel}
+              />
+              <CloseButton onClose={close} />
+            </div>
+          </div>
 
-      <SlideupMeta
-        id={ticket.id}
-        categoryName={categoryMap[ticket.category_id] ?? "-"}
-        createdDate={ticket.created}
-      >
-        <div className="flex items-center gap-2">
-          <Icon src={ticketStatusIcon[ticket.status]} />
-          <span>{ticketStatusText[ticket.status]}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Icon src="/user.svg" alt="" className="h-4 w-auto" />
-          <span>{usernames[ticket.created_by] ?? "-"}</span>
-        </div>
-      </SlideupMeta>
+          <h1 className="min-w-0 wrap-break-word text-xl font-bold text-black">
+            {renderWithLinks(ticket.name)}
+          </h1>
 
-      <SlideupEdited created={ticket.created} updated={ticket.updated} />
+          <SlideupMeta
+            categoryName={categoryMap[ticket.category_id] ?? "-"}
+            createdDate={ticket.created}
+          >
+            <div className="flex items-center gap-2">
+              <Icon src={ticketStatusIcon[ticket.status]} />
+              <span>{ticketStatusText[ticket.status]}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Icon src="/account.svg" alt="" className="h-4 w-auto" />
+              <span>{usernames[ticket.created_by] ?? "-"}</span>
+            </div>
+          </SlideupMeta>
 
-      <SlideupDueRow
-        type="ticket"
-        status={ticket.status}
-        dueDate={ticket.due_date}
-      />
+          <SlideupEdited created={ticket.created} updated={ticket.updated} />
 
-      <SlideupDescription description={ticket.description} />
-    </SlideupFrame>
+          <SlideupDueRow
+            type="ticket"
+            status={ticket.status}
+            dueDate={ticket.due_date}
+          />
+
+          <SlideupDescription description={ticket.description} />
+
+          {canJudge && (
+            <div className="mt-2 flex h-10 justify-end gap-2">
+              {error && <SlideupError message={error} />}
+              {(["rejected", "accepted"] as const).map((status) => (
+                <Button
+                  key={status}
+                  variant={
+                    submitting
+                      ? "busy"
+                      : status === "rejected"
+                        ? "red"
+                        : "green"
+                  }
+                  disabled={submitting}
+                  onClick={() => handleJudge(status, close)}
+                  className="h-10 w-40 text-lg font-bold"
+                >
+                  {ticketStatusText[status]}
+                </Button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Slideup>
   );
 }

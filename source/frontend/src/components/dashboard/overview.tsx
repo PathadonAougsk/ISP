@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
 import { getThaiDateKey } from "@/lib/format";
 import type { CategoryMap } from "@/lib/category";
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
+import { ListMessage } from "@/components/ui/table";
+import Toggle from "@/components/ui/toggle";
 import {
   dueBucketColor,
   dueBucketMeta,
@@ -12,85 +13,10 @@ import {
   type DashboardItem,
   type DashboardView,
 } from "@/components/dashboard/dashboard-data";
-import { ListMessage } from "@/components/dashboard/dashboard-utils";
 
-// View and scope toggles
+// Which list the dashboard shows, and whose items are in it.
 
 export type DashboardScope = "mine" | "all";
-
-type ToggleProps = {
-  options: { label: string; onClick: () => void }[];
-  selectedIndex: number;
-  ariaLabel: string;
-  widthClassName: string;
-};
-
-export function Toggle({
-  options,
-  selectedIndex,
-  ariaLabel,
-  widthClassName,
-}: ToggleProps) {
-  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    let nextIndex = selectedIndex;
-
-    if (event.key === "ArrowLeft") {
-      nextIndex = Math.max(0, selectedIndex - 1);
-    } else if (event.key === "ArrowRight") {
-      nextIndex = Math.min(options.length - 1, selectedIndex + 1);
-    } else {
-      return;
-    }
-
-    event.preventDefault();
-    options[nextIndex]?.onClick();
-    buttonRefs.current[nextIndex]?.focus();
-  };
-
-  return (
-    <div
-      role="tablist"
-      aria-label={ariaLabel}
-      className={`relative flex h-10 shrink-0 rounded-full bg-(--primary-color-2) ${widthClassName}`}
-    >
-      <div
-        className="absolute inset-y-0 left-0 p-1 transition-transform duration-150 ease-out"
-        style={{
-          width: `${100 / options.length}%`,
-          transform: `translateX(${selectedIndex * 100}%)`,
-        }}
-      >
-        <div className="h-full w-full rounded-full bg-white" />
-      </div>
-
-      {options.map(({ label, onClick }, index) => {
-        const selected = index === selectedIndex;
-
-        return (
-          <button
-            key={label}
-            ref={(element) => {
-              buttonRefs.current[index] = element;
-            }}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
-            onClick={onClick}
-            onKeyDown={handleKeyDown}
-            className={`relative z-10 h-full flex-1 cursor-pointer rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2) ${
-              selected ? "text-black" : "text-white"
-            }`}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export function ViewToggle({
   value,
@@ -140,13 +66,11 @@ export function ScopeToggle({
 
 export function Summary({
   items,
-  overflowItems,
   counts,
   loading,
   view,
 }: {
   items: DashboardItem[];
-  overflowItems: DashboardItem[];
   counts: BucketCounts;
   loading: boolean;
   view: DashboardView;
@@ -165,9 +89,6 @@ export function Summary({
 
   const dueToday = items.filter(isDueToday).length;
 
-  // due today can hide behind a past due one
-  const moreDueToday = overflowItems.some(isDueToday);
-
   const isTicket = view === "ticket";
 
   // hide empty range, but show all of them while loading
@@ -181,33 +102,20 @@ export function Summary({
   // no item and not loading, hide the whole chart
   const hasChart = loading || items.length > 0;
 
-  // "+" when the list still have more to load
-  const withMore = (value: number, more: boolean) =>
-    more ? `${value}+` : String(value);
-
   const summaryItems = isTicket
     ? [
         {
           label: "Rejected",
-          value: withMore(
-            items.filter((item) => item.status === "rejected").length,
-            overflowItems.some((item) => item.status === "rejected"),
-          ),
+          value: items.filter((item) => item.status === "rejected").length,
         },
         {
           label: "Pending",
-          value: withMore(
-            items.filter((item) => item.status === "pending").length,
-            overflowItems.some((item) => item.status === "pending"),
-          ),
+          value: items.filter((item) => item.status === "pending").length,
         },
       ]
     : [
-        { label: "Due Today", value: withMore(dueToday, moreDueToday) },
-        {
-          label: "Active Task",
-          value: withMore(items.length, overflowItems.length > 0),
-        },
+        { label: "Due Today", value: dueToday },
+        { label: "Active Task", value: items.length },
       ];
 
   return (
@@ -265,7 +173,7 @@ export function Summary({
                     className={`h-5 w-5 rounded-full ${dueBucketColor[bucket.key]}`}
                   />
                 </div>
-                <div className="flex w-6 items-center text-base">
+                <div className="flex w-6 items-center text-base tabular-nums">
                   <p>{loading ? "-" : bucket.count}</p>
                 </div>
                 <div className="flex flex-1 items-center text-base">
@@ -326,7 +234,7 @@ export default function Overview({
             : "All tasks are done! Time to enjoy a well-earned break."}
         </p>
       ) : (
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin">
+        <div className="min-h-0 max-h-120 flex-1 space-y-2 overflow-y-auto rounded-2xl scrollbar-thin">
           {categoryIds.map((id) => {
             const counts = categoryCounts[id];
             const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
