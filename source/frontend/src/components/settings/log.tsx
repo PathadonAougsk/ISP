@@ -71,7 +71,9 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
         setEntries([]);
         setHasMore(false);
         setError(
-          err instanceof Error ? err.message : "Could not load the log.",
+          err instanceof Error
+            ? err.message
+            : "Could not load the activity log.",
         );
       })
       .finally(() => {
@@ -107,7 +109,9 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
       setError(null);
     } catch (err) {
       if (requestId.current !== id) return;
-      setError(err instanceof Error ? err.message : "Could not load more.");
+      setError(
+        err instanceof Error ? err.message : "Could not load more entries.",
+      );
     } finally {
       // Unconditional - a stale run still has to let go of the button.
       setLoadingMore(false);
@@ -116,18 +120,18 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
 
   return (
     <section className="flex flex-col gap-5">
-      <h1 className={TITLE}>Log</h1>
+      <h1 className={TITLE}>Activity Log</h1>
 
       <div className="flex flex-col gap-1.5">
-        <p className="font-semibold">Every Change Made In Your Lab</p>
+        <p className="font-semibold">All Changes in Your Lab</p>
         <p className={MUTED}>
-          One line per changed column, newest first. Nothing here can be edited
-          or removed.
+          Each entry records a change to one database field. Entries are shown
+          newest first and cannot be edited or deleted.
         </p>
       </div>
 
       {accountLoading ? (
-        <p className={MUTED}>Loading...</p>
+        <p className={MUTED}>Loading activity...</p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3">
@@ -147,8 +151,8 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               className="w-40"
               value={table}
               onChange={setTable}
-              placeholder={{ value: "", label: "All tables" }}
-              firstItem={{ value: "", label: "All tables" }}
+              placeholder={{ value: "", label: "All Tables" }}
+              firstItem={{ value: "", label: "All Tables" }}
               options={TABLES.map((name) => ({ value: name, label: name }))}
             />
           </div>
@@ -160,18 +164,18 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               and task ids are small integers. */}
           <div className={LIST_PANEL}>
             <div className={`${HEAD} ${COLS}`}>
-              <span>Row ID</span>
-              <span>When</span>
-              <span>Who</span>
+              <span>Record ID</span>
+              <span>Date and Time</span>
+              <span>Changed By</span>
               <span>Table</span>
-              <span>Column</span>
+              <span>Field</span>
               <span>Change</span>
             </div>
 
             {loading ? (
-              <p className={MESSAGE}>Loading...</p>
+              <p className={MESSAGE}>Loading activity...</p>
             ) : entries.length === 0 ? (
-              <p className={MESSAGE}>Nothing has been logged yet.</p>
+              <p className={MESSAGE}>No activity has been recorded yet.</p>
             ) : (
               entries.map((entry) => (
                 <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
@@ -184,7 +188,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                     title={entry.by_username ?? undefined}
                   >
                     {entry.by_username ?? (
-                      <span className="text-gray-500">Deleted account</span>
+                      <span className="text-gray-500">Deleted User</span>
                     )}
                   </span>
                   <span>{entry.from_table}</span>
@@ -214,7 +218,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               disabled={loadingMore}
               className="w-full font-semibold"
             >
-              {loadingMore ? "Loading..." : "Load more"}
+              {loadingMore ? "Loading more entries..." : "Load More"}
             </Button>
           )}
         </>

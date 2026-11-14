@@ -37,7 +37,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={() => setExpanded((open) => !open)}
-          aria-label="Toggle sidebar"
+          aria-label="Expand or collapse sidebar"
           className="shrink-0 cursor-default rounded-full max-[1100px]:cursor-pointer"
         >
           <Avatar name={username} className="size-12" />
@@ -52,7 +52,9 @@ export default function Sidebar({
       </div>
 
       <Nav
-        items={accountNav.filter((item) => isAdmin || item.label !== "Log")}
+        items={accountNav.filter(
+          (item) => isAdmin || item.label !== "Activity Log",
+        )}
         active={active}
         onSelect={(label) => {
           setExpanded(false);
@@ -71,7 +73,7 @@ export default function Sidebar({
         className="mt-auto flex w-full items-center gap-3 rounded-full px-3.5 h-10 text-left font-semibold text-red-800 hover:bg-(--panel-bg-hover) disabled:opacity-50"
       >
         <Icon src="/logout.svg" className="size-5 shrink-0" />
-        <span className={hide}>{leaving ? "Logging out..." : "Logout"}</span>
+        <span className={hide}>{leaving ? "Logging out..." : "Log Out"}</span>
       </button>
     </aside>
   );
