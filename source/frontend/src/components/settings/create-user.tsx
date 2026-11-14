@@ -6,7 +6,7 @@ import { adminCreateAccount, type UserKind } from "@/lib/account";
 import Button from "@/components/ui/button";
 import { TextInput } from "@/components/ui/field";
 import Toggle from "@/components/ui/toggle";
-import { CARD, ERROR, LABEL, MUTED } from "./settings-style";
+import { CARD, ERROR, MUTED } from "./settings-style";
 
 const DEFAULT_TRIAL_QUOTA = 10;
 const MIN_PASSWORD = 8;

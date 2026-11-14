@@ -124,10 +124,11 @@ export function LoadMoreButton({
 
 // true while the list is tall enough to show a scrollbar, so the header can
 // keep room for it
-export function useListOverflow(dependencies: unknown[]) {
+export function useListOverflow() {
   const [hasOverflow, setHasOverflow] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // no deps, run every render. list size can change any time
   useEffect(() => {
     const element = listRef.current;
     if (!element) return;
@@ -147,7 +148,7 @@ export function useListOverflow(dependencies: unknown[]) {
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, dependencies);
+  });
 
   return { listRef, hasOverflow };
 }

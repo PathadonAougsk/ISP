@@ -116,7 +116,7 @@ export default function RequestTable() {
     }
 
     let cancelled = false;
-    setTab(type);
+    const tabType: Tab = type;
 
     async function openFromLink() {
       try {
@@ -130,6 +130,8 @@ export default function RequestTable() {
       } catch {
         if (!cancelled) setLinkError(true);
       }
+
+      if (!cancelled) setTab(tabType);
     }
 
     openFromLink();

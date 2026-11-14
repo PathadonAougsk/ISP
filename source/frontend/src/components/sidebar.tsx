@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Icon from "@/components/ui/icon";
 import { useSettings } from "./setting-provider";
 import { clearAllApiCache } from "@/lib/cache/cache";
@@ -11,6 +11,14 @@ const mainNavigation = ["dashboard", "request-table"];
 const bottomNavigation = ["announcement"];
 
 const expandDelay = 100;
+
+// hover device only
+const hoverQuery = "(hover: hover) and (pointer: fine)";
+const subscribeHover = (onChange: () => void) => {
+  const media = window.matchMedia(hoverQuery);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+};
 
 function getItemClass(active = false) {
   const color = active
@@ -72,19 +80,17 @@ export default function Sidebar() {
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [hasExpanded, setHasExpanded] = useState(false);
-  const [isAutoExpandEnabled, setIsAutoExpandEnabled] = useState(false);
 
   const expandTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    setIsAutoExpandEnabled(
-      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
-    );
-  }, []);
+  const isAutoExpandEnabled = useSyncExternalStore(
+    subscribeHover,
+    () => window.matchMedia(hoverQuery).matches,
+    () => false,
+  );
 
-  useEffect(() => {
-    if (expanded) setHasExpanded(true);
-  }, [expanded]);
+  // once opened, collapse animation can run
+  if (expanded && !hasExpanded) setHasExpanded(true);
 
   // Close and unpin
   const handleNavigationClick = () => {

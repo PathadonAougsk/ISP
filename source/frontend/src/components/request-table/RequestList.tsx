@@ -121,7 +121,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   const searchRef = useRef<HTMLInputElement>(null);
 
   // header need more right space when scrollbar show
-  const { listRef, hasOverflow } = useListOverflow([rows.length, loading]);
+  const { listRef, hasOverflow } = useListOverflow();
 
   // Calculate displayed result range
   const resultStart =

@@ -29,6 +29,8 @@ export function getPaging(
 export function withoutPagination<
   T extends { limit?: number; offset?: number },
 >(params?: T): string {
-  const { limit, offset, ...rest } = params ?? ({} as T);
+  const rest = { ...params } as Record<string, unknown>;
+  delete rest.limit;
+  delete rest.offset;
   return JSON.stringify(rest);
 }

@@ -87,30 +87,25 @@ function useGroup<T extends DashboardItem & { id: number }>(
   }, []);
 
   // new account or role = start over
-  useEffect(() => {
+  const key = `${account.id}|${enabled}`;
+  const [prevKey, setPrevKey] = useState(key);
+
+  if (prevKey !== key) {
+    setPrevKey(key);
     setAll([]);
-    setFlags((prev) => ({ ...prev, loading: true, error: false }));
-  }, [account.id, enabled]);
+    setFlags(LOADING);
+  }
 
   useEffect(() => {
-    // signed out, or the account request itself failed: nothing to wait for
-    if (account.id === undefined) {
-      if (!account.loading) setFlags({ ...DONE, error: account.error });
-      return;
-    }
-
-    // not allowed (lab user), skip the request
-    if (!enabled) {
-      setFlags(DONE);
-      return;
-    }
+    // signed out or not allowed (lab user): nothing to fetch
+    if (account.id === undefined || !enabled) return;
 
     void load(account.id);
 
     return () => {
       requestRef.current += 1;
     };
-  }, [account.id, account.loading, account.error, enabled, reloadKey, load]);
+  }, [account.id, enabled, reloadKey, load]);
 
   const loadMore = useCallback(() => {
     setLimit((prev) => prev + INCREMENT);
@@ -118,11 +113,19 @@ function useGroup<T extends DashboardItem & { id: number }>(
 
   const items = useMemo(() => all.slice(0, limit), [all, limit]);
 
+  // nothing to wait for: signed out, account failed, or not allowed
+  let shown = flags;
+  if (account.id === undefined) {
+    if (!account.loading) shown = { ...DONE, error: account.error };
+  } else if (!enabled) {
+    shown = DONE;
+  }
+
   return {
     items,
     all,
-    loading: flags.loading,
-    error: flags.error,
+    loading: shown.loading,
+    error: shown.error,
     loadMore,
   };
 }

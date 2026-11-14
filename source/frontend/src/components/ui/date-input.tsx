@@ -64,14 +64,16 @@ export default function DateInput({
   className?: string;
 }) {
   const [draft, setDraft] = useState(toDisplay(value));
+  const [prevValue, setPrevValue] = useState(value);
   const [touched, setTouched] = useState(false);
-  const [focused, setFocused] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const today = todayIso();
 
-  useEffect(() => {
+  // value changed from outside, so show it in the box
+  if (value !== prevValue) {
+    setPrevValue(value);
     setDraft(toDisplay(value));
-  }, [value]);
+  }
 
   const typedIso = toIso(draft);
   const invalid =
@@ -117,8 +119,6 @@ export default function DateInput({
           placeholder="dd/mm/yyyy"
           value={draft}
           onChange={(event) => handleType(event.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
           aria-invalid={invalid}
           className={`${INPUT_LOOK[look]} rounded-[20px] pr-10 ${
             invalid ? "ring-1 ring-inset ring-red-500" : ""

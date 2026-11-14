@@ -55,6 +55,18 @@ export function usePagedList<Raw, Row>(
   const [reloadKey, setReloadKey] = useState(0);
   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
+  // any trigger changed: refetch coming, so show loading right now
+  const trigger = [enabled, page, reloadKey, fallbackError, ...deps];
+  const [prevTrigger, setPrevTrigger] = useState(trigger);
+
+  if (
+    trigger.length !== prevTrigger.length ||
+    trigger.some((value, index) => !Object.is(value, prevTrigger[index]))
+  ) {
+    setPrevTrigger(trigger);
+    if (enabled) setState((prev) => ({ ...prev, loading: true }));
+  }
+
   // latest closures, so the effect only watches the values that matter
   const fetchRef = useRef(fetchPage);
   const mapRef = useRef(mapRow);
@@ -67,8 +79,6 @@ export function usePagedList<Raw, Row>(
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-
-    setState((prev) => ({ ...prev, loading: true }));
 
     Promise.all([fetchRef.current(pageParams(page)), loadLookups()])
       .then(([body, lookups]) => {
