@@ -5,7 +5,7 @@ const BLOCK_SIZE = 10;
 
 const STEP =
   "h-9 min-w-9 rounded-full px-3 text-sm font-medium disabled:text-gray-500 " +
-  "enabled:bg-white enabled:hover:bg-gray-50 enabled:hover:text-gray-700";
+  "enabled:bg-white enabled:hover:bg-gray-100 enabled:hover:text-gray-700";
 const CIRCLE = "flex h-9 w-9 items-center justify-center rounded-full text-sm";
 
 export default function Pagination({
@@ -26,7 +26,7 @@ export default function Pagination({
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
-    <div className="mt-3 flex flex-row items-center justify-center gap-3">
+    <div className="pointer-events-auto flex w-fit flex-row items-center justify-center gap-3 rounded-full bg-white px-2 h-12 shadow-lg ring-1 ring-inset ring-gray-200">
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1 || loading}
@@ -48,7 +48,7 @@ export default function Pagination({
             key={p}
             onClick={() => onChange(p)}
             disabled={loading}
-            className={`${CIRCLE} bg-white font-medium text-black enabled:hover:bg-gray-50 disabled:opacity-50`}
+            className={`${CIRCLE} bg-white font-medium text-black enabled:hover:bg-gray-100 disabled:opacity-50`}
           >
             {p}
           </button>

@@ -96,6 +96,11 @@ export const getTasks = cached(
   TASKS_CACHE_TTL,
   "tasks",
   withoutPagination,
+  (result, limit) => ({
+    ...result,
+    Tasks: result.Tasks.slice(0, limit),
+  }),
+  (r) => r.TaskCount,
 );
 
 // data changed, so drop cached lists
@@ -190,6 +195,7 @@ export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
     tasks: list.rows,
     tasksHasNext: list.hasNext,
     tasksTotalPages: list.totalPages,
+    tasksTotalResults: list.totalResults,
     tasksLoading: list.loading,
     tasksError: list.error,
     reloadTasks: list.reload,

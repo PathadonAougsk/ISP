@@ -72,8 +72,15 @@ export default function Sidebar() {
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [hasExpanded, setHasExpanded] = useState(false);
+  const [isAutoExpandEnabled, setIsAutoExpandEnabled] = useState(false);
 
   const expandTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setIsAutoExpandEnabled(
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
+    );
+  }, []);
 
   useEffect(() => {
     if (expanded) setHasExpanded(true);
@@ -118,7 +125,13 @@ export default function Sidebar() {
             "[data-sidebar-toggle]",
           );
 
-          if (!expanded && !pinned && !onToggle && !expandTimeout.current) {
+          if (
+            isAutoExpandEnabled &&
+            !expanded &&
+            !pinned &&
+            !onToggle &&
+            !expandTimeout.current
+          ) {
             expandTimeout.current = setTimeout(() => {
               setExpanded(true);
               expandTimeout.current = null;

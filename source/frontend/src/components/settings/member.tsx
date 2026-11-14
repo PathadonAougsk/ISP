@@ -33,10 +33,10 @@ const ROLE_ORDER: Record<AccountRole, number> = {
 
 // fr cols. grid! because HEAD is flex. admin has 2 more action cols
 const COLS_ADMIN =
-  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(80px,0.75fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(80px,0.8fr)_minmax(80px,0.8fr)]";
 
 const COLS_USER =
-  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(80px,0.75fr)_minmax(120px,1fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(120px,1.25fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)]";
 
 function byRoleThenName(a: Account, b: Account) {
   return (
@@ -136,19 +136,21 @@ export default function Member({
       {isAdmin && <CreateUser onCreated={refresh} />}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold">
+        <p className="text-lg font-semibold w-40">
           All Members
           {!loading && !error && (
             <span className={MUTED}> ({members.length})</span>
           )}
         </p>
-        <TextInput
-          look="outlined"
-          value={query}
-          onChange={setQuery}
-          placeholder="Search by name or email"
-          className="w-100"
-        />
+        <div className="flex-1">
+          <TextInput
+            look="outlined"
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by name or email"
+            className="w-full"
+          />
+        </div>
       </div>
 
       {error && <p className={ERROR}>{error}</p>}
@@ -158,8 +160,8 @@ export default function Member({
           <span>Username</span>
           <span>Email</span>
           <span>Role</span>
-          <span className="text-right">Quota</span>
-          <span className="text-right">Status</span>
+          <span className="text-center">Quota</span>
+          <span className="text-center">Status</span>
         </div>
 
         {loading ? (

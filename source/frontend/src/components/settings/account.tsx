@@ -11,7 +11,7 @@ import {
 import Button from "@/components/ui/button";
 import { TextInput } from "@/components/ui/field";
 import Row, { EditButton } from "./row";
-import { ERROR, LABEL, MUTED, TITLE } from "./settings-style";
+import { ERROR, MUTED, TITLE } from "./settings-style";
 
 const MIN_PASSWORD = 8;
 
@@ -234,18 +234,18 @@ export default function AccountPanel({
               busy={busy}
               disabled={!username.trim()}
             >
-              <label className={LABEL}>
-                New username
+              <div className="w-75">
                 <TextInput
+                  label="New username"
                   look="outlined"
                   autoFocus
                   value={username}
                   onChange={draft("username", setUsername)}
                   disabled={busy}
-                  maxLength={100}
+                  maxLength={30}
                   placeholder="What everyone sees you as"
                 />
-              </label>
+              </div>
             </EditForm>
           )}
 
@@ -270,31 +270,30 @@ export default function AccountPanel({
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className={LABEL}>
-                  New email
-                  <TextInput
-                    look="outlined"
-                    autoFocus
-                    type="email"
-                    value={email}
-                    onChange={draft("email", setEmail)}
-                    disabled={busy}
-                    placeholder="you@chula.th"
-                  />
-                </label>
+                <TextInput
+                  label="New email"
+                  look="outlined"
+                  autoFocus
+                  type="email"
+                  value={email}
+                  onChange={draft("email", setEmail)}
+                  disabled={busy}
+                  placeholder="you@chula.th"
+                  maxLength={255}
+                />
 
-                <label className={LABEL}>
-                  Current password
-                  <TextInput
-                    look="outlined"
-                    type="password"
-                    value={emailPassword}
-                    onChange={draft("email", setEmailPassword)}
-                    disabled={busy}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                  />
-                </label>
+                <TextInput
+                  label="Confirm your password"
+                  look="outlined"
+                  type="password"
+                  value={emailPassword}
+                  onChange={draft("email", setEmailPassword)}
+                  disabled={busy}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  maxLength={72}
+                  showCounter={false}
+                />
               </div>
             </EditForm>
           )}
@@ -320,10 +319,10 @@ export default function AccountPanel({
                 contact admin for resetting password.
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className={LABEL}>
-                  Current password
+              <div className="flex items-start gap-3">
+                <div className="w-1/2">
                   <TextInput
+                    label="Current password"
                     look="outlined"
                     autoFocus
                     type="password"
@@ -332,41 +331,48 @@ export default function AccountPanel({
                     disabled={busy}
                     autoComplete="current-password"
                     placeholder="••••••••"
+                    maxLength={72}
+                    showCounter={false}
                   />
-                </label>
+                </div>
+              </div>
 
-                <label className={LABEL}>
-                  New password
+              <div className="flex items-start gap-3">
+                <div className="flex w-1/2 flex-col gap-1.5">
                   <TextInput
+                    label="New password"
                     look="outlined"
                     type="password"
                     value={newPassword}
                     onChange={draft("password", setNewPassword)}
                     disabled={busy}
                     maxLength={72}
+                    showCounter={false}
                     autoComplete="new-password"
                     placeholder={`at least ${MIN_PASSWORD} characters`}
                   />
+
                   {missing > 0 && newPassword.length > 0 && (
-                    <span className={MUTED}>
+                    <span className={`${MUTED} text-sm`}>
                       {missing} more character{missing === 1 ? "" : "s"} to go.
                     </span>
                   )}
-                </label>
+                </div>
 
-                <label className={LABEL}>
-                  New password again
+                <div className="w-1/2">
                   <TextInput
+                    label="Confirm new password"
                     look="outlined"
                     type="password"
                     value={confirmPassword}
                     onChange={draft("password", setConfirmPassword)}
                     disabled={busy}
                     maxLength={72}
+                    showCounter={false}
                     autoComplete="new-password"
                     placeholder="••••••••"
                   />
-                </label>
+                </div>
               </div>
             </EditForm>
           )}

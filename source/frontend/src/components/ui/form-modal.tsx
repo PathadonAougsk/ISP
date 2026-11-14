@@ -48,12 +48,14 @@ export function useFormSubmit() {
 // close function, so a button can save and then close.
 export function FormModal({
   title,
+  id,
   onClose,
   error,
   footer,
   children,
 }: {
   title: string;
+  id: string;
   onClose: () => void;
   error?: string | null;
   footer: (close: () => void) => ReactNode;
@@ -64,7 +66,10 @@ export function FormModal({
       {(close) => (
         <>
           <div className="flex items-center justify-between pb-3">
-            <h1 className="text-2xl font-bold text-black">{title}</h1>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-2xl font-bold text-black">{title}</h1>
+              <h1 className="text-xl font-semibold text-gray-500">#{id}</h1>
+            </div>
             <CloseButton onClose={close} />
           </div>
 
@@ -84,5 +89,7 @@ export function FormModal({
 
 // one column of the modal body. fields stack here
 export function FormColumn({ children }: { children: ReactNode }) {
-  return <div className="flex min-w-0 flex-1 flex-col gap-4">{children}</div>;
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">{children}</div>
+  );
 }

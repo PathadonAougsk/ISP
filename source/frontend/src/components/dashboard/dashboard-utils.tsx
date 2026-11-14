@@ -41,6 +41,34 @@ export function RequestTableButton({
   );
 }
 
+// read more footer, go to /announcement/id. label is from caller
+export function AnnouncementButton({
+  id,
+  label,
+}: {
+  id: number;
+  label: string;
+}) {
+  const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setRedirecting(true);
+        router.push(`/announcement/${id}`);
+      }}
+      disabled={redirecting}
+      className="group block w-full rounded-b-[30px] bg-(--primary-color-3) px-5 py-3 text-center hover:bg-(--primary-color-3-hover)"
+    >
+      <span className="text-base font-semibold text-black group-hover:text-gray-800">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 // id + category + created date row. children are extra items added at the end
 export function SlideupMeta({
   categoryName,

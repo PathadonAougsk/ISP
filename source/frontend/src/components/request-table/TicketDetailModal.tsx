@@ -41,6 +41,9 @@ export default function TicketDetailModal({
   const [categoryId, setCategoryId] = useState<number | "">(ticket.categoryId);
   const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const { saving, error, setError, run } = useFormSubmit();
+  const [action, setAction] = useState<"update" | "accept" | "reject" | null>(
+    null,
+  );
 
   const canEdit =
     ticket.createdById === currentUserId &&
@@ -83,6 +86,7 @@ export default function TicketDetailModal({
       return;
     }
 
+    setAction(newStatus === "Accepted" ? "accept" : "reject");
     const ok = await run(async () => {
       // 1. Save the edits and the new status together. "Accepted" ->
       // "accepted", the backend uses lowercase
@@ -130,6 +134,7 @@ export default function TicketDetailModal({
       return;
     }
 
+    setAction("update");
     const ok = await run(
       () =>
         putTicket(ticket.id, {
@@ -151,6 +156,7 @@ export default function TicketDetailModal({
   return (
     <FormModal
       title="Judge ticket"
+      id={ticket.id}
       onClose={onClose}
       error={error}
       footer={(close) => (
@@ -161,7 +167,7 @@ export default function TicketDetailModal({
               onClick={() => handleUpdate(close)}
               disabled={saving || !hasChanges}
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
           )}
 
@@ -172,14 +178,14 @@ export default function TicketDetailModal({
                 onClick={() => handleDecision("Rejected", close)}
                 disabled={saving || ticket.status === "Rejected"}
               >
-                Reject
+                {saving && action === "reject" ? "Rejecting…" : "Reject"}
               </FormButton>
               <FormButton
                 variant="green"
                 onClick={() => handleDecision("Accepted", close)}
                 disabled={saving || ticket.status === "Accepted"}
               >
-                {saving ? "Saving…" : "Accept"}
+                {saving && action === "accept" ? "Accepting…" : "Accept"}
               </FormButton>
             </>
           )}
@@ -192,19 +198,20 @@ export default function TicketDetailModal({
           value={title}
           onChange={setTitle}
           placeholder="Enter a title"
+          maxLength={255}
           readOnly={!canEdit}
         />
 
         <div className="flex gap-4">
           <TextInput
             label="Created By"
-            className="w-[40%] min-w-0"
+            className="flex-1 min-w-0"
             value={ticket.createdBy}
             readOnly
           />
           <Select
             label="Category"
-            className="w-[40%] min-w-0"
+            className="flex-1 min-w-0"
             value={categoryId}
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
@@ -214,7 +221,7 @@ export default function TicketDetailModal({
           />
           <DateInput
             label="Due Date"
-            className="w-[20%] min-w-0"
+            className="flex-1 min-w-0"
             value={dueDate}
             onChange={setDueDate}
             readOnly={!canEdit}
@@ -227,6 +234,7 @@ export default function TicketDetailModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           readOnly={!canEdit}
           grow
         />

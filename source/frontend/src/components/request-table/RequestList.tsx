@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { Select, TextInput } from "@/components/ui/field";
 import Icon from "@/components/ui/icon";
 import Pagination from "@/components/ui/pagination";
+import { PAGE_SIZE } from "@/lib/pagination";
 import {
   ListMessage,
   TableHeader,
@@ -82,6 +83,8 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   onPageChange,
   hasNext,
   totalPages,
+  totalResults,
+  pageSize = PAGE_SIZE,
   titles,
   gridClassName,
   onSelect,
@@ -101,6 +104,8 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   onPageChange: (page: number) => void;
   hasNext: boolean;
   totalPages: number;
+  totalResults: number;
+  pageSize?: number;
   titles: string[];
   gridClassName: string;
   onSelect: (row: T) => void;
@@ -118,11 +123,17 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   // header need more right space when scrollbar show
   const { listRef, hasOverflow } = useListOverflow([rows.length, loading]);
 
+  // Calculate displayed result range
+  const resultStart =
+    totalResults === 0 ? 0 : (filters.page - 1) * pageSize + 1;
+
+  const resultEnd = Math.min(filters.page * pageSize, totalResults);
+
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) p-3">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) px-3 pt-3">
+      <div className="mb-3 flex items-center gap-2">
         {/* type and create button */}
-        <h1 className="flex h-9 items-center gap-3 pl-4 text-lg font-semibold">
+        <h1 className="flex h-9 w-32 shrink-0 gap-2 items-center pl-4 text-lg font-semibold">
           {title}
           {canCreate && (
             <Button
@@ -130,15 +141,21 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
               size="circle"
               onClick={onCreate}
               aria-label={`Create new ${noun}`}
+              className="pb-0.5!"
             >
               +
             </Button>
           )}
         </h1>
 
-        <div className="flex h-9 items-center gap-2">
-          {/* searchbox */}
-          <div className="relative w-100">
+        <div className="flex h-9 flex-1 items-center gap-2">
+          <span className="w-40 shrink-0 text-sm font-medium text-gray-600 whitespace-nowrap">
+            {loading
+              ? "Loading results..."
+              : `Results ${resultStart}-${resultEnd} of ${totalResults}`}
+          </span>
+
+          <div className="relative min-w-0 flex-1">
             <TextInput
               ref={searchRef}
               look="panel"
@@ -157,6 +174,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
                 type="button"
                 onClick={() => {
                   setDraft("");
+                  onFilterChange({ search: "" });
                   searchRef.current?.focus();
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2"
@@ -169,7 +187,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <Select
             look="panel"
-            className="w-50"
+            className="w-35 shrink-0"
             value={filters.categoryId}
             placeholder={{ value: "All", label: "All categories" }}
             firstItem={{ value: "All", label: "All categories" }}
@@ -183,7 +201,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
           <Select
             look="panel"
-            className="w-50"
+            className="w-35 shrink-0"
             value={filters.status}
             placeholder={{ value: "All", label: "All statuses" }}
             firstItem={{ value: "All", label: "All statuses" }}
@@ -227,17 +245,19 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
           {!loading && !error && rows.length === 0 && (
             <ListMessage>No {noun} match your search.</ListMessage>
           )}
+
+          {/* floating page selection */}
+          <div className="pointer-events-none sticky bottom-0 mt-auto flex justify-center pb-2">
+            <Pagination
+              page={filters.page}
+              totalPages={totalPages}
+              hasNext={hasNext}
+              loading={loading}
+              onChange={onPageChange}
+            />
+          </div>
         </div>
       </div>
-
-      {/* footer for page selection */}
-      <Pagination
-        page={filters.page}
-        totalPages={totalPages}
-        hasNext={hasNext}
-        loading={loading}
-        onChange={onPageChange}
-      />
     </div>
   );
 }

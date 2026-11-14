@@ -1,114 +1,186 @@
-import { getKey, putJson, safe, type CacheContext } from "@/lib/cache/cache-storage";
+import {
+  buildHeaders,
+  getKey,
+  putJson,
+  safe,
+} from "@/lib/cache/cache-storage";
 
-export type FamilyContext<T> = CacheContext & {
-  familyKey: string;
-  ttlMs: number;
-  expirations: Map<string, number>;
-  initializations: Map<string, Promise<number>>;
-  fetchFresh: () => Promise<T>;
+export type FamilyPage = { key: string; offset: number; limit: number };
+
+export type Family = {
+  expiresAt: number;
+  count?: number;
+  pages: FamilyPage[];
 };
 
-export type FamilyResult<T> = { expiresAt: number; fresh?: { value: T } };
+export type Families = Map<string, Family>;
 
-export const getFamilyExpiry = async (
+const familyRequest = (familyKey: string): Request =>
+  getKey(`family:${familyKey}`);
+
+// save family record, expiry header so sweep can clean it too
+const persist = async (
   cache: Cache | null,
-  expirations: Map<string, number>,
   familyKey: string,
-): Promise<number | null> => {
-  const memoryExpiry = expirations.get(familyKey);
-
-  if (memoryExpiry !== undefined && memoryExpiry > Date.now()) {
-    return memoryExpiry;
-  }
-
-  expirations.delete(familyKey);
-
-  if (!cache) return null;
-
-  return safe<number | null>(async () => {
-    const request = getKey(`family:${familyKey}`);
-    const response = await cache.match(request);
-
-    if (!response) return null;
-
-    const { expiresAt } = (await response.json()) as {
-      expiresAt: number;
-    };
-
-    if (Number.isFinite(expiresAt) && expiresAt > Date.now()) {
-      expirations.set(familyKey, expiresAt);
-      return expiresAt;
-    }
-
-    await cache.delete(request);
-
-    return null;
-  }, null);
-};
-
-export const saveFamilyExpiry = async (
-  cache: Cache | null,
-  expirations: Map<string, number>,
-  familyKey: string,
-  expiresAt: number,
+  family: Family,
 ) => {
-  expirations.set(familyKey, expiresAt);
-
   if (!cache) return;
 
   await safe<void>(
     () =>
       putJson(
         cache,
-        getKey(`family:${familyKey}`),
-        { expiresAt },
-        { "Content-Type": "application/json" },
+        familyRequest(familyKey),
+        family,
+        buildHeaders(family.expiresAt),
       ),
     undefined,
   );
 };
 
-// leader fetch and set shared expiry, follower wait for leader
-export const resolveFamilyExpiry = async <T>(
-  ctx: FamilyContext<T>,
-): Promise<FamilyResult<T>> => {
-  const { cache, guard, familyKey, ttlMs, expirations, initializations } = ctx;
+// delete page entries from Cache API, tell caller so pending can drop them
+const removePages = async (
+  cache: Cache | null,
+  pages: FamilyPage[],
+  onPage: (key: string) => void,
+) => {
+  pages.forEach((page) => onPage(page.key));
 
-  const known = await getFamilyExpiry(cache, expirations, familyKey);
+  if (!cache) return;
 
-  if (known !== null) return { expiresAt: known };
+  const store = cache;
 
-  const running = initializations.get(familyKey);
+  await Promise.all(
+    pages.map((page) =>
+      safe<boolean>(() => store.delete(getKey(page.key)), false),
+    ),
+  );
+};
 
-  if (running) return { expiresAt: await running };
+// raw record from memory or Cache API, caller check expiry
+export const getFamily = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+): Promise<Family | null> => {
+  const known = families.get(familyKey);
 
-  let resolveInit!: (value: number) => void;
-  let rejectInit!: (reason: unknown) => void;
+  if (known) return known;
 
-  const initialization = new Promise<number>((resolve, reject) => {
-    resolveInit = resolve;
-    rejectInit = reject;
-  });
+  if (!cache) return null;
 
-  initializations.set(familyKey, initialization);
+  const store = cache;
 
-  try {
-    const value = await ctx.fetchFresh();
-    const expiresAt = Date.now() + ttlMs;
+  return safe<Family | null>(async () => {
+    const request = familyRequest(familyKey);
+    const response = await store.match(request);
 
-    if (guard.isSameGeneration()) {
-      await saveFamilyExpiry(cache, expirations, familyKey, expiresAt);
+    if (!response) return null;
+
+    const family = (await response.json()) as Family;
+
+    if (!Number.isFinite(family.expiresAt) || !Array.isArray(family.pages)) {
+      await store.delete(request);
+      return null;
     }
 
-    resolveInit(expiresAt);
+    // another request may fill memory while we read
+    const current = families.get(familyKey);
 
-    return { expiresAt, fresh: { value } };
-  } catch (error) {
-    rejectInit(error);
-    throw error;
-  } finally {
-    if (initializations.get(familyKey) === initialization) {
-      initializations.delete(familyKey);
-    }
-  }
+    if (current) return current;
+
+    families.set(familyKey, family);
+
+    return family;
+  }, null);
+};
+
+// get or create, so parallel first requests share one record
+export const createFamily = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+  expiresAt: number,
+): Promise<Family> => {
+  const current = families.get(familyKey);
+
+  if (current && current.expiresAt > Date.now()) return current;
+
+  const family: Family = { expiresAt, pages: [] };
+
+  families.set(familyKey, family);
+
+  await persist(cache, familyKey, family);
+
+  return family;
+};
+
+export const addPage = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+  page: FamilyPage,
+  count?: number,
+) => {
+  const family = families.get(familyKey);
+
+  if (!family) return;
+
+  const index = family.pages.findIndex((item) => item.key === page.key);
+  const same =
+    index >= 0 &&
+    family.pages[index].offset === page.offset &&
+    family.pages[index].limit === page.limit;
+  const baseline = family.count === undefined && count !== undefined;
+
+  if (same && !baseline) return;
+
+  if (index >= 0) family.pages[index] = page;
+  else family.pages.push(page);
+
+  if (baseline) family.count = count;
+
+  await persist(cache, familyKey, family);
+};
+
+// remove whole family and its pages (expired)
+export const dropFamily = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+  family: Family,
+  onPage: (key: string) => void,
+) => {
+  if (families.get(familyKey) === family) families.delete(familyKey);
+
+  await removePages(cache, family.pages, onPage);
+
+  // new family may born while deleting, don't remove its record
+  if (!cache || families.has(familyKey)) return;
+
+  const store = cache;
+
+  await safe<boolean>(() => store.delete(familyRequest(familyKey)), false);
+};
+
+// count changed, keep only newest page and set new baseline
+export const resetFamily = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+  count: number,
+  keepKey: string,
+  onPage: (key: string) => void,
+) => {
+  const family = families.get(familyKey);
+
+  if (!family) return;
+
+  const dropped = family.pages.filter((page) => page.key !== keepKey);
+
+  family.pages = family.pages.filter((page) => page.key === keepKey);
+  family.count = count;
+
+  await removePages(cache, dropped, onPage);
+  await persist(cache, familyKey, family);
 };

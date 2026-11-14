@@ -37,7 +37,7 @@ export default function DeleteAnnouncementModal({
       error={error}
       footer={(close) => (
         <>
-          <FormButton variant="green" onClick={close} disabled={saving}>
+          <FormButton variant="outline-white" onClick={close} disabled={saving}>
             Cancel
           </FormButton>
           <FormButton
@@ -50,20 +50,20 @@ export default function DeleteAnnouncementModal({
         </>
       )}
     >
-      <div className="flex flex-col gap-3">
-        <h2 className="text-2xl font-bold wrap-break-word">
+      <div className="flex flex-col w-full">
+        <h1 className="wrap-break-word text-xl font-bold text-black">
           {renderWithLinks(announcement.name)}
-        </h2>
+        </h1>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
-          <span className="flex items-center gap-2">
-            <Icon src="/user.svg" className="h-auto w-4 shrink-0" />
-            {authorName}
-          </span>
-
+        <div className="flex flex-wrap items-center gap-x-6 pt-2 text-sm text-gray-600">
           <span className="flex items-center gap-2">
             <Icon src="/clock.svg" className="h-auto w-4 shrink-0" />
             {formatFullDateTime(announcement.created)}
+          </span>
+
+          <span className="flex items-center gap-2">
+            <Icon src="/account.svg" className="h-auto w-4 shrink-0" />
+            {authorName}
           </span>
         </div>
 

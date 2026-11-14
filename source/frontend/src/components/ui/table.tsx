@@ -97,9 +97,11 @@ export function ListMessage({ children }: { children: ReactNode }) {
 
 // separator line + button. disabled while the list is refetching
 export function LoadMoreButton({
+  label = "Load more",
   disabled,
   onClick,
 }: {
+  label?: string;
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -114,7 +116,7 @@ export function LoadMoreButton({
           disabled ? "bg-gray-100" : "bg-white hover:bg-gray-100"
         }`}
       >
-        Load More
+        {label}
       </button>
     </div>
   );

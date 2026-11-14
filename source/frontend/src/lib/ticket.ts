@@ -97,6 +97,11 @@ export const getTickets = cached(
   TICKETS_CACHE_TTL,
   "tickets",
   withoutPagination,
+  (result, limit) => ({
+    ...result,
+    Tickets: result.Tickets.slice(0, limit),
+  }),
+  (r) => r.TicketCount,
 );
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
@@ -223,6 +228,7 @@ export function useTickets(
     tickets: list.rows,
     ticketsHasNext: list.hasNext,
     ticketsTotalPages: list.totalPages,
+    ticketsTotalResults: list.totalResults,
     ticketsLoading: list.loading,
     ticketsError: list.error,
     reloadTickets: list.reload,

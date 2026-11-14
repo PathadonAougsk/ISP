@@ -14,7 +14,7 @@ import {
 import Button from "@/components/ui/button";
 import ConfirmModal from "@/components/ui/confirm-modal";
 import { Select, TextInput } from "@/components/ui/field";
-import { LABEL, MUTED } from "./settings-style";
+import { MUTED } from "./settings-style";
 
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
 
@@ -83,43 +83,41 @@ function ResetForm({
       </p>
 
       <div className="grid grid-cols-3 gap-3">
-        <label className={LABEL}>
-          New email
-          <TextInput
-            look="outlined"
-            autoFocus
-            type="email"
-            value={email}
-            onChange={setEmail}
-            disabled={busy}
-            placeholder={member.email}
-          />
-        </label>
-        <label className={LABEL}>
-          New password
-          <TextInput
-            look="outlined"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            disabled={busy}
-            maxLength={72}
-            autoComplete="new-password"
-            placeholder={`at least ${MIN_PASSWORD} characters`}
-          />
-        </label>
-        <label className={LABEL}>
-          Your own password
-          <TextInput
-            look="outlined"
-            type="password"
-            value={myPassword}
-            onChange={setMyPassword}
-            disabled={busy}
-            autoComplete="current-password"
-            placeholder="••••••••"
-          />
-        </label>
+        <TextInput
+          label="New email"
+          look="outlined"
+          autoFocus
+          type="email"
+          value={email}
+          onChange={setEmail}
+          disabled={busy}
+          placeholder={member.email}
+          maxLength={255}
+        />
+        <TextInput
+          label="New password"
+          look="outlined"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          disabled={busy}
+          maxLength={72}
+          showCounter={false}
+          autoComplete="new-password"
+          placeholder={`at least ${MIN_PASSWORD} characters`}
+        />
+        <TextInput
+          label="Your own password"
+          look="outlined"
+          type="password"
+          value={myPassword}
+          onChange={setMyPassword}
+          disabled={busy}
+          autoComplete="current-password"
+          placeholder="••••••••"
+          maxLength={72}
+          showCounter={false}
+        />
       </div>
 
       <div className="flex items-center gap-3">
@@ -215,14 +213,18 @@ export default function MemberRow({
   }
 
   return (
-    <div className="flex flex-col rounded-[20px] bg-white px-4">
-      <div className={`${cols} items-center gap-3 py-2`}>
-        <span className="truncate">
-          {member.username}
-          {isMe && <span className={MUTED}> (You)</span>}
+    <div className="flex min-h-10 flex-col justify-center rounded-full bg-white pl-4 pr-2 py-1">
+      <div className={`${cols} text-sm items-center gap-3`}>
+        <span className="flex min-w-0 items-center">
+          <span className="truncate" title={member.username}>
+            {member.username}
+          </span>
+          {isMe && <span className={`${MUTED} shrink-0 ml-1`}>(You)</span>}
         </span>
 
-        <span className="truncate">{email}</span>
+        <span className="truncate" title={email}>
+          {email}
+        </span>
 
         {canEdit ? (
           <Select
@@ -245,7 +247,7 @@ export default function MemberRow({
         {canEdit ? (
           quotaDraft !== null ? (
             <TextInput
-              look="outlined"
+              look="outlined-sm"
               autoFocus
               type="number"
               min={0}
@@ -265,35 +267,35 @@ export default function MemberRow({
           ) : (
             <Button
               variant="outline"
-              size="md"
+              size="base"
               disabled={busy}
               onClick={() =>
                 setQuotaDraft(member.quota === null ? "" : String(member.quota))
               }
               title="Ticket quota. Leave it blank for no cap."
-              className="w-full font-normal"
+              className="h-8 w-full font-normal text-sm text-center"
             >
               {member.quota ?? "No cap"}
             </Button>
           )
         ) : (
-          <span className="text-right">{member.quota ?? "-"}</span>
+          <span className="text-center">{member.quota ?? "-"}</span>
         )}
 
         {canEdit ? (
           <Button
-            variant="outline"
-            size="md"
+            variant="outline-white"
+            size="sm"
             disabled={busy}
             onClick={() =>
               member.active ? openConfirm("deactivate") : setActive(true)
             }
-            className="w-full font-normal"
+            className="w-full font-medium text-base"
           >
             {member.active ? "Deactivate" : "Activate"}
           </Button>
         ) : (
-          <span className="text-right">
+          <span className="text-center">
             {member.active ? "Active" : "Inactive"}
           </span>
         )}
@@ -302,12 +304,12 @@ export default function MemberRow({
           <div className="flex justify-end">
             {canEdit && (
               <Button
-                variant="outline"
-                size="md"
+                variant="outline-white"
+                size="sm"
                 disabled={busy}
                 onClick={onToggleReset}
                 title="Set a new email or password for this member."
-                className="w-full font-semibold"
+                className="w-full font-medium text-base"
               >
                 {resetOpen ? "Cancel" : "Reset"}
               </Button>
@@ -320,7 +322,7 @@ export default function MemberRow({
             {canEdit && (
               <Button
                 variant="red"
-                size="md"
+                size="sm"
                 disabled={busy}
                 onClick={() => openConfirm("delete")}
                 className="w-full font-bold"

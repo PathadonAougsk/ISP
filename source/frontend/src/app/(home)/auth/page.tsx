@@ -60,35 +60,37 @@ function AuthForm() {
         <div className="mb-6 flex">
           <div
             className={
-              "flex-1 py-4 text-sm tracking-wide bg-white text-gray-800 text-center"
+              "flex-1 py-4 text-sm tracking-wide bg-white text-black text-center"
             }
           >
             <h1 className="font-bold text-3xl">Welcome Back!</h1>
-            <h1 className="text-xs">Enter your credentials below to get started</h1>
+            <h1 className="text-xs text-(--primary-color-deep)">
+              Enter your credentials below to get started
+            </h1>
             <div />
           </div>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-base uppercase text-gray-600 ">
+          <label className="flex flex-col gap-1 text-base text-(--primary-color-deep)">
             Email
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none border border-gray-300 rounded-xl focus:border-black"
+              className="bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)"
               placeholder="you@example.com"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-base uppercase text-gray-600">
+          <label className="flex flex-col gap-1 text-base text-(--primary-color-deep)">
             Password
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none focus:border-black border border-gray-300 rounded-xl"
+              className="bg-(--panel-bg) px-3 py-2 text-black outline-none focus:border-(--primary-color-1) border border-(--panel-bg-hover) rounded-xl"
               placeholder="••••••••"
             />
           </label>
@@ -96,7 +98,7 @@ function AuthForm() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 bg-[#90C8AC] py-2 text-lg font-semibold text-white hover:bg-[#73A9AD] hover:text-black disabled:opacity-50 rounded-[30px]"
+            className="mt-2 bg-(--primary-color-2) py-2 text-white text-lg font-semibold hover:bg-(--primary-color-2-hover) disabled:opacity-50 rounded-[30px]"
           >
             {loading ? "Working..." : "Login"}
           </button>
@@ -110,14 +112,16 @@ function AuthForm() {
           }`}
         >
           {deactivated && !error && (
-            <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-              Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
+            <div className="border-2 border-dashed border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)">
+              Your account has been deactivated. Ask a Lab Owner or Lab Admin to
+              turn it back on.
             </div>
           )}
 
           {error && (
-            <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-              The email or password you entered is incorrect. If you need to reset your credentials, please contact your Lab Owner.
+            <div className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)">
+              The email or password you entered is incorrect. If you need to
+              reset your credentials, please contact your Lab Owner.
             </div>
           )}
         </div>

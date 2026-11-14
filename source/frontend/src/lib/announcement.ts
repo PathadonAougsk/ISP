@@ -50,6 +50,7 @@ export const getAnnouncements = cached(
   ANNOUNCEMENTS_CACHE_TTL,
   "announcements",
   withoutPagination,
+  (result, limit) => result.slice(0, limit),
 );
 
 export async function createAnnouncement(

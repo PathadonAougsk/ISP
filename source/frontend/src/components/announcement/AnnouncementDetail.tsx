@@ -28,13 +28,13 @@ export default function AnnouncementDetail({
 
   return (
     <div className="flex h-full flex-col overflow-y-auto rounded-t-[15px] bg-white p-4">
-      <h2 className="text-2xl font-bold wrap-break-word">
+      <h1 className="text-2xl font-bold wrap-break-word">
         {renderWithLinks(announcement.name)}
-      </h2>
+      </h1>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
+      <div className="mt-3 flex flex-wrap items-center gap-x-12 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-2">
-          <Icon src="/user.svg" className="h-auto w-4 shrink-0" />
+          <Icon src="/account.svg" className="h-auto w-4 shrink-0" />
           {authorName}
         </span>
 
@@ -42,29 +42,29 @@ export default function AnnouncementDetail({
           <Icon src="/clock.svg" className="h-auto w-4 shrink-0" />
           {formatFullDateTime(announcement.created)}
         </span>
-
-        {canManage && (
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="green"
-              size="sm"
-              onClick={onEdit}
-              className="w-15 font-semibold"
-            >
-              Edit
-            </Button>
-
-            <Button
-              variant="red"
-              size="sm"
-              onClick={onDelete}
-              className="w-15 font-semibold"
-            >
-              Delete
-            </Button>
-          </div>
-        )}
       </div>
+
+      {canManage && (
+        <div className="mt-3 flex justify-start gap-2">
+          <Button
+            variant="outline-white"
+            size="sm"
+            onClick={onEdit}
+            className="w-15 font-semibold"
+          >
+            Edit
+          </Button>
+
+          <Button
+            variant="outline-white"
+            size="sm"
+            onClick={onDelete}
+            className="w-15 font-semibold"
+          >
+            Delete
+          </Button>
+        </div>
+      )}
 
       <SlideupDescription description={announcement.description} />
     </div>

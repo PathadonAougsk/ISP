@@ -19,6 +19,8 @@ export default function CreateAnnouncementModal({
   onClose: () => void;
   onSubmit: (input: CreateAnnouncementInput) => Promise<void>;
 }) {
+  const isEdit = Boolean(announcement);
+
   // announcement given = edit mode, prefill
   const [name, setName] = useState(announcement?.name ?? "");
   const [description, setDescription] = useState(
@@ -42,7 +44,7 @@ export default function CreateAnnouncementModal({
 
   return (
     <FormModal
-      title={announcement ? "Edit announcement" : "Create new announcement"}
+      title={isEdit ? "Edit announcement" : "Create new announcement"}
       onClose={onClose}
       error={error}
       footer={(close) => (
@@ -51,7 +53,13 @@ export default function CreateAnnouncementModal({
           onClick={() => handleSubmit(close)}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Submit"}
+          {isEdit
+            ? saving
+              ? "Saving…"
+              : "Save"
+            : saving
+              ? "Creating…"
+              : "Create"}
         </FormButton>
       )}
     >
@@ -68,6 +76,7 @@ export default function CreateAnnouncementModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           grow
         />
       </FormColumn>

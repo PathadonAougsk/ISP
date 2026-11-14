@@ -1,6 +1,5 @@
 import {
   isMissingItem,
-  withMore,
   type GroupState,
 } from "@/components/dashboard/dashboard-data";
 
@@ -30,38 +29,29 @@ export default function Missing({
 
   const now = new Date();
 
-  const overdueTasks = myTasks.items.filter((task) =>
+  const overdueTasks = myTasks.all.filter((task) =>
     isMissingItem(task, ["in_progress"], now),
   ).length;
 
-  const overduePendingTickets = myPendingTickets.items.filter((ticket) =>
+  const overduePendingTickets = myPendingTickets.all.filter((ticket) =>
     isMissingItem(ticket, ["pending"], now),
   ).length;
-
-  // the extra item can be overdue too
-  const moreTasks =
-    myTasks.overflow !== null &&
-    isMissingItem(myTasks.overflow, ["in_progress"], now);
-
-  const morePendingTickets =
-    myPendingTickets.overflow !== null &&
-    isMissingItem(myPendingTickets.overflow, ["pending"], now);
 
   const sections = [
     {
       label: "Overdue Tasks",
-      value: withMore(overdueTasks, moreTasks),
-      visible: overdueTasks > 0 || moreTasks,
+      value: overdueTasks,
+      visible: overdueTasks > 0,
     },
     {
       label: "Rejected Tickets",
-      value: myRejectedTickets.count,
+      value: myRejectedTickets.all.length,
       visible: myRejectedTickets.all.length > 0,
     },
     {
       label: "Overdue Pending Tickets",
-      value: withMore(overduePendingTickets, morePendingTickets),
-      visible: overduePendingTickets > 0 || morePendingTickets,
+      value: overduePendingTickets,
+      visible: overduePendingTickets > 0,
     },
   ];
 

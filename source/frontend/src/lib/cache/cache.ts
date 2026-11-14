@@ -1,11 +1,19 @@
-import { getUserId } from "@/lib/cache/cache-utils";
-import { resolveFamilyExpiry } from "@/lib/cache/cache-family";
+import { getPaging, getUserId } from "@/lib/cache/cache-utils";
+import {
+  addPage,
+  createFamily,
+  dropFamily,
+  getFamily,
+  resetFamily,
+  type Families,
+  type Family,
+} from "@/lib/cache/cache-family";
 import {
   getCache,
   getKey,
-  isFresh,
   readResult,
   saveResult,
+  sweepExpired,
   type CacheContext,
 } from "@/lib/cache/cache-storage";
 
@@ -13,9 +21,8 @@ export { withoutPagination } from "@/lib/cache/cache-utils";
 
 type Entry<T> = {
   promise: Promise<T>;
-  at: number;
+  expiresAt: number;
   settled: boolean;
-  expiresAt?: number;
 };
 
 const CACHE_PREFIX = "api-cache";
@@ -30,7 +37,8 @@ let cacheInitialization: Promise<void> | null = null;
 
 export function initializeApiCache(): Promise<void> {
   if (!cacheInitialization) {
-    cacheInitialization = clearAllApiCache();
+    // persist across reload, only remove expired
+    cacheInitialization = sweepExpired(`${CACHE_PREFIX}-`);
   }
 
   return cacheInitialization;
@@ -59,10 +67,11 @@ export function cached<A extends unknown[], T>(
   ttlMs: number,
   name: string,
   family?: (...args: A) => string,
+  slice?: (result: T, limit: number) => T,
+  total?: (result: T) => number | undefined,
 ) {
   const pending = new Map<string, Entry<T>>();
-  const familyExpirations = new Map<string, number>();
-  const familyInitializations = new Map<string, Promise<number>>();
+  const families: Families = new Map();
   const cacheName = `${CACHE_PREFIX}-${name}`;
 
   // bump on every clear(), so old requests can't save stale results
@@ -83,14 +92,10 @@ export function cached<A extends unknown[], T>(
 
     const hit = pending.get(key);
 
-    if (
-      hit &&
-      (!hit.settled ||
-        (familyKey
-          ? hit.expiresAt !== undefined && Date.now() < hit.expiresAt
-          : Date.now() - hit.at < ttlMs))
-    ) {
-      return hit.promise;
+    if (hit) {
+      if (!hit.settled || hit.expiresAt > Date.now()) return hit.promise;
+
+      pending.delete(key);
     }
 
     const startedGeneration = generation;
@@ -114,53 +119,119 @@ export function cached<A extends unknown[], T>(
 
         const fetchFresh = () => fn(...args);
 
-        // read cache, else fetch and save
-        const readOrFetch = async (
-          isValid: (response: Response) => boolean,
-          expiresAt?: number,
-        ): Promise<T> => {
-          const cached = await readResult<T>(ctx, isValid);
-
-          if (cached.hit) return cached.value as T;
-
-          const result = await fetchFresh();
-
-          await saveResult(ctx, result, expiresAt);
-
-          return result;
+        // drop settled page from pending, never the current one
+        const evict = (pageKey: string) => {
+          if (pageKey !== key && pending.get(pageKey)?.settled) {
+            pending.delete(pageKey);
+          }
         };
 
-        const runFamily = async (familyKey: string): Promise<T> => {
-          // First request establishes the shared expiration
-          const { expiresAt, fresh } = await resolveFamilyExpiry({
-            ...ctx,
-            familyKey,
-            ttlMs,
-            expirations: familyExpirations,
-            initializations: familyInitializations,
-            fetchFresh,
-          });
+        // 1. expiry from family record, own ttl if no family
+        let family: Family | null = null;
 
-          entry.expiresAt = expiresAt;
+        if (familyKey) {
+          family = await getFamily(cache, families, familyKey);
 
-          if (fresh) {
-            await saveResult(ctx, fresh.value, expiresAt);
-            return fresh.value;
+          if (family && family.expiresAt <= Date.now()) {
+            await dropFamily(cache, families, familyKey, family, evict);
+            family = null;
           }
 
-          // Try the exact request cache entry
-          return readOrFetch(
-            (response) => isFresh(response, ttlMs, expiresAt),
-            expiresAt,
-          );
+          if (!family) {
+            family = await createFamily(
+              cache,
+              families,
+              familyKey,
+              Date.now() + ttlMs,
+            );
+          }
+
+          // clear() landed meanwhile, skip cache
+          if (!ctx.guard.isSameGeneration()) return fetchFresh();
+        }
+
+        const expiresAt = family ? family.expiresAt : Date.now() + ttlMs;
+
+        entry.expiresAt = expiresAt;
+
+        const paging = getPaging(args);
+        const page = {
+          key,
+          offset: paging?.offset ?? 0,
+          limit: paging?.limit ?? Number.MAX_SAFE_INTEGER,
         };
 
-        if (familyKey) return runFamily(familyKey);
+        // 2. bigger entry, same offset, is authoritative
+        if (family && slice && paging) {
+          for (const other of [...family.pages]) {
+            if (other.offset !== paging.offset || other.limit <= paging.limit) {
+              continue;
+            }
 
-        // Original independent expiration behavior
-        return readOrFetch((response) => isFresh(response, ttlMs));
+            const inMemory = pending.get(other.key);
+
+            if (inMemory?.settled) {
+              if (inMemory.expiresAt > Date.now()) {
+                return slice(await inMemory.promise, paging.limit);
+              }
+
+              pending.delete(other.key);
+            }
+
+            const bigger = await readResult<T>({
+              cache,
+              request: cache ? getKey(other.key) : null,
+              guard: ctx.guard,
+            });
+
+            if (bigger.hit) return slice(bigger.value as T, paging.limit);
+          }
+        }
+
+        // 3. exact entry
+        const exact = await readResult<T>(ctx);
+
+        if (exact.hit) {
+          // hit never extend expiry
+          if (!family && exact.expiresAt !== undefined) {
+            entry.expiresAt = exact.expiresAt;
+          }
+
+          if (familyKey && family && ctx.guard.isSameGeneration()) {
+            await addPage(cache, families, familyKey, page);
+          }
+
+          return exact.value as T;
+        }
+
+        // 4. fetch and save
+        const result = await fetchFresh();
+
+        await saveResult(ctx, result, expiresAt);
+
+        if (
+          familyKey &&
+          family &&
+          ctx.guard.isSameGeneration() &&
+          families.get(familyKey) === family
+        ) {
+          const count = total?.(result);
+
+          // total changed = dataset changed, keep only this page
+          if (
+            count !== undefined &&
+            family.count !== undefined &&
+            count !== family.count
+          ) {
+            await resetFamily(cache, families, familyKey, count, key, evict);
+          }
+
+          await addPage(cache, families, familyKey, page, count);
+        }
+
+        return result;
       }),
-      at: Date.now(),
+      expiresAt: Date.now() + ttlMs,
       settled: false,
     };
 
@@ -169,7 +240,6 @@ export function cached<A extends unknown[], T>(
     entry.promise.then(
       () => {
         entry.settled = true;
-        entry.at = Date.now();
       },
       () => {
         if (pending.get(key) === entry) {
@@ -183,8 +253,7 @@ export function cached<A extends unknown[], T>(
 
   wrapped.clear = (): Promise<void> => {
     pending.clear();
-    familyExpirations.clear();
-    familyInitializations.clear();
+    families.clear();
     generation += 1;
 
     if (typeof window !== "undefined" && "caches" in window) {

@@ -42,43 +42,67 @@ function autoSlash(raw: string) {
 }
 
 // Typed as dd/mm/yyyy, held as "yyyy-MM-dd". Past dates are refused, and the
-// calendar button opens the native picker.
+// calendar button opens the native picker. Invalid input shows a message
+// below the box and is reported to the parent through onValidityChange.
 export default function DateInput({
   label,
   value,
   onChange,
+  onValidityChange,
   look = "filled",
   readOnly = false,
   readOnlyText = "",
   className = "",
 }: {
   label?: string;
-  value: string; // "yyyy-MM-dd" or ""
+  value: string;
   onChange: (value: string) => void;
+  onValidityChange?: (invalid: boolean) => void;
   look?: FieldLook;
   readOnly?: boolean;
   readOnlyText?: string;
   className?: string;
 }) {
   const [draft, setDraft] = useState(toDisplay(value));
+  const [touched, setTouched] = useState(false);
+  const [focused, setFocused] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const today = todayIso();
 
-  // Follow the value when it changes from outside (e.g. the calendar picker)
   useEffect(() => {
     setDraft(toDisplay(value));
   }, [value]);
 
+  const typedIso = toIso(draft);
+  const invalid =
+    touched && draft !== "" && (typedIso === null || typedIso < today);
+
+  let message: string | null = null;
+  if (invalid) {
+    if (typedIso !== null) {
+      message = "Due date can't be in the past.";
+    } else if (draft.length === 10) {
+      message = "This date doesn't exist.";
+    } else {
+      message = "Enter a full date as dd/mm/yyyy.";
+    }
+  }
+
+  useEffect(() => {
+    onValidityChange?.(invalid);
+  }, [invalid, onValidityChange]);
+
   function handleType(raw: string) {
     const formatted = autoSlash(raw);
+    setTouched(true);
     setDraft(formatted);
 
     if (formatted === "") {
       onChange("");
       return;
     }
+
     const iso = toIso(formatted);
-    // past date not allowed, so skip it (iso string compare is ok)
     if (iso && iso >= today) onChange(iso);
   }
 
@@ -86,45 +110,59 @@ export default function DateInput({
     <ReadOnlyBox>{readOnlyText}</ReadOnlyBox>
   ) : (
     <div className={`relative ${label === undefined ? className : ""}`}>
-      <input
-        type="text"
-        inputMode="numeric"
-        placeholder="dd/mm/yyyy"
-        value={draft}
-        onChange={(event) => handleType(event.target.value)}
-        // Half-typed or invalid text goes back to the last valid date
-        onBlur={() => setDraft(toDisplay(value))}
-        className={`${INPUT_LOOK[look]} pr-10`}
-      />
+      <div className="relative">
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder="dd/mm/yyyy"
+          value={draft}
+          onChange={(event) => handleType(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          aria-invalid={invalid}
+          className={`${INPUT_LOOK[look]} rounded-[20px] pr-10 ${
+            invalid ? "ring-1 ring-inset ring-red-500" : ""
+          }`}
+        />
 
-      <button
-        type="button"
-        onClick={() => pickerRef.current?.showPicker()}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-800"
-        aria-label="Open calendar"
-      >
-        <Icon src="/calendar.svg" className="h-5 w-5" />
-      </button>
+        <button
+          type="button"
+          onClick={() => pickerRef.current?.showPicker()}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-800"
+          aria-label="Open calendar"
+        >
+          <Icon src="/calendar.svg" className="h-5 w-5" />
+        </button>
 
-      {/* Hidden native picker, only used for the calendar popup */}
-      <input
-        ref={pickerRef}
-        type="date"
-        value={value}
-        min={today}
-        onChange={(event) => onChange(event.target.value)}
-        tabIndex={-1}
-        aria-hidden
-        className="pointer-events-none absolute right-0 bottom-0 h-0 w-0 opacity-0"
-      />
+        {/* Hidden native picker, only used for the calendar popup */}
+        <input
+          ref={pickerRef}
+          type="date"
+          value={value}
+          min={today}
+          onChange={(event) => {
+            setDraft(toDisplay(event.target.value));
+            onChange(event.target.value);
+          }}
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none absolute right-0 bottom-0 h-0 w-0 opacity-0"
+        />
+      </div>
     </div>
   );
 
   return label === undefined ? (
-    field
+    <>
+      {field}
+      {message && <p className="mt-1 text-xs text-red-500">{message}</p>}
+    </>
   ) : (
     <Field label={label} className={className}>
-      {field}
+      <div>
+        {field}
+        {message && <p className="mt-1 text-xs text-red-500">{message}</p>}
+      </div>
     </Field>
   );
 }

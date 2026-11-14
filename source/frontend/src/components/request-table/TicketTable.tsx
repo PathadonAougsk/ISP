@@ -41,6 +41,7 @@ export default function TicketTable({
   onPageChange,
   hasNext,
   totalPages,
+  totalResults,
   onSelect,
   onCreate,
   canCreate,
@@ -54,6 +55,7 @@ export default function TicketTable({
   onPageChange: (page: number) => void;
   hasNext: boolean;
   totalPages: number;
+  totalResults: number;
   onSelect: (ticket: TicketRow) => void;
   onCreate: () => void;
   canCreate: boolean;
@@ -74,6 +76,7 @@ export default function TicketTable({
       onPageChange={onPageChange}
       hasNext={hasNext}
       totalPages={totalPages}
+      totalResults={totalResults}
       titles={titles}
       gridClassName={gridClassName}
       onSelect={onSelect}

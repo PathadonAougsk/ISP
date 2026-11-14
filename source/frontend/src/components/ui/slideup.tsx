@@ -98,7 +98,7 @@ export function Slideup({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className={`slideup-panel absolute bottom-0 left-[10%] flex h-[90%] w-[80%] flex-col rounded-t-[30px] bg-white px-5 pt-5 pb-2 outline-none ${
+        className={`slideup-panel absolute bottom-0 left-[10%] flex max-h-200 h-[90%] w-[80%] flex-col rounded-t-[30px] bg-white px-5 pt-5 pb-2 outline-none ${
           isClosing ? "slidedown-panel" : ""
         }`}
       >

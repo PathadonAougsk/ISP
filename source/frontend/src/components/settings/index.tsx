@@ -40,19 +40,23 @@ export default function Settings({
     ),
     Category: <Categories isAdmin={isAdmin} />,
     Member: <Member account={account} isAdmin={isAdmin} />,
-    Log: <Log isAdmin={isAdmin} accountLoading={loading} />,
+    Log: <Log accountLoading={loading} />,
   };
 
   return (
-    <Modal onClose={onClose} className="flex h-[92vh] w-[92vw]">
+    <Modal onClose={onClose} className="flex h-[85vh] w-[85vw]">
       {(close) => (
         <>
-          <Sidebar
-            username={account?.username}
-            role={account?.role}
-            active={active}
-            onSelect={setActive}
-          />
+          {/* fixed width holder, sidebar overlay inside so no push */}
+          <div className="relative w-75 shrink-0 max-[1100px]:w-16">
+            <Sidebar
+              username={account?.username}
+              role={account?.role}
+              active={active}
+              onSelect={setActive}
+              isAdmin={isAdmin}
+            />
+          </div>
 
           {/* Content */}
           <div className="flex min-w-0 flex-1 flex-col">

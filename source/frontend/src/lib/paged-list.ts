@@ -5,6 +5,7 @@ import { loadLookups, type Lookups } from "@/lib/lookup";
 import { PAGE_SIZE, pageParams, splitPage } from "@/lib/pagination";
 
 export type PagedList<Row> = {
+  totalResults: number;
   rows: Row[];
   hasNext: boolean;
   totalPages: number;
@@ -15,6 +16,7 @@ export type PagedList<Row> = {
 };
 
 type State<Row> = {
+  totalResults: number;
   rows: Row[];
   hasNext: boolean;
   totalPages: number;
@@ -28,6 +30,7 @@ const INITIAL: State<never> = {
   rows: [],
   hasNext: false,
   totalPages: 0,
+  totalResults: 0,
   loading: true,
   error: null,
   loadedPage: 0,
@@ -77,6 +80,7 @@ export function usePagedList<Raw, Row>(
           rows: rows.map((raw) => mapRef.current(raw, lookups)),
           hasNext,
           totalPages: Math.ceil(body.count / PAGE_SIZE),
+          totalResults: body.count,
           loading: false,
           error: null,
           loadedPage: page,
@@ -103,6 +107,7 @@ export function usePagedList<Raw, Row>(
     rows: state.rows,
     hasNext: state.hasNext,
     totalPages: state.totalPages,
+    totalResults: state.totalResults,
     loading: state.loading || state.loadedPage !== page,
     error: state.error,
     reload,

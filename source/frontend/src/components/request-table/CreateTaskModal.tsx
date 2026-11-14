@@ -71,7 +71,7 @@ export default function CreateTaskModal({
           onClick={() => handleCreate(close)}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Submit"}
+          {saving ? "Creating…" : "Create"}
         </FormButton>
       )}
     >
@@ -82,6 +82,7 @@ export default function CreateTaskModal({
           value={title}
           onChange={setTitle}
           placeholder="Enter a title"
+          maxLength={255}
         />
         <div className="flex gap-3">
           <div className="w-1/2">
@@ -104,6 +105,7 @@ export default function CreateTaskModal({
           value={description}
           onChange={setDescription}
           placeholder="Add more details"
+          maxLength={1000}
           grow
         />
       </FormColumn>
