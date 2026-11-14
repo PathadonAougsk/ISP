@@ -135,12 +135,11 @@ export default function AnnouncementPage() {
           <Button
             variant="green"
             size="circle"
-            onClick={() => setCreating(true)}
+            icon="/plus.svg"
+            iconColor="white"
             aria-label="Create new announcement"
-            className="font-semibold"
-          >
-            +
-          </Button>
+            onClick={() => setCreating(true)}
+          />
         </div>
       )}
 

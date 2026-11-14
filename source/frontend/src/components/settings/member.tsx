@@ -33,7 +33,7 @@ const ROLE_ORDER: Record<AccountRole, number> = {
 
 // fr cols. grid! because HEAD is flex. admin has 2 more action cols
 const COLS_ADMIN =
-  "grid! grid-cols-[2fr_2fr_minmax(110px,1.2fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_minmax(80px,0.8fr)_minmax(80px,0.8fr)]";
+  "grid! grid-cols-[2fr_2fr_minmax(110px,1.2fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)_24px_24px]";
 
 const COLS_USER =
   "grid! grid-cols-[2fr_2fr_minmax(110px,1.2fr)_minmax(100px,0.75fr)_minmax(100px,0.75fr)]";

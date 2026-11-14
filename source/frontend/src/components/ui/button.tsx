@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import Icon from "@/components/ui/icon";
 
 // Colours. globals.css already gives every button a pointer cursor and a
 // default cursor while disabled, so only the look lives here.
@@ -28,8 +29,19 @@ const SIZE = {
   md: "h-10 text-base",
   lg: "h-10 px-5 text-lg",
   // the round "+" that opens a create form
-  circle: "h-9 w-9 text-2xl",
+  circle: "h-8 w-8",
 } as const;
+
+const ICON_SIZE: Record<ButtonSize, string> = {
+  sm: "h-4 w-auto",
+  base: "h-6 w-auto",
+  md: "h-8 w-auto",
+  lg: "h-8 w-auto",
+  circle: "h-4 w-auto",
+};
+
+// shrink on click
+const PRESS = "transition-transform duration-50 enabled:active:scale-95";
 
 export type ButtonVariant = keyof typeof VARIANT;
 export type ButtonSize = keyof typeof SIZE;
@@ -37,19 +49,39 @@ export type ButtonSize = keyof typeof SIZE;
 export default function Button({
   variant,
   size,
+  icon,
+  iconColor = "black",
   className = "",
+  children,
   ...props
 }: {
   variant: ButtonVariant;
   size?: ButtonSize;
+  icon?: string;
+  iconColor?: "white" | "black";
+  children?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  const iconOnly = !!icon && children == null;
+  const whiteIcon = variant === "busy" || iconColor === "white";
+
+  // no size: icon only button get small square
+  const sizeClass = size ? SIZE[size] : iconOnly ? "h-6 w-6" : "";
+
   return (
     <button
       type="button"
       {...props}
-      className={`flex items-center justify-center rounded-full ${
-        size ? SIZE[size] : ""
-      } ${VARIANT[variant]} ${className}`}
-    />
+      className={`flex shrink-0 items-center justify-center gap-2 rounded-full ${PRESS} ${sizeClass} ${VARIANT[variant]} ${className}`}
+    >
+      {icon && (
+        <Icon
+          src={icon}
+          className={`block shrink-0 object-contain ${
+            size ? ICON_SIZE[size] : "h-4 w-auto"
+          } ${whiteIcon ? "brightness-0 invert" : "brightness-0"}`}
+        />
+      )}
+      {children}
+    </button>
   );
 }

@@ -139,12 +139,11 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
             <Button
               variant="green"
               size="circle"
+              icon="/plus.svg"
+              iconColor="white"
               onClick={onCreate}
               aria-label={`Create new ${noun}`}
-              className="pb-0.5!"
-            >
-              +
-            </Button>
+            />
           )}
         </h1>
 

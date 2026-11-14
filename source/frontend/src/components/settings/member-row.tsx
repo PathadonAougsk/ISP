@@ -303,15 +303,14 @@ export default function MemberRow({
           <div className="flex justify-end">
             {canEdit && (
               <Button
-                variant="outline-white"
-                size="sm"
+                variant={busy ? "busy" : "outline-white"}
+                icon={resetOpen ? "/close.svg" : "/reset.svg"}
                 disabled={busy}
                 onClick={onToggleReset}
-                title="Change this user's email address or password."
-                className="w-full font-medium text-base"
-              >
-                {resetOpen ? "Cancel" : "Reset"}
-              </Button>
+                title={
+                  resetOpen ? "Close reset form" : "Reset email or password"
+                }
+              />
             )}
           </div>
         )}
@@ -320,14 +319,13 @@ export default function MemberRow({
           <div className="flex justify-end">
             {canEdit && (
               <Button
-                variant="red"
-                size="sm"
+                variant={busy ? "busy" : "red"}
+                icon="/trash_can.svg"
                 disabled={busy}
                 onClick={() => openConfirm("delete")}
-                className="w-full font-bold"
-              >
-                Delete
-              </Button>
+                title="Delete account"
+                iconColor="white"
+              />
             )}
           </div>
         )}

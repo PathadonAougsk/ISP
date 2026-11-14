@@ -52,6 +52,7 @@ label {
 button {
   cursor: pointer;
   transition: transform 50ms ease;
+  transform-origin: center;
 }
 
 button:disabled {
