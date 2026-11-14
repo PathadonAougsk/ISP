@@ -4,6 +4,11 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const inputClass =
+  "bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)";
+
+const labelClass = "flex flex-col gap-1 text-base text-(--primary-color-deep)";
+
 // useSearchParams needs a Suspense boundary above it during prerender.
 export default function AuthPage() {
   return (
@@ -48,7 +53,7 @@ function AuthForm() {
   }
 
   return (
-    <div className="relative flex h-full flex-1 flex-row items-center justify-center gap-10 overflow-hidden bg-white p-8 text-black">
+    <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-white p-8 text-black">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -57,24 +62,15 @@ function AuthForm() {
         }}
       />
       <div className="relative z-10 w-full max-w-sm rounded-[30px] bg-white p-8 shadow-2xl">
-        <div className="mb-6 flex">
-          <div
-            className={
-              "flex-1 py-4 text-sm tracking-wide bg-white text-black text-center"
-            }
-          >
-            <h1 className="font-bold text-3xl">Welcome Back!</h1>
-            <h1 className="text-xs text-(--primary-color-deep)">
-              Enter your credentials below to get started
-            </h1>
-            <div />
-          </div>
+        <div className="mb-6 py-4 text-center">
+          <h1 className="text-3xl font-bold">Welcome Back!</h1>
+          <p className="text-xs text-(--primary-color-deep)">
+            Enter your credentials below to get started
+          </p>
         </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label
-            htmlFor="email"
-            className="flex flex-col gap-1 text-base text-(--primary-color-deep)"
-          >
+          <label htmlFor="email" className={labelClass}>
             Email
             <input
               id="email"
@@ -84,15 +80,12 @@ function AuthForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)"
+              className={inputClass}
               placeholder="user@example.com"
             />
           </label>
 
-          <label
-            htmlFor="password"
-            className="flex flex-col gap-1 text-base text-(--primary-color-deep)"
-          >
+          <label htmlFor="password" className={labelClass}>
             Password
             <input
               id="password"
@@ -102,7 +95,7 @@ function AuthForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-(--panel-bg) px-3 py-2 text-black outline-none focus:border-(--primary-color-1) border border-(--panel-bg-hover) rounded-xl"
+              className={inputClass}
               placeholder="••••••••"
             />
           </label>
@@ -118,23 +111,29 @@ function AuthForm() {
 
         <div
           className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            (deactivated && !error) || error
+            deactivated || error
               ? "mt-4 max-h-32 opacity-100"
               : "max-h-0 opacity-0"
           }`}
         >
-          {deactivated && !error && (
-            <div className="border-2 border-dashed border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)">
-              Your account has been deactivated. Ask a Lab Owner or Lab Admin to
-              turn it back on.
-            </div>
-          )}
-
-          {error && (
-            <div className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)">
+          {error ? (
+            <div
+              role="alert"
+              className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
+            >
               The email or password you entered is incorrect. If you need to
               reset your credentials, please contact your Lab Owner.
             </div>
+          ) : (
+            deactivated && (
+              <div
+                role="alert"
+                className="border-2 border-dashed border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
+              >
+                Your account has been deactivated. Ask a Lab Owner or Lab Admin
+                to turn it back on.
+              </div>
+            )
           )}
         </div>
       </div>
