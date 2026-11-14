@@ -148,10 +148,12 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
         </h1>
 
         <div className="flex h-9 flex-1 items-center gap-2">
-          <span className="w-40 shrink-0 text-sm font-medium text-gray-600 whitespace-nowrap">
+          <span className="w-42 shrink-0 text-sm font-medium text-gray-600 whitespace-nowrap">
             {loading
-              ? "Loading results..."
-              : `Results ${resultStart}-${resultEnd} of ${totalResults}`}
+              ? "Results: Loading..."
+              : totalResults === 0
+                ? "Results: No results found"
+                : `Results: ${resultStart}-${resultEnd} of ${totalResults}`}
           </span>
 
           <div className="relative min-w-0 flex-1">
