@@ -143,13 +143,14 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
         </form>
       ) : (
         <p className={MUTED}>
-          Only Lab Owners and Lab Admins can add, rename, or delete
-          categories.
+          Only Lab Owners and Lab Admins can add, rename, or delete categories.
         </p>
       )}
 
+      {error && <p className={ERROR}>{error}</p>}
+
       <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold w-40">
+        <p className="text-lg font-semibold w-fit">
           All Categories
           <span className={MUTED}> ({categories.length})</span>
         </p>
@@ -164,8 +165,6 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
           />
         </div>
       </div>
-
-      {error && <p className={ERROR}>{error}</p>}
 
       <div className={LIST_PANEL}>
         <div className={HEAD}>

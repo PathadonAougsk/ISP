@@ -161,18 +161,16 @@ export default function CreateUser({
           />
 
           {trial && (
-            <label className={LABEL}>
-              Ticket quota
-              <TextInput
-                look="outlined"
-                type="number"
-                min={0}
-                step={1}
-                value={quota}
-                onChange={setQuota}
-                disabled={busy}
-              />
-            </label>
+            <TextInput
+              label="Ticket quota"
+              look="outlined"
+              type="number"
+              min={0}
+              step={1}
+              value={quota}
+              onChange={setQuota}
+              disabled={busy}
+            />
           )}
         </div>
 

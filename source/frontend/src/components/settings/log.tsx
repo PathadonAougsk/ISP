@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
-import { formatShortDateTime } from "@/lib/format";
+import { formatLogDateTime } from "@/lib/format";
 import Button from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import {
@@ -25,7 +25,7 @@ const PAGE_SIZE = 100;
 
 // fr cols. grid! because HEAD and ROW are flex
 const COLS =
-  "grid! grid-cols-[minmax(4rem,0.8fr)_minmax(10rem,1.8fr)_1.2fr_1.1fr_1.1fr_4fr]";
+  "grid! grid-cols-[minmax(5rem,0.8fr)_minmax(8rem,1.8fr)_minmax(6rem,1.2fr)_minmax(5rem,1.1fr)_minmax(5rem,1.1fr)_4fr]";
 
 // A deleted account leaves by_whom null, and a create or a delete leaves one
 // side of the change null, so neither of those is an error worth shouting about.
@@ -182,7 +182,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                   <span className="truncate" title={entry.row_id ?? undefined}>
                     {valueOf(entry.row_id)}
                   </span>
-                  <span>{formatShortDateTime(entry.occurred_at)}</span>
+                  <span>{formatLogDateTime(entry.occurred_at)}</span>
                   <span
                     className="truncate"
                     title={entry.by_username ?? undefined}
@@ -191,7 +191,9 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                       <span className="text-gray-500">Deleted User</span>
                     )}
                   </span>
-                  <span>{entry.from_table}</span>
+                  <span className="truncate" title={entry.from_table}>
+                    {entry.from_table}
+                  </span>
                   <span className="truncate" title={entry.column_name}>
                     {entry.column_name}
                   </span>

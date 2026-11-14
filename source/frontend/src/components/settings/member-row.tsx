@@ -74,27 +74,24 @@ function ResetForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-5 border-t border-gray-200 py-4"
-    >
-      <p className={MUTED}>
-        Change {member.username}&apos;s login credentials directly. No
-        notification email will be sent, so share the updated credentials with
-        the user yourself. Leave a field blank to keep its current value.
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 py-4">
+      <p className={`${MUTED} text-sm!`}>
+        Change {member.username}'s login credentials directly. No notification
+        email will be sent, so share the updated credentials with the user
+        yourself. Leave a field blank to keep its current value.
       </p>
 
       <div className="grid grid-cols-3 gap-3">
         <TextInput
           label="New email address"
           look="outlined"
-          autoFocus
           type="email"
           value={email}
           onChange={setEmail}
           disabled={busy}
-          placeholder={member.email}
+          placeholder="user@example.com"
           maxLength={255}
+          autoComplete="off"
         />
         <TextInput
           label="New password"
@@ -215,7 +212,7 @@ export default function MemberRow({
   }
 
   return (
-    <div className="flex min-h-10 flex-col justify-center rounded-full bg-white pl-4 pr-2 py-1">
+    <div className="flex min-h-10 flex-col justify-center rounded-[20px] bg-white pl-4 pr-2 py-1">
       <div className={`${cols} text-sm items-center gap-3`}>
         <span className="flex min-w-0 items-center">
           <span className="truncate" title={member.username}>
@@ -313,7 +310,7 @@ export default function MemberRow({
                 title="Change this user's email address or password."
                 className="w-full font-medium text-base"
               >
-                {resetOpen ? "Cancel" : "Reset Credentials"}
+                {resetOpen ? "Cancel" : "Reset"}
               </Button>
             )}
           </div>
