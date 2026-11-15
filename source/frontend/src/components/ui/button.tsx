@@ -15,7 +15,7 @@ const VARIANT = {
   outline:
     "border-2 border-(--primary-color-3) bg-white text-black enabled:hover:bg-(--panel-bg) disabled:opacity-50",
   "outline-white":
-    "border-2 border-gray-300 bg-white text-black enabled:hover:bg-gray-100 disabled:opacity-50",
+    "border-2 border-gray-200 bg-white text-black enabled:hover:bg-gray-100 disabled:opacity-50",
   // waiting on a request: flat grey instead of a faded colour
   busy: "bg-gray-200 text-white",
 } as const;
@@ -51,6 +51,7 @@ export default function Button({
   size,
   icon,
   iconColor = "black",
+  busyspin = false,
   className = "",
   children,
   ...props
@@ -59,6 +60,7 @@ export default function Button({
   size?: ButtonSize;
   icon?: string;
   iconColor?: "white" | "black";
+  busyspin?: boolean;
   children?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   const iconOnly = !!icon && children == null;
@@ -78,7 +80,9 @@ export default function Button({
           src={icon}
           className={`block shrink-0 object-contain ${
             size ? ICON_SIZE[size] : "size-4"
-          } ${whiteIcon ? "brightness-0 invert" : "brightness-0"}`}
+          } ${whiteIcon ? "brightness-0 invert" : "brightness-0"} ${
+            busyspin && variant === "busy" ? "animate-spin" : ""
+          }`}
         />
       )}
       {children}

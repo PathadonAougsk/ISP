@@ -24,6 +24,7 @@ import {
 export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
@@ -166,6 +167,23 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
             className="w-full"
           />
         </div>
+
+        <Button
+          variant={loading || refreshing ? "busy" : "outline-white"}
+          icon="/reset.svg"
+          disabled={loading || refreshing}
+          onClick={async () => {
+            setRefreshing(true);
+            try {
+              await getCategories.clear();
+              await refresh();
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+          title="Refresh Categories"
+          busyspin
+        />
       </div>
 
       <div className={LIST_PANEL}>
@@ -174,7 +192,7 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
           <span className="flex-1">Name</span>
         </div>
 
-        {loading ? (
+        {loading || refreshing ? (
           <p className={MESSAGE}>Loading categories...</p>
         ) : visible.length === 0 ? (
           <p className={MESSAGE}>

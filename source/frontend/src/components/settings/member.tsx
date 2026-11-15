@@ -13,6 +13,7 @@ import {
 } from "@/lib/account";
 import { maskEmail } from "@/lib/format";
 import { TextInput } from "@/components/ui/field";
+import Button from "@/components/ui/button";
 import CreateUser from "./create-user";
 import MemberRow from "./member-row";
 import {
@@ -54,6 +55,7 @@ export default function Member({
 }) {
   const [members, setMembers] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -142,7 +144,7 @@ export default function Member({
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg font-semibold w-fit">
           All Users
-          {!loading && !error && (
+          {!loading && !refreshing && !error && (
             <span className={MUTED}> ({members.length})</span>
           )}
         </p>
@@ -156,6 +158,22 @@ export default function Member({
             className="w-full"
           />
         </div>
+        <Button
+          variant={loading || refreshing ? "busy" : "outline-white"}
+          icon="/reset.svg"
+          disabled={loading || refreshing}
+          onClick={async () => {
+            setRefreshing(true);
+            try {
+              await getAccounts.clear();
+              await refresh();
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+          title="Refresh Users"
+          busyspin
+        />
       </div>
 
       {error && <p className={ERROR}>{error}</p>}
@@ -169,7 +187,7 @@ export default function Member({
           <span className="text-center">Status</span>
         </div>
 
-        {loading ? (
+        {loading || refreshing ? (
           <p className={MESSAGE}>Loading users...</p>
         ) : visible.length === 0 ? (
           <p className={MESSAGE}>

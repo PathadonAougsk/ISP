@@ -40,6 +40,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [table, setTable] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Which filter the rows on screen came from, null before the first fetch.
   // Loading is derived from it, so a new filter cannot show the old rows.
@@ -77,7 +78,10 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
         );
       })
       .finally(() => {
-        if (requestId.current === id) setLoadedTable(table);
+        if (requestId.current === id) {
+          setLoadedTable(table);
+          setRefreshing(false);
+        }
       });
 
     return () => {
@@ -132,13 +136,13 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
       </div>
 
       {accountLoading ? (
-        <p className={MUTED}>Loading activity...</p>
+        <p className={MUTED}>Loading activities...</p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3">
             <p className="text-lg font-semibold">
               All Entries
-              {!loading && !error && (
+              {!loading && !refreshing && !error && (
                 <span className={MUTED}>
                   {" "}
                   ({entries.length}
@@ -162,11 +166,15 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               />
 
               <Button
-                variant={loading ? "busy" : "outline-white"}
+                variant={loading || refreshing ? "busy" : "outline-white"}
                 icon="/reset.svg"
-                disabled={loading || loadingMore}
-                onClick={() => setRefreshKey((current) => current + 1)}
+                disabled={loading || refreshing || loadingMore}
+                onClick={() => {
+                  setRefreshing(true);
+                  setRefreshKey((current) => current + 1);
+                }}
                 title="Refresh Log"
+                busyspin
               />
             </div>
           </div>
@@ -186,7 +194,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               <span>Change</span>
             </div>
 
-            {loading ? (
+            {loading || refreshing ? (
               <p className={MESSAGE}>Loading activity...</p>
             ) : entries.length === 0 ? (
               <p className={MESSAGE}>No activity has been recorded yet.</p>
@@ -231,7 +239,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
             )}
           </div>
 
-          {hasMore && !loading && (
+          {hasMore && !loading && !refreshing && (
             <Button
               variant="outline"
               size="md"

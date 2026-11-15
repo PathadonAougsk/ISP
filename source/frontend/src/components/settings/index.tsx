@@ -74,7 +74,7 @@ export default function Settings({
               </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-8">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-gutter-stable px-8">
               <div className="mx-auto max-w-9/10 py-8">{panels[active]}</div>
             </div>
           </div>
