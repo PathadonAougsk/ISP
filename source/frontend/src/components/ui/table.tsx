@@ -14,10 +14,22 @@ export function TableHeader({
   titles,
   gridClassName,
   hasOverflow = false,
+  onIconClick,
+  iconLabel = "Toggle table section",
+  sortKeys,
+  sortKey,
+  sortDirection,
+  onSort,
 }: {
   titles: string[];
   gridClassName: string;
   hasOverflow?: boolean;
+  onIconClick?: () => void;
+  iconLabel?: string;
+  sortKeys?: string[];
+  sortKey?: string;
+  sortDirection?: "asc" | "desc";
+  onSort?: (key: string) => void;
 }) {
   return (
     <div
@@ -25,13 +37,44 @@ export function TableHeader({
         hasOverflow ? "pr-6" : "pr-4"
       }`}
     >
-      <Icon src="/header_donut_dark_green.svg" className="size-4" />
+      {onIconClick ? (
+        <button
+          type="button"
+          onClick={onIconClick}
+          aria-label={iconLabel}
+          className="flex size-4 shrink-0 items-center justify-center"
+        >
+          <Icon src="/header_donut_dark_green.svg" className="size-4" />
+        </button>
+      ) : (
+        <Icon src="/header_donut_dark_green.svg" className="size-4" />
+      )}
       <div className={grid(gridClassName)}>
-        {titles.map((title) => (
-          <h1 key={title} className="truncate text-base font-bold text-white">
-            {title}
-          </h1>
-        ))}
+        {titles.map((title, index) => {
+          const key = sortKeys?.[index];
+          const isSorted = key !== undefined && key === sortKey;
+
+          return onSort && key ? (
+            <button
+              key={title}
+              type="button"
+              onClick={() => onSort(key)}
+              aria-label={`Sort by ${title}`}
+              aria-sort={isSorted ? sortDirection : "none"}
+              className="min-w-0 truncate text-left text-base font-bold text-white"
+            >
+              {title}
+              {isSorted && (sortDirection === "asc" ? " ↑" : " ↓")}
+            </button>
+          ) : (
+            <h1
+              key={title}
+              className="truncate text-base font-bold text-white"
+            >
+              {title}
+            </h1>
+          );
+        })}
       </div>
     </div>
   );

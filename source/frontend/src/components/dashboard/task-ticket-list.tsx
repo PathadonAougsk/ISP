@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 import type { CategoryMap } from "@/lib/category";
 import type { Task } from "@/lib/task";
 import type { Ticket } from "@/lib/ticket";
@@ -25,6 +25,96 @@ import {
 
 // full class string, tailwind need to see it
 const GRID = "grid-cols-[2fr_1.25fr_1.25fr_minmax(120px,1fr)]";
+
+type SortKey = "name" | "created_by" | "category" | "status" | "due_date";
+type SortDirection = "asc" | "desc";
+type SortState = { key: SortKey; direction: SortDirection };
+
+function compareValues(
+  first: string | null,
+  second: string | null,
+  direction: SortDirection,
+  date = false,
+) {
+  if (date) {
+    if (first === null && second === null) return 0;
+    if (first === null) return 1;
+    if (second === null) return -1;
+
+    const result = Date.parse(first) - Date.parse(second);
+    return direction === "asc" ? result : -result;
+  }
+
+  const result = (first ?? "").localeCompare(second ?? "", undefined, {
+    sensitivity: "base",
+  });
+  return direction === "asc" ? result : -result;
+}
+
+function sortTasks(
+  tasks: Task[],
+  sort: SortState,
+  categoryMap: CategoryMap,
+  usernames: Record<string, string>,
+) {
+  return [...tasks].sort((first, second) => {
+    if (sort.key === "due_date") {
+      return compareValues(
+        first.due_date,
+        second.due_date,
+        sort.direction,
+        true,
+      );
+    }
+    if (sort.key === "status") return 0;
+
+    const values = {
+      name: [first.name, second.name],
+      created_by: [
+        usernames[first.created_by] ?? "-",
+        usernames[second.created_by] ?? "-",
+      ],
+      category: [
+        categoryMap[first.category_id] ?? "-",
+        categoryMap[second.category_id] ?? "-",
+      ],
+    } as const;
+    const [firstValue, secondValue] = values[sort.key];
+    return compareValues(firstValue, secondValue, sort.direction);
+  });
+}
+
+function sortTickets(
+  tickets: Ticket[],
+  sort: SortState,
+  categoryMap: CategoryMap,
+) {
+  return [...tickets].sort((first, second) => {
+    if (sort.key === "due_date") {
+      return compareValues(
+        first.due_date,
+        second.due_date,
+        sort.direction,
+        true,
+      );
+    }
+    if (sort.key === "created_by") return 0;
+
+    const values = {
+      name: [first.name, second.name],
+      status: [
+        ticketStatusText[first.status],
+        ticketStatusText[second.status],
+      ],
+      category: [
+        categoryMap[first.category_id] ?? "-",
+        categoryMap[second.category_id] ?? "-",
+      ],
+    } as const;
+    const [firstValue, secondValue] = values[sort.key];
+    return compareValues(firstValue, secondValue, sort.direction);
+  });
+}
 
 // same props for every section
 const sectionProps = (group: GroupState) => ({
@@ -70,6 +160,9 @@ function ListPanel({
   empty,
   message,
   children,
+  sortKeys,
+  sort,
+  onSort,
 }: {
   titles: string[];
   hasOverflow: boolean;
@@ -77,25 +170,36 @@ function ListPanel({
   empty: boolean;
   message: ReactNode;
   children: ReactNode;
+  sortKeys: SortKey[];
+  sort: SortState;
+  onSort: (key: SortKey) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <div className="flex min-h-0 flex-col gap-2">
       <TableHeader
         titles={titles}
         gridClassName={GRID}
         hasOverflow={hasOverflow}
+        onIconClick={() => setCollapsed((hidden) => !hidden)}
+        iconLabel={collapsed ? "Show list section" : "Hide list section"}
+        sortKeys={sortKeys}
+        sortKey={sort.key}
+        sortDirection={sort.direction}
+        onSort={onSort}
       />
 
-      {empty ? (
+      {!collapsed && empty ? (
         <ListMessage>{message}</ListMessage>
-      ) : (
+      ) : !collapsed ? (
         <div
           ref={listRef}
           className="flex min-h-0 max-h-120 flex-col gap-2 overflow-y-auto scrollbar-thin"
         >
           {children}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -119,8 +223,20 @@ export function TaskList({
 
   const hasMyTasks = myTasks.items.length > 0;
   const hasOtherTasks = otherTasks.items.length > 0;
+  const [sort, setSort] = useState<SortState>({
+    key: "due_date",
+    direction: "asc",
+  });
 
   const { listRef, hasOverflow } = useListOverflow();
+
+  function onSort(key: SortKey) {
+    setSort((previous) => ({
+      key,
+      direction:
+        previous.key === key && previous.direction === "asc" ? "desc" : "asc",
+    }));
+  }
 
   const renderTask = (task: Task) => (
     <TableRow
@@ -147,6 +263,9 @@ export function TaskList({
   return (
     <ListPanel
       titles={["Task Name", "Created by", "Category", "Duedate"]}
+      sortKeys={["name", "created_by", "category", "due_date"]}
+      sort={sort}
+      onSort={onSort}
       hasOverflow={hasOverflow}
       listRef={listRef}
       empty={!hasMyTasks && !hasOtherTasks}
@@ -160,13 +279,17 @@ export function TaskList({
     >
       {hasMyTasks && (
         <ListSection title="My tasks" {...sectionProps(myTasks)}>
-          {myTasks.items.map(renderTask)}
+          {sortTasks(myTasks.items, sort, categoryMap, usernames).map(
+            renderTask,
+          )}
         </ListSection>
       )}
 
       {hasOtherTasks && (
         <ListSection title="Others' tasks" {...sectionProps(otherTasks)}>
-          {otherTasks.items.map(renderTask)}
+          {sortTasks(otherTasks.items, sort, categoryMap, usernames).map(
+            renderTask,
+          )}
         </ListSection>
       )}
 
@@ -216,8 +339,20 @@ export function TicketList({
     otherRejectedTickets.loading || otherPendingTickets.loading;
   const errorMine = myRejectedTickets.error || myPendingTickets.error;
   const errorOthers = otherRejectedTickets.error || otherPendingTickets.error;
+  const [sort, setSort] = useState<SortState>({
+    key: "due_date",
+    direction: "asc",
+  });
 
   const { listRef, hasOverflow } = useListOverflow();
+
+  function onSort(key: SortKey) {
+    setSort((previous) => ({
+      key,
+      direction:
+        previous.key === key && previous.direction === "asc" ? "desc" : "asc",
+    }));
+  }
 
   const renderTicket = (ticket: Ticket) => {
     const overdue = isMissingItem(ticket, ["pending", "rejected"], now);
@@ -250,6 +385,9 @@ export function TicketList({
   return (
     <ListPanel
       titles={["Ticket Name", "Status", "Category", "Duedate"]}
+      sortKeys={["name", "status", "category", "due_date"]}
+      sort={sort}
+      onSort={onSort}
       hasOverflow={hasOverflow}
       listRef={listRef}
       empty={sections.every(({ group }) => group.items.length === 0)}
@@ -265,7 +403,7 @@ export function TicketList({
         ({ title, group }) =>
           group.items.length > 0 && (
             <ListSection key={title} title={title} {...sectionProps(group)}>
-              {group.items.map(renderTicket)}
+              {sortTickets(group.items, sort, categoryMap).map(renderTicket)}
             </ListSection>
           ),
       )}
