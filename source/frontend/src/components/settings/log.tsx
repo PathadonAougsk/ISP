@@ -184,8 +184,8 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
           {/* Six columns, hence text-sm rows and a title on every column that
               can truncate. Only account row_ids are UUIDs - category, ticket
               and task ids are small integers. */}
-          <div className={`${LIST_PANEL} overflow-x-auto`}>
-            <div className="flex min-w-[48rem] flex-col gap-2">
+          <div className={`${LIST_PANEL} overflow-x-auto scrollbar-thin scrollbar-gutter-stable`}>
+            <div className="flex min-w-3xl flex-col gap-2">
               <div className={`${HEAD} ${COLS}`}>
                 <span>Record ID</span>
                 <span>Date and Time</span>
