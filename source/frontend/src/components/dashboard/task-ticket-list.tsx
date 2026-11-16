@@ -328,10 +328,22 @@ export function TicketList({
   const now = new Date();
 
   const sections = [
-    { title: "My rejected tickets", group: myRejectedTickets },
-    { title: "My pending tickets", group: myPendingTickets },
-    { title: "Others' rejected tickets", group: otherRejectedTickets },
-    { title: "Others' pending tickets", group: otherPendingTickets },
+    {
+      title: "My rejected tickets",
+      status: "rejected",
+      group: myRejectedTickets,
+    },
+    { title: "My pending tickets", status: "pending", group: myPendingTickets },
+    {
+      title: "Others' rejected tickets",
+      status: "rejected",
+      group: otherRejectedTickets,
+    },
+    {
+      title: "Others' pending tickets",
+      status: "pending",
+      group: otherPendingTickets,
+    },
   ];
 
   const loadingMine = myRejectedTickets.loading || myPendingTickets.loading;
@@ -353,6 +365,16 @@ export function TicketList({
         previous.key === key && previous.direction === "asc" ? "desc" : "asc",
     }));
   }
+
+  const orderedSections =
+    sort.key === "status"
+      ? [...sections].sort((first, second) => {
+          const firstRank = first.status === "pending" ? 0 : 1;
+          const secondRank = second.status === "pending" ? 0 : 1;
+          const result = firstRank - secondRank;
+          return sort.direction === "asc" ? result : -result;
+        })
+      : sections;
 
   const renderTicket = (ticket: Ticket) => {
     const overdue = isMissingItem(ticket, ["pending", "rejected"], now);
@@ -399,7 +421,7 @@ export function TicketList({
             : "Looks like everything's pretty peaceful around here. Yay!"
       }
     >
-      {sections.map(
+      {orderedSections.map(
         ({ title, group }) =>
           group.items.length > 0 && (
             <ListSection key={title} title={title} {...sectionProps(group)}>
