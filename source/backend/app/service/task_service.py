@@ -7,10 +7,10 @@ from sqlalchemy import String, case, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.auth import AuthUser
 from app.datetime_utils import to_due_date, to_utc
 from app.limits import DESCRIPTION_MAX, NAME_MAX
 from app.model import Account, AccountRole, AuditLog, Task, TaskStatus
+from app.service.account_service import is_admin
 
 
 # Base Task model.
@@ -120,7 +120,7 @@ async def retrieve_tasks(
 
 
 async def create_task(
-    auth_user: AuthUser,
+    me: Account,
     body: TaskRequest,
     session: AsyncSession,
 ):
@@ -133,7 +133,7 @@ async def create_task(
         status=body.status,
         category_id=body.category_id,
         due_date=conv_duedate,
-        created_by=auth_user.id,
+        created_by=me.id,
     )
 
     # Create an audit log for the creation!
@@ -143,14 +143,19 @@ async def create_task(
         column_name="status",
         old_value=None,
         new_value=TaskStatus.IN_PROGRESS.value,
-        by_whom=auth_user.id,
+        by_whom=me.id,
     )
 
     if body.assignees:
         assignees = await session.scalars(
-            select(Account).where(Account.id.in_(body.assignees))
+            select(Account).where(
+                Account.id.in_(body.assignees),
+                Account.active.is_(True),
+            )
         )
         task.assignees = list(assignees.all())
+        if len(task.assignees) != len(set(body.assignees)):
+            raise HTTPException(status_code=400, detail="One or more assignees are invalid")
 
     # Add it to session, and update.
     session.add(al)
@@ -162,7 +167,7 @@ async def create_task(
 
 
 async def update_task(
-    auth_user: AuthUser,
+    me: Account,
     task_id: int,
     session: AsyncSession,
     body: TaskUpdate,
@@ -194,7 +199,16 @@ async def update_task(
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
-    # If it exists, then you definetly should update it!
+    if not is_admin(me):
+        if me not in task.assignees:
+            raise HTTPException(status_code=403, detail="You are not assigned to this task")
+        if body.model_dump(exclude_unset=True).keys() - {"status"}:
+            raise HTTPException(
+                status_code=403,
+                detail="Only task status can be changed by an assigned user",
+            )
+
+    # If it exists, then you definitely should update it!
     if body.name is not None:
         audit_list.append(update_helper("name", task.name, body.name))
         task.name = body.name
@@ -220,9 +234,14 @@ async def update_task(
     if body.assignees is not None:
         audit_list.append(update_helper("assignees", task.assignees, body.assignees))
         assignees = await session.scalars(
-            select(Account).where(Account.id.in_(body.assignees))
+            select(Account).where(
+                Account.id.in_(body.assignees),
+                Account.active.is_(True),
+            )
         )
         task.assignees = list(assignees.all())
+        if len(task.assignees) != len(set(body.assignees)):
+            raise HTTPException(status_code=400, detail="One or more assignees are invalid")
 
     for i in audit_list:
         if i != 0:
@@ -236,11 +255,15 @@ async def update_task(
 async def delete_task(
     task_id: int,
     session: AsyncSession,
-    auth_user: AuthUser,
+    me: Account,
 ):
     task = await session.scalar(
         select(Task).where(Task.id == task_id)
     )
+
+    # If it does not exist, 404!
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
     # Create an audit log for the deletes!
     al = AuditLog(
@@ -249,12 +272,8 @@ async def delete_task(
         column_name="status",
         old_value=None,
         new_value=None,
-        by_whom=auth_user.id,
+        by_whom=me.id,
     )
-    # If it does not exist, 404!
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
-
     session.add(al)
     await session.delete(task)
     await session.commit()

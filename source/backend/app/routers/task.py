@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import AuthUser, get_current_auth_user
+from app.auth import get_current_auth_user
 from app.database import getSession
 from app.model import Account, TaskStatus
 from app.service import account_service, task_service
@@ -57,27 +57,27 @@ async def retrieve_tasks(
 
 @taskRouter.post("/", tags=["Task"])
 async def create_task(
-    auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
+    me: Annotated[Account, Depends(account_service.require_admin)],
     body: TaskRequest,
     session: Annotated[AsyncSession, Depends(getSession)],
 ):
-    return await task_service.create_task(auth_user, body, session)
+    return await task_service.create_task(me, body, session)
 
 
 @taskRouter.put("/{task_id}", tags=["Task"])
 async def update_task(
-    auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
     task_id: int,
     session: Annotated[AsyncSession, Depends(getSession)],
     body: TaskUpdate,
 ):
-    return await task_service.update_task(auth_user, task_id, session, body)
+    return await task_service.update_task(me, task_id, session, body)
 
 
 @taskRouter.delete("/{task_id}", tags=["Task"])
 async def delete_task(
     task_id: int,
     session: Annotated[AsyncSession, Depends(getSession)],
-    auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
+    me: Annotated[Account, Depends(account_service.require_admin)],
 ):
-    return await task_service.delete_task(task_id, session, auth_user)
+    return await task_service.delete_task(task_id, session, me)
