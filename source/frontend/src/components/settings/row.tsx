@@ -53,7 +53,7 @@ export default function Row({
           <button
             type="button"
             onClick={() => setShown((s) => !s)}
-            className="-ml-2 flex size-5 items-center justify-center"
+            className="-ml-1 flex size-5 items-center justify-center"
             aria-label={shown ? `Hide ${label}` : `Show ${label}`}
             aria-pressed={shown}
           >
