@@ -184,22 +184,31 @@ function ListPanel({
         hasOverflow={hasOverflow}
         onIconClick={() => setCollapsed((hidden) => !hidden)}
         iconLabel={collapsed ? "Show list section" : "Hide list section"}
+        iconPressed={collapsed}
         sortKeys={sortKeys}
         sortKey={sort.key}
         sortDirection={sort.direction}
         onSort={onSort}
       />
       
-      {!collapsed && empty ? (
-        <ListMessage>{message}</ListMessage>
-      ) : !collapsed ? (
-        <div
-          ref={listRef}
-          className="flex min-h-0 max-h-120 flex-col gap-2 overflow-y-auto scrollbar-thin"
-        >
-          {children}
+      <div
+        className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out ${
+          collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          {empty ? (
+            <ListMessage>{message}</ListMessage>
+          ) : (
+            <div
+              ref={listRef}
+              className="flex min-h-0 max-h-120 flex-col gap-2 overflow-y-auto scrollbar-thin"
+            >
+              {children}
+            </div>
+          )}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

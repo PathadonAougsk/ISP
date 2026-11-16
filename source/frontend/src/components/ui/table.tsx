@@ -16,6 +16,7 @@ export function TableHeader({
   hasOverflow = false,
   onIconClick,
   iconLabel = "Toggle table section",
+  iconPressed = false,
   sortKeys,
   sortKey,
   sortDirection,
@@ -26,6 +27,7 @@ export function TableHeader({
   hasOverflow?: boolean;
   onIconClick?: () => void;
   iconLabel?: string;
+  iconPressed?: boolean;
   sortKeys?: string[];
   sortKey?: string;
   sortDirection?: "asc" | "desc";
@@ -42,9 +44,15 @@ export function TableHeader({
           type="button"
           onClick={onIconClick}
           aria-label={iconLabel}
+          aria-pressed={iconPressed}
           className="flex size-4 shrink-0 items-center justify-center"
         >
-          <Icon src="/header_donut_dark_green.svg" className="size-4" />
+          <Icon
+            src="/header_donut_dark_green.svg"
+            className={`size-4 transition-transform duration-300 ease-in-out ${
+              iconPressed ? "rotate-180" : ""
+            }`}
+          />
         </button>
       ) : (
         <Icon src="/header_donut_dark_green.svg" className="size-4" />

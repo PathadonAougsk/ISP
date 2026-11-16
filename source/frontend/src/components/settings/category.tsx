@@ -224,7 +224,9 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                   />
                 </div>
               ) : (
-                <span className="flex-1">{category.name}</span>
+                <span className="min-w-0 flex-1 truncate" title={category.name}>
+                  {category.name}
+                </span>
               )}
 
               {isAdmin && (
