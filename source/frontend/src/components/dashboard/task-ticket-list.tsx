@@ -189,7 +189,7 @@ function ListPanel({
         sortDirection={sort.direction}
         onSort={onSort}
       />
-
+      
       {!collapsed && empty ? (
         <ListMessage>{message}</ListMessage>
       ) : !collapsed ? (
@@ -262,7 +262,7 @@ export function TaskList({
 
   return (
     <ListPanel
-      titles={["Task Name", "Created by", "Category", "Duedate"]}
+      titles={["Task Name", "Created by", "Category", "Due date"]}
       sortKeys={["name", "created_by", "category", "due_date"]}
       sort={sort}
       onSort={onSort}
@@ -384,7 +384,7 @@ export function TicketList({
 
   return (
     <ListPanel
-      titles={["Ticket Name", "Status", "Category", "Duedate"]}
+      titles={["Ticket Name", "Status", "Category", "Due date"]}
       sortKeys={["name", "status", "category", "due_date"]}
       sort={sort}
       onSort={onSort}
