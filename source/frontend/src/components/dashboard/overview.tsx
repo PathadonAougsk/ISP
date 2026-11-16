@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getThaiDateKey } from "@/lib/format";
 import type { CategoryMap } from "@/lib/category";
 import Icon from "@/components/ui/icon";
@@ -207,6 +208,11 @@ export default function Overview({
 }) {
   const isTicket = view === "ticket";
   const noun = isTicket ? "tickets" : "tasks";
+  const [collapsed, setCollapsed] = useState<Record<DashboardView, boolean>>({
+    task: false,
+    ticket: false,
+  });
+  const isCollapsed = collapsed[view];
 
   const categoryIds = Object.keys(categoryCounts)
     .map(Number)
@@ -215,13 +221,28 @@ export default function Overview({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex h-8 items-center gap-2 rounded-[20px] bg-(--primary-color-2) px-2">
-        <Icon src="/header_donut_dark_green.svg" className="size-4" />
+        <button
+          type="button"
+          onClick={() =>
+            setCollapsed((previous) => ({
+              ...previous,
+              [view]: !previous[view],
+            }))
+          }
+          aria-label={
+            isCollapsed ? `Show ${noun} overview` : `Hide ${noun} overview`
+          }
+          aria-pressed={isCollapsed}
+          className="flex size-4 shrink-0 items-center justify-center"
+        >
+          <Icon src="/header_donut_dark_green.svg" className="size-4" />
+        </button>
         <h1 className="text-base font-bold text-white">
           {isTicket ? "Ticket Overview" : "Task Overview"}
         </h1>
       </div>
 
-      {loadingTasks ? (
+      {isCollapsed ? null : loadingTasks ? (
         <ListMessage>Loading {noun}...</ListMessage>
       ) : errorTasks ? (
         <ListMessage>Failed to load {noun}</ListMessage>
