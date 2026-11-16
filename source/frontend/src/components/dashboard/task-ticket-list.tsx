@@ -262,7 +262,7 @@ export function TaskList({
 
   return (
     <ListPanel
-      titles={["Task Name", "Created by", "Category", "Due date"]}
+      titles={["Task Name", "Created by", "Category", "Due Date"]}
       sortKeys={["name", "created_by", "category", "due_date"]}
       sort={sort}
       onSort={onSort}
@@ -384,7 +384,7 @@ export function TicketList({
 
   return (
     <ListPanel
-      titles={["Ticket Name", "Status", "Category", "Due date"]}
+      titles={["Ticket Name", "Status", "Category", "Due Date"]}
       sortKeys={["name", "status", "category", "due_date"]}
       sort={sort}
       onSort={onSort}
