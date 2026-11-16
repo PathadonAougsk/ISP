@@ -53,9 +53,24 @@ export default function Row({
           <button
             type="button"
             onClick={() => setShown((s) => !s)}
-            className="-ml-2 text-(--primary-color-deep) hover:underline"
+            className="-ml-2 flex size-5 items-center justify-center"
+            aria-label={shown ? `Hide ${label}` : `Show ${label}`}
+            aria-pressed={shown}
           >
-            {shown ? "Hide" : "Show"}
+            <span
+              aria-hidden="true"
+              className="size-5 bg-(--primary-color-deep)"
+              style={{
+                maskImage: `url(${shown ? "/eye-on.svg" : "/eye-off.svg"})`,
+                maskRepeat: "no-repeat",
+                maskPosition: "center",
+                maskSize: "contain",
+                WebkitMaskImage: `url(${shown ? "/eye-on.svg" : "/eye-off.svg"})`,
+                WebkitMaskRepeat: "no-repeat",
+                WebkitMaskPosition: "center",
+                WebkitMaskSize: "contain",
+              }}
+            />
           </button>
         )}
         <div className="flex w-25 justify-end">{action}</div>

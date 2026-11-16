@@ -64,7 +64,7 @@ export default function Toggle({
             tabIndex={selected ? 0 : -1}
             onClick={onClick}
             onKeyDown={handleKeyDown}
-            className={`relative z-10 h-full flex-1 rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2) ${
+            className={`relative z-0 h-full flex-1 rounded-full text-lg font-bold transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--primary-color-2) ${
               selected ? "text-black" : "text-white"
             }`}
           >

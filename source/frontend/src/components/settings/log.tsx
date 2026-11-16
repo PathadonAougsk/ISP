@@ -184,59 +184,64 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
           {/* Six columns, hence text-sm rows and a title on every column that
               can truncate. Only account row_ids are UUIDs - category, ticket
               and task ids are small integers. */}
-          <div className={LIST_PANEL}>
-            <div className={`${HEAD} ${COLS}`}>
-              <span>Record ID</span>
-              <span>Date and Time</span>
-              <span>Changed By</span>
-              <span>Table</span>
-              <span>Field</span>
-              <span>Change</span>
-            </div>
+          <div className={`${LIST_PANEL} overflow-x-auto`}>
+            <div className="flex min-w-[48rem] flex-col gap-2">
+              <div className={`${HEAD} ${COLS}`}>
+                <span>Record ID</span>
+                <span>Date and Time</span>
+                <span>Changed By</span>
+                <span>Table</span>
+                <span>Field</span>
+                <span>Change</span>
+              </div>
 
-            {loading || refreshing ? (
-              <p className={MESSAGE}>Loading activity...</p>
-            ) : entries.length === 0 ? (
-              <p className={MESSAGE}>No activity has been recorded yet.</p>
-            ) : (
-              entries.map((entry) => (
-                <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
-                  <span className="truncate" title={entry.row_id ?? undefined}>
-                    {valueOf(entry.row_id)}
-                  </span>
-
-                  <span>{formatLogDateTime(entry.occurred_at)}</span>
-
-                  <span
-                    className="truncate"
-                    title={entry.by_username ?? undefined}
-                  >
-                    {entry.by_username ?? (
-                      <span className="text-gray-500">Deleted User</span>
-                    )}
-                  </span>
-
-                  <span className="truncate" title={entry.from_table}>
-                    {entry.from_table}
-                  </span>
-
-                  <span className="truncate" title={entry.column_name}>
-                    {entry.column_name}
-                  </span>
-
-                  <span
-                    className="truncate"
-                    title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
-                  >
-                    <span className="text-gray-500">
-                      {valueOf(entry.old_value)}
+              {loading || refreshing ? (
+                <p className={MESSAGE}>Loading activity...</p>
+              ) : entries.length === 0 ? (
+                <p className={MESSAGE}>No activity has been recorded yet.</p>
+              ) : (
+                entries.map((entry) => (
+                  <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
+                    <span
+                      className="truncate"
+                      title={entry.row_id ?? undefined}
+                    >
+                      {valueOf(entry.row_id)}
                     </span>
-                    <span className="px-2 text-gray-500">&rarr;</span>
-                    {valueOf(entry.new_value)}
-                  </span>
-                </div>
-              ))
-            )}
+
+                    <span>{formatLogDateTime(entry.occurred_at)}</span>
+
+                    <span
+                      className="truncate"
+                      title={entry.by_username ?? undefined}
+                    >
+                      {entry.by_username ?? (
+                        <span className="text-gray-500">Deleted User</span>
+                      )}
+                    </span>
+
+                    <span className="truncate" title={entry.from_table}>
+                      {entry.from_table}
+                    </span>
+
+                    <span className="truncate" title={entry.column_name}>
+                      {entry.column_name}
+                    </span>
+
+                    <span
+                      className="truncate"
+                      title={`${valueOf(entry.old_value)} → ${valueOf(entry.new_value)}`}
+                    >
+                      <span className="text-gray-500">
+                        {valueOf(entry.old_value)}
+                      </span>
+                      <span className="px-2 text-gray-500">&rarr;</span>
+                      {valueOf(entry.new_value)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {hasMore && !loading && !refreshing && (

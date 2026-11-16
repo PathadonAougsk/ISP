@@ -25,6 +25,7 @@ function AuthForm() {
   const deactivated = useSearchParams().has("deactivated");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -86,11 +87,35 @@ function AuthForm() {
           </label>
 
           <label htmlFor="password" className={labelClass}>
-            Password
+            <span className="flex items-center justify-between">
+              Password
+              <button
+                type="button"
+                onClick={() => setShowPassword((shown) => !shown)}
+                className="flex size-6 items-center justify-center"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-5 bg-(--primary-color-deep)"
+                  style={{
+                    maskImage: `url(${showPassword ? "/eye-on.svg" : "/eye-off.svg"})`,
+                    maskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    maskSize: "contain",
+                    WebkitMaskImage: `url(${showPassword ? "/eye-on.svg" : "/eye-off.svg"})`,
+                    WebkitMaskRepeat: "no-repeat",
+                    WebkitMaskPosition: "center",
+                    WebkitMaskSize: "contain",
+                  }}
+                />
+              </button>
+            </span>
             <input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
               value={password}
