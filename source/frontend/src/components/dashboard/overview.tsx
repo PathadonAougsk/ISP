@@ -236,7 +236,11 @@ export default function Overview({
           className="flex size-4 shrink-0 items-center justify-center"
         >
           <Icon
-            src="/header_donut_dark_green.svg"
+            src={
+              isCollapsed
+                ? "/header_donut_gray.svg"
+                : "/header_donut_dark_green.svg"
+            }
             className={`size-4 transition-transform duration-300 ease-in-out ${
               isCollapsed ? "rotate-180" : ""
             }`}
