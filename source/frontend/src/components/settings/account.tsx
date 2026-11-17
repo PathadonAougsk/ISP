@@ -247,7 +247,7 @@ export default function AccountPanel({
                   onChange={draft("username", setUsername)}
                   disabled={busy}
                   maxLength={30}
-                  placeholder="Enter your username"
+                  placeholder="Enter a username"
                   autoComplete="username"
                 />
               </div>
@@ -285,7 +285,7 @@ export default function AccountPanel({
                   value={email}
                   onChange={draft("email", setEmail)}
                   disabled={busy}
-                  placeholder="you@chula.th"
+                  placeholder="user@example.com"
                   maxLength={255}
                   autoComplete="email"
                 />

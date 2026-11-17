@@ -157,8 +157,8 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                 className="w-40"
                 value={table}
                 onChange={setTable}
-                placeholder={{ value: "", label: "All Tables" }}
-                firstItem={{ value: "", label: "All Tables" }}
+                placeholder={{ value: "", label: "All tables" }}
+                firstItem={{ value: "", label: "All tables" }}
                 options={TABLES.map((name) => ({
                   value: name,
                   label: name,
