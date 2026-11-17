@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getMe } from "@/lib/account";
 import { createClient } from "@/lib/supabase/client";
 
 const inputClass =
@@ -44,6 +45,11 @@ function AuthForm() {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Supabase authenticates the login, but account.active is enforced by
+      // the backend account row. Verify that row before entering the app.
+      const account = await getMe({ force: true });
+      if (!account) return;
 
       router.push("/dashboard");
     } catch (err) {
