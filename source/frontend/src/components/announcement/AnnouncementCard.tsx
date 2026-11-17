@@ -45,7 +45,7 @@ export default function AnnouncementCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`relative flex ${wrapped ? "h-48" : "h-45"} w-full flex-col gap-1 rounded-[15px] bg-white p-4 text-left ${
+      className={`relative flex ${wrapped ? "h-48" : "h-45"} w-full max-[900px]:w-80 max-[900px]:shrink-0 flex-col gap-1 rounded-[15px] bg-white p-4 text-left ${
         selected ? "ring-2 ring-inset ring-(--primary-color-2)" : ""
       }`}
     >

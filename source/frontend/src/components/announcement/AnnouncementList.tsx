@@ -26,9 +26,11 @@ export default function AnnouncementList({
   return (
     <div className="flex h-full flex-col">
       {/* scrollable announcement list */}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden rounded-t-[15px] scrollbar-none">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden rounded-t-[15px] scrollbar-none max-[900px]:flex max-[900px]:gap-3 max-[900px]:space-y-0 max-[900px]:overflow-x-auto max-[900px]:overflow-y-hidden">
         {announcements.length === 0 ? (
-          <ListMessage>{emptyMessage}</ListMessage>
+          <div className="max-[900px]:w-80 max-[900px]:shrink-0">
+            <ListMessage>{emptyMessage}</ListMessage>
+          </div>
         ) : (
           announcements.map((item) => (
             <AnnouncementCard
@@ -42,13 +44,17 @@ export default function AnnouncementList({
         )}
 
         {loadMoreError && (
-          <ListMessage>Failed to load more announcement</ListMessage>
+          <div className="max-[900px]:w-80 max-[900px]:shrink-0">
+            <ListMessage>Failed to load more announcement</ListMessage>
+          </div>
         )}
 
         {hasMore && (
-          <LoadMoreButton disabled={loadingMore} onClick={onLoadMore} />
+          <div className="max-[900px]:flex max-[900px]:shrink-0 max-[900px]:items-center max-[900px]:justify-start">
+            <LoadMoreButton disabled={loadingMore} onClick={onLoadMore} />
+          </div>
         )}
-        <div className="h-50 shrink-0"></div>
+        <div className="h-50 shrink-0 max-[900px]:hidden"></div>
       </div>
     </div>
   );

@@ -187,8 +187,8 @@ export default function AnnouncementPage() {
       )}
 
       {/* green panel hold list + detail */}
-      <div className="flex min-h-0 flex-1 gap-3 rounded-t-[30px] bg-(--panel-bg) px-4 pt-4">
-        <div className="w-2/5 shrink-0 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 gap-3 rounded-t-[30px] bg-(--panel-bg) px-4 pt-4 max-[900px]:flex-col">
+        <div className="w-2/5 shrink-0 overflow-y-auto max-[900px]:w-full max-[900px]:overflow-visible">
           <AnnouncementList
             announcements={list.items}
             selectedId={selected?.id ?? null}
@@ -208,7 +208,7 @@ export default function AnnouncementPage() {
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-h-0 min-w-0 flex-1">
           <AnnouncementDetail
             announcement={selected}
             authorName={selected ? authorName(selected.created_by) : ""}
