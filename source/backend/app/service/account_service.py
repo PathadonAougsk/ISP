@@ -5,45 +5,18 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from supabase_auth.errors import AuthApiError, AuthError
-from supabase_auth.types import User as AuthUser
 
+from app.auth import AuthUser, get_current_auth_user
 from app.database import getSession
 from app.dependencies import password_check, supabase
 from app.model import Account, AccountRole, AuditLog, auth_users
 
 logger = logging.getLogger(__name__)
-
-bearer_scheme = HTTPBearer(auto_error=False, description="Supabase access token")
-
-UNAUTHENTICATED = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Not authenticated",
-    headers={"WWW-Authenticate": "Bearer"},
-)
-
-def get_current_auth_user(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-) -> AuthUser:
-    if credentials is None:
-        raise UNAUTHENTICATED
-    try:
-        response = supabase.auth.get_user(credentials.credentials)
-    except AuthError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
-    if response is None or response.user is None:
-        raise UNAUTHENTICATED
-    return response.user
-
 
 ADMIN_ROLES = frozenset({AccountRole.LAB_OWNER, AccountRole.LAB_ADMIN})
 

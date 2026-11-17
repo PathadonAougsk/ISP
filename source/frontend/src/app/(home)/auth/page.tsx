@@ -2,7 +2,13 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getMe } from "@/lib/account";
 import { createClient } from "@/lib/supabase/client";
+
+const inputClass =
+  "bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)";
+
+const labelClass = "flex flex-col gap-1 text-base text-(--primary-color-deep)";
 
 // useSearchParams needs a Suspense boundary above it during prerender.
 export default function AuthPage() {
@@ -20,6 +26,7 @@ function AuthForm() {
   const deactivated = useSearchParams().has("deactivated");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +46,11 @@ function AuthForm() {
         throw new Error(error.message);
       }
 
+      // Supabase authenticates the login, but account.active is enforced by
+      // the backend account row. Verify that row before entering the app.
+      const account = await getMe({ force: true });
+      if (!account) return;
+
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -48,7 +60,7 @@ function AuthForm() {
   }
 
   return (
-    <div className="relative flex h-full flex-1 flex-row items-center justify-center gap-10 overflow-hidden bg-white p-8 text-black">
+    <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-white p-8 text-black">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -57,38 +69,64 @@ function AuthForm() {
         }}
       />
       <div className="relative z-10 w-full max-w-sm rounded-[30px] bg-white p-8 shadow-2xl">
-        <div className="mb-6 flex">
-          <div
-            className={
-              "flex-1 py-4 text-sm tracking-wide bg-white text-gray-800 text-center"
-            }
-          >
-            <h1 className="font-bold text-3xl">Welcome Back!</h1>
-            <h1 className="text-xs">Enter your credentials below to get started</h1>
-            <div />
-          </div>
+        <div className="mb-6 py-4 text-center">
+          <h1 className="text-3xl font-bold">Welcome Back!</h1>
+          <p className="text-xs text-(--primary-color-deep)">
+            Enter your credentials below to get started
+          </p>
         </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-base uppercase text-gray-600 ">
+          <label htmlFor="email" className={labelClass}>
             Email
             <input
+              id="email"
+              name="email"
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none border-1 border-gray-300 rounded-xl focus:border-black"
-              placeholder="you@example.com"
+              className={inputClass}
+              placeholder="user@example.com"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-base uppercase text-gray-600">
-            Password
+          <label htmlFor="password" className={labelClass}>
+            <span className="flex items-center justify-between">
+              Password
+              <button
+                type="button"
+                onClick={() => setShowPassword((shown) => !shown)}
+                className="flex size-6 items-center justify-center"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-5 bg-(--primary-color-deep)"
+                  style={{
+                    maskImage: `url(${showPassword ? "/eye-on.svg" : "/eye-off.svg"})`,
+                    maskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    maskSize: "contain",
+                    WebkitMaskImage: `url(${showPassword ? "/eye-on.svg" : "/eye-off.svg"})`,
+                    WebkitMaskRepeat: "no-repeat",
+                    WebkitMaskPosition: "center",
+                    WebkitMaskSize: "contain",
+                  }}
+                />
+              </button>
+            </span>
             <input
-              type="password"
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white px-3 py-2 text-black outline-none focus:border-black border-1 border-gray-300 rounded-xl"
+              className={inputClass}
               placeholder="••••••••"
             />
           </label>
@@ -96,7 +134,7 @@ function AuthForm() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 bg-[#90C8AC] py-2 text-lg font-semibold text-white hover:bg-[#73A9AD] hover:text-black disabled:opacity-50 rounded-[30px]"
+            className="mt-2 bg-(--primary-color-2) py-2 text-white text-lg font-semibold hover:bg-(--primary-color-2-hover) disabled:opacity-50 rounded-[30px]"
           >
             {loading ? "Working..." : "Login"}
           </button>
@@ -104,21 +142,29 @@ function AuthForm() {
 
         <div
           className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            (deactivated && !error) || error
+            deactivated || error
               ? "mt-4 max-h-32 opacity-100"
               : "max-h-0 opacity-0"
           }`}
         >
-          {deactivated && !error && (
-            <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-              Your account has been deactivated. Ask a Lab Owner or Lab Admin to turn it back on.
+          {error ? (
+            <div
+              role="alert"
+              className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
+            >
+              The email or password you entered is incorrect. If you need to
+              reset your credentials, please contact Lab Owner or Lab Admin.
             </div>
-          )}
-
-          {error && (
-            <div className="border-2 border-dashed border-red-500 p-3 text-sm text-red-600">
-              The email or password you entered is incorrect. If you need to reset your credentials, please contact your Lab Owner.
-            </div>
+          ) : (
+            deactivated && (
+              <div
+                role="alert"
+                className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
+              >
+                Your account has been deactivated. Ask a Lab Owner or Lab Admin
+                to turn it back on.
+              </div>
+            )
           )}
         </div>
       </div>

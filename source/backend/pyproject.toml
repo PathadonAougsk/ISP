@@ -7,7 +7,17 @@ dependencies = [
     "env>=0.1.0",
     "fastapi[standard-no-fastapi-cloud-cli]>=0.141.1",
     "psycopg2-binary>=2.9",
+    "pyjwt[crypto]>=2.10",
     "python-dotenv>=1.2.3",
     "sqlalchemy>=2.0.52",
     "supabase>=2.31.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

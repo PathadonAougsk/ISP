@@ -64,10 +64,13 @@ class Category(Base):
     __tablename__ = "category"
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(30), nullable=False, unique=True)
 
-    tasks: Mapped[list["Task"]] = relationship(back_populates="category")
-    tickets: Mapped[list["Ticket"]] = relationship(back_populates="category")
+    # passive_deletes: deleting a category must hit the ON DELETE RESTRICT in
+    # Postgres. Without it the ORM loads every ticket and task and tries to
+    # NULL their category_id first, which fails on NOT NULL instead.
+    tasks: Mapped[list["Task"]] = relationship(back_populates="category", passive_deletes=True)
+    tickets: Mapped[list["Ticket"]] = relationship(back_populates="category", passive_deletes=True)
 
     def __repr__(self) -> str:
         return f"<Category {self.id} {self.name!r}>"
@@ -81,7 +84,7 @@ class Account(Base):
         ForeignKey("auth.users.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    username: Mapped[str] = mapped_column(String(30), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     role: Mapped[AccountRole] = mapped_column(
         account_role_type,
@@ -145,7 +148,7 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(String(1000))
     status: Mapped[TaskStatus] = mapped_column(
         task_status_type,
         nullable=False,
@@ -192,7 +195,7 @@ class Ticket(Base):
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(String(1000))
     status: Mapped[TicketStatus] = mapped_column(
         ticket_status_type,
         nullable=False,
@@ -241,7 +244,7 @@ class Announcement(Base):
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(String(1000))
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
     )

@@ -77,11 +77,16 @@ Then fill in the real values. `source/.env.sample` lists every key that is used:
 | `SUPABASE_URL`                  | backend  | Project URL                                |
 | `SUPABASE_KEY`                  | backend  | Service-role/secret key — server-side only |
 | `SUPABASE_DB_URL`               | backend  | `postgresql+asyncpg://…` connection string |
+| `SUPABASE_JWT_SECRET`           | backend  | Optional, legacy HS256 projects only       |
 | `NEXT_PUBLIC_SUPABASE_URL`      | frontend | Same URL as above                          |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | Publishable/anon key                       |
 | `NEXT_PUBLIC_API_URL`           | frontend | `http://localhost:8000` locally            |
 
 Anything prefixed `NEXT_PUBLIC_` is inlined into the browser bundle, so never put a secret key behind that prefix.
+
+The backend verifies access tokens itself, with the public keys Supabase
+publishes for the project, so `SUPABASE_JWT_SECRET` is only needed by a
+project still signing with the old shared secret.
 
 How each side picks the file up:
 

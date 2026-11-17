@@ -1,5 +1,7 @@
 "use client";
-import { apiFetch, apiDetail } from "@/lib/api";
+
+import { apiFetch, apiOrThrow } from "@/lib/api";
+import { buildQuery } from "@/lib/query";
 
 // One row per changed column, written by the endpoint that made the change -
 // see the note in the API guide: there is no database trigger behind this.
@@ -33,17 +35,9 @@ export type AuditLogQuery = {
 export async function getAuditLogs(
   query: AuditLogQuery = {},
 ): Promise<AuditLogsResponse> {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined && value !== "") params.set(key, String(value));
-  }
-
-  const search = params.toString();
-  const res = await apiFetch(`/audit-log/${search ? `?${search}` : ""}`);
-
-  if (!res.ok) {
-    throw new Error(await apiDetail(res, `HTTP ${res.status}`));
-  }
+  const qs = buildQuery(query).toString();
+  const res = await apiFetch(`/audit-log/${qs ? `?${qs}` : ""}`);
+  await apiOrThrow(res, `HTTP ${res.status}`);
 
   return res.json();
 }

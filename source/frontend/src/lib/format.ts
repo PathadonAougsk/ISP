@@ -31,13 +31,6 @@ export function formatShortDate(iso: string | null, label = "due") {
   return datePart(new Date(iso), "short");
 }
 
-// formatFullDate("2026-08-28T02:47:00Z") -> "Friday 28 August 2026"
-export function formatFullDate(iso: string | null, label = "due") {
-  if (iso === null) return `No ${label} date`;
-
-  return datePart(new Date(iso), "long");
-}
-
 // formatShortDateTime("2026-08-28T02:47:00Z") -> "Fri 28 Aug 2026, 09:47"
 export function formatShortDateTime(iso: string | null, label = "due") {
   if (iso === null) return `No ${label} date`;
@@ -45,6 +38,22 @@ export function formatShortDateTime(iso: string | null, label = "due") {
   const d = new Date(iso);
 
   return `${datePart(d, "short")}, ${timePart(d)}`;
+}
+
+// formatLogDateTime("2026-11-14T08:47:00Z") -> "14/11/2026, 15:47"
+export function formatLogDateTime(iso: string | null) {
+  if (iso === null) return "";
+
+  const d = new Date(iso);
+
+  const date = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: TIME_ZONE,
+  });
+
+  return `${date}, ${timePart(d)}`;
 }
 
 // formatFullDateTime("2026-08-28T02:47:00Z") -> "Friday 28 August 2026, 09:47"
@@ -114,4 +123,21 @@ export function toDateInputValue(iso: string | null) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(iso));
+}
+
+// today in local time as yyyy-MM-dd
+export function todayIso() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${mm}-${dd}`;
+}
+
+// isPastDate("2026-08-28") -> true once that day has gone (local time).
+// Empty means "no due date", which is never past.
+export function isPastDate(isoDate: string) {
+  if (!isoDate) return false;
+
+  // iso string compare is ok
+  return isoDate < todayIso();
 }

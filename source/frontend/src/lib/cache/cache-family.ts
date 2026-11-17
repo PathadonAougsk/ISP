@@ -1,114 +1,92 @@
-import { getKey, putJson, safe, type CacheContext } from "@/lib/cache/cache-storage";
+import { buildHeaders, getKey, putJson, safe } from "@/lib/cache/cache-storage";
 
-export type FamilyContext<T> = CacheContext & {
-  familyKey: string;
-  ttlMs: number;
-  expirations: Map<string, number>;
-  initializations: Map<string, Promise<number>>;
-  fetchFresh: () => Promise<T>;
+export type FamilyPage = { key: string; offset: number; limit: number };
+
+export type Family = {
+  expiresAt: number;
+  count?: number;
+  pages: FamilyPage[];
 };
 
-export type FamilyResult<T> = { expiresAt: number; fresh?: { value: T } };
+export type Families = Map<string, Family>;
 
-export const getFamilyExpiry = async (
+export const familyRequest = (familyKey: string): Request =>
+  getKey(`family:${familyKey}`);
+
+// save family record, expiry header so sweep can clean it too
+export const persist = async (
   cache: Cache | null,
-  expirations: Map<string, number>,
   familyKey: string,
-): Promise<number | null> => {
-  const memoryExpiry = expirations.get(familyKey);
-
-  if (memoryExpiry !== undefined && memoryExpiry > Date.now()) {
-    return memoryExpiry;
-  }
-
-  expirations.delete(familyKey);
-
-  if (!cache) return null;
-
-  return safe<number | null>(async () => {
-    const request = getKey(`family:${familyKey}`);
-    const response = await cache.match(request);
-
-    if (!response) return null;
-
-    const { expiresAt } = (await response.json()) as {
-      expiresAt: number;
-    };
-
-    if (Number.isFinite(expiresAt) && expiresAt > Date.now()) {
-      expirations.set(familyKey, expiresAt);
-      return expiresAt;
-    }
-
-    await cache.delete(request);
-
-    return null;
-  }, null);
-};
-
-export const saveFamilyExpiry = async (
-  cache: Cache | null,
-  expirations: Map<string, number>,
-  familyKey: string,
-  expiresAt: number,
+  family: Family,
 ) => {
-  expirations.set(familyKey, expiresAt);
-
   if (!cache) return;
 
   await safe<void>(
     () =>
       putJson(
         cache,
-        getKey(`family:${familyKey}`),
-        { expiresAt },
-        { "Content-Type": "application/json" },
+        familyRequest(familyKey),
+        family,
+        buildHeaders(family.expiresAt),
       ),
     undefined,
   );
 };
 
-// leader fetch and set shared expiry, follower wait for leader
-export const resolveFamilyExpiry = async <T>(
-  ctx: FamilyContext<T>,
-): Promise<FamilyResult<T>> => {
-  const { cache, guard, familyKey, ttlMs, expirations, initializations } = ctx;
+// raw record from memory or Cache API, caller check expiry
+export const getFamily = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+): Promise<Family | null> => {
+  const known = families.get(familyKey);
 
-  const known = await getFamilyExpiry(cache, expirations, familyKey);
+  if (known) return known;
 
-  if (known !== null) return { expiresAt: known };
+  if (!cache) return null;
 
-  const running = initializations.get(familyKey);
+  const store = cache;
 
-  if (running) return { expiresAt: await running };
+  return safe<Family | null>(async () => {
+    const request = familyRequest(familyKey);
+    const response = await store.match(request);
 
-  let resolveInit!: (value: number) => void;
-  let rejectInit!: (reason: unknown) => void;
+    if (!response) return null;
 
-  const initialization = new Promise<number>((resolve, reject) => {
-    resolveInit = resolve;
-    rejectInit = reject;
-  });
+    const family = (await response.json()) as Family;
 
-  initializations.set(familyKey, initialization);
-
-  try {
-    const value = await ctx.fetchFresh();
-    const expiresAt = Date.now() + ttlMs;
-
-    if (guard.isSameGeneration()) {
-      await saveFamilyExpiry(cache, expirations, familyKey, expiresAt);
+    if (!Number.isFinite(family.expiresAt) || !Array.isArray(family.pages)) {
+      await store.delete(request);
+      return null;
     }
 
-    resolveInit(expiresAt);
+    // another request may fill memory while we read
+    const current = families.get(familyKey);
 
-    return { expiresAt, fresh: { value } };
-  } catch (error) {
-    rejectInit(error);
-    throw error;
-  } finally {
-    if (initializations.get(familyKey) === initialization) {
-      initializations.delete(familyKey);
-    }
-  }
+    if (current) return current;
+
+    families.set(familyKey, family);
+
+    return family;
+  }, null);
+};
+
+// get or create, so parallel first requests share one record
+export const createFamily = async (
+  cache: Cache | null,
+  families: Families,
+  familyKey: string,
+  expiresAt: number,
+): Promise<Family> => {
+  const current = families.get(familyKey);
+
+  if (current && current.expiresAt > Date.now()) return current;
+
+  const family: Family = { expiresAt, pages: [] };
+
+  families.set(familyKey, family);
+
+  await persist(cache, familyKey, family);
+
+  return family;
 };

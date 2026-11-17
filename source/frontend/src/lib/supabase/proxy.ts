@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./env";
 
-// Just for detecting/change jwt token when it expires
+// Refreshes the jwt when it expires, and says who the caller is.
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -25,9 +25,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims checks the signature here with the project's public keys, which
+  // supabase-js fetches once and caches, instead of asking Supabase who this
+  // is on every guarded navigation. It still goes through the session first,
+  // so an expired jwt is refreshed and set above exactly as before.
+  const { data } = await supabase.auth.getClaims();
 
-  return { response, user };
+  return { response, claims: data?.claims ?? null };
 }

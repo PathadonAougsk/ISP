@@ -1,4 +1,4 @@
-import Icon from "@/components/icon";
+import Icon from "@/components/ui/icon";
 
 // Stand-in avatar in the spirit of a GitHub identicon: the username alone picks
 // the colour and a 5x5 pattern mirrored down the middle column, so the same
@@ -27,7 +27,7 @@ function draws(text: string) {
 
 export default function Avatar({
   name,
-  className = "h-6 w-auto",
+  className = "size-6",
 }: {
   name?: string | null;
   className?: string;

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch, apiSendJson } from "@/lib/api";
-import { getAccounts, type Account } from "@/lib/account";
-import { getCategories } from "@/lib/category";
+import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
+import type { Account } from "@/lib/account";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached, withoutPagination } from "@/lib/cache/cache";
-import { pageParams, splitPage } from "@/lib/pagination";
+import { loadLookups, type Lookups } from "@/lib/lookup";
+import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
 
 export type TaskStatus = "in_progress" | "completed" | (string & {});
@@ -29,6 +28,7 @@ export type Task = {
 
 export type TasksResponse = {
   Tasks: Task[];
+  TaskCount?: number;
 };
 
 export type TaskResponse = {
@@ -37,12 +37,14 @@ export type TaskResponse = {
 
 export type GetTasksParams = {
   id?: number;
+  search?: string;
   categories?: number;
   assignsTo?: string;
   notassignsTo?: string;
   status?: TaskStatus;
   due_after?: string;
   due_before?: string;
+  get_count?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -70,6 +72,7 @@ export type TaskRow = {
   createdBy: string;
   dueDate: string;
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
+  dueDateIso: string | null; // as stored, to send back when the field is untouched
   createdDate: string;
   lastUpdate: string;
   status: "Completed" | "In progress";
@@ -77,20 +80,15 @@ export type TaskRow = {
   assigneeIds: string[];
 };
 
-export async function fetchTasks(
-  params: GetTasksParams = {},
-): Promise<TasksResponse> {
+async function fetchTasks(params: GetTasksParams = {}): Promise<TasksResponse> {
   const qs = buildQuery(params).toString();
   const res = await apiFetch(`/task/${qs ? `?${qs}` : ""}`);
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
+  await apiOrThrow(res, `HTTP ${res.status}`);
 
   return res.json();
 }
 
-const TASKS_CACHE_TTL = 1 * 60 * 1000;
+const TASKS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
 export const getTasks = cached(
@@ -98,150 +96,108 @@ export const getTasks = cached(
   TASKS_CACHE_TTL,
   "tasks",
   withoutPagination,
+  (result, limit) => ({
+    ...result,
+    Tasks: result.Tasks.slice(0, limit),
+  }),
+  (r) => r.TaskCount,
 );
 
-export async function postTask(body: TaskPayload): Promise<TaskResponse> {
-  const res = await apiSendJson("/task/", "POST", body);
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  // data changed, so drop cached lists
+// data changed, so drop cached lists
+async function sendTask(
+  request: Promise<Response>,
+  fallback: string,
+): Promise<TaskResponse> {
+  const res = await apiOrThrow(await request, fallback);
   getTasks.clear();
 
   return res.json();
 }
 
-export async function putTask(
+export function postTask(body: TaskPayload): Promise<TaskResponse> {
+  return sendTask(
+    apiSendJson("/task/", "POST", body),
+    "Could not create that task.",
+  );
+}
+
+export function putTask(
   id: number | string,
   body: TaskUpdatePayload,
 ): Promise<TaskResponse> {
-  const res = await apiSendJson(`/task/${id}`, "PUT", body);
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  // data changed, so drop cached lists
-  getTasks.clear();
-
-  return res.json();
+  return sendTask(
+    apiSendJson(`/task/${id}`, "PUT", body),
+    "Could not update that task.",
+  );
 }
 
-function mapTaskStatus(status: TaskStatus): TaskRow["status"] {
-  return status === "completed" ? "Completed" : "In progress";
-}
-
-export function mapBackendTask(
-  bt: Task,
-  categoryById: Map<number, string>,
-  accountById: Map<string, string>,
-): TaskRow {
+function mapTask(task: Task, { categoryById, accountById }: Lookups): TaskRow {
   return {
-    id: String(bt.id),
-    title: bt.name,
-    description: bt.description ?? "",
-    category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
-    assignedTo: bt.assignees.map((a) => a.username).join(", "),
-    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
-    dueDate: formatShortDateTime(bt.due_date),
-    dueDateValue: toDateInputValue(bt.due_date),
-    createdDate: formatShortDateTime(bt.created, "created"),
-    lastUpdate: formatShortDateTime(bt.updated, "updated"),
-    status: mapTaskStatus(bt.status),
-    categoryId: bt.category_id,
-    assigneeIds: bt.assignees.map((a) => a.id),
+    id: String(task.id),
+    title: task.name,
+    description: task.description ?? "",
+    category:
+      categoryById.get(task.category_id) ?? `Category #${task.category_id}`,
+    assignedTo:
+      task.assignees.map((a) => a.username).join(", ") || "Unassigned",
+    createdBy: accountById.get(task.created_by) ?? "-",
+    dueDate: formatShortDateTime(task.due_date),
+    dueDateValue: toDateInputValue(task.due_date),
+    dueDateIso: task.due_date,
+    createdDate: formatShortDateTime(task.created, "created"),
+    lastUpdate: formatShortDateTime(task.updated, "updated"),
+    status: task.status === "completed" ? "Completed" : "In progress",
+    categoryId: task.category_id,
+    assigneeIds: task.assignees.map((a) => a.id),
   };
 }
 
 // fetch one task by id for the modal. throw if not found
 export async function getTaskRowById(id: number): Promise<TaskRow> {
-  const [taskBody, catBody, accBody] = await Promise.all([
-    getTasks({ id }),
-    getCategories().catch(() => null),
-    getAccounts().catch(() => null),
-  ]);
+  const [body, lookups] = await Promise.all([getTasks({ id }), loadLookups()]);
 
-  const task = taskBody.Tasks.find((t) => t.id === id);
+  const task = body.Tasks.find((t) => t.id === id);
   if (!task) throw new Error("Task not found");
 
-  const categoryById = new Map<number, string>(
-    (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
-  );
-  const accountById = new Map<string, string>(
-    (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
-  );
-
-  return mapBackendTask(task, categoryById, accountById);
+  return mapTask(task, lookups);
 }
 
-export type TaskFilters = { status?: TaskStatus; categoryId?: number };
+export type TaskFilters = {
+  status?: TaskStatus;
+  categoryId?: number;
+  search?: string;
+};
 
+// one page of the task table
 export function useTasks(page: number, filters: TaskFilters, enabled: boolean) {
-  const [tasks, setTasks] = useState<TaskRow[]>([]);
-  const [tasksHasNext, setTasksHasNext] = useState(false);
-  const [tasksLoading, setTasksLoading] = useState(true);
-  const [tasksError, setTasksError] = useState<string | null>(null);
-  const [tasksReloadKey, setTasksReloadKey] = useState(0);
-  // page of the data we hold. differ from page = data is stale
-  const [tasksLoadedPage, setTasksLoadedPage] = useState(0);
+  const { status, categoryId, search } = filters;
 
-  const { status, categoryId } = filters;
+  const list = usePagedList(
+    page,
+    enabled,
+    [status, categoryId, search],
+    async (paging) => {
+      const body = await getTasks({
+        status,
+        categories: categoryId,
+        search,
+        get_count: true,
+        ...paging,
+      });
 
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-
-    async function loadTasks() {
-      setTasksLoading(true);
-      try {
-        const [taskBody, catBody, accBody] = await Promise.all([
-          getTasks({ status, categories: categoryId, ...pageParams(page) }),
-          getCategories().catch(() => null),
-          getAccounts().catch(() => null),
-        ]);
-
-        const categoryById = new Map<number, string>(
-          (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
-        );
-        const accountById = new Map<string, string>(
-          (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
-        );
-
-        if (!cancelled) {
-          const { rows, hasNext } = splitPage(taskBody.Tasks);
-          setTasks(
-            rows.map((t) => mapBackendTask(t, categoryById, accountById)),
-          );
-          setTasksHasNext(hasNext);
-          setTasksError(null);
-        }
-      } catch (err) {
-        if (!cancelled)
-          setTasksError(
-            err instanceof Error ? err.message : "Failed to load tasks",
-          );
-      } finally {
-        if (!cancelled) {
-          setTasksLoading(false);
-          setTasksLoadedPage(page);
-        }
-      }
-    }
-
-    loadTasks();
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, page, status, categoryId, tasksReloadKey]);
+      return { items: body.Tasks, count: body.TaskCount ?? 0 };
+    },
+    mapTask,
+    "Failed to load tasks",
+  );
 
   return {
-    tasks,
-    tasksHasNext,
-    // loading also true on the render right after page change
-    tasksLoading: tasksLoading || tasksLoadedPage !== page,
-    tasksError,
-    setTasksReloadKey,
+    tasks: list.rows,
+    tasksHasNext: list.hasNext,
+    tasksTotalPages: list.totalPages,
+    tasksTotalResults: list.totalResults,
+    tasksLoading: list.loading,
+    tasksError: list.error,
+    reloadTasks: list.reload,
   };
 }

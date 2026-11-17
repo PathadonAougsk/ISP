@@ -1,4 +1,4 @@
-export const PAGE_SIZE = 30;
+export const PAGE_SIZE = 20;
 
 // Ask for one extra row so we know whether a next page exists
 export function pageParams(page: number) {

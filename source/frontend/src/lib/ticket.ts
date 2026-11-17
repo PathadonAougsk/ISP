@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch, apiSendJson } from "@/lib/api";
-import { getAccounts, type UserRole } from "@/lib/account";
-import { getCategories } from "@/lib/category";
+import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
+import type { UserRole } from "@/lib/account";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached, withoutPagination } from "@/lib/cache/cache";
-import { pageParams, splitPage } from "@/lib/pagination";
+import { loadLookups, type Lookups } from "@/lib/lookup";
+import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
@@ -27,17 +26,19 @@ export type Ticket = {
   completed_at: string | null;
 };
 
-export type TicketsResponse = { Tickets: Ticket[] };
+export type TicketsResponse = { Tickets: Ticket[]; TicketCount?: number };
 
 export type GetTicketsParams = {
   ticket_id?: number;
+  search?: string;
   status?: TicketStatus;
   category_id?: number;
   due_after?: string;
-  /** ISO 8601 string, e.g. new Date().toISOString() — FastAPI parses it into a datetime. */
+  /** ISO 8601 string, e.g. new Date().toISOString() - FastAPI parses it into a datetime. */
   due_before?: string;
   onlyOwned?: boolean;
   notOwned?: boolean;
+  get_count?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -62,6 +63,7 @@ export type TicketRow = {
   status: "Pending" | "Accepted" | "Rejected";
   dueDate: string;
   dueDateValue: string; // "yyyy-MM-dd" for <input type="date">, "" if none
+  dueDateIso: string | null; // as stored, to send back when the field is untouched
   createdDate: string;
   lastUpdate: string;
   category: string;
@@ -72,16 +74,22 @@ export type TicketRow = {
   createdById: string;
 };
 
-export async function fetchTickets(
+// A Lab User only ever sees their own tickets, so the backend gets told so.
+function scope(userRole: UserRole) {
+  return userRole === "Lab Admin" ? {} : { onlyOwned: true };
+}
+
+async function fetchTickets(
   params: GetTicketsParams = {},
 ): Promise<TicketsResponse> {
   const qs = buildQuery(params).toString();
   const res = await apiFetch(`/ticket/${qs ? `?${qs}` : ""}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  await apiOrThrow(res, `HTTP ${res.status}`);
+
   return res.json();
 }
 
-const TICKETS_CACHE_TTL = 1 * 60 * 1000;
+const TICKETS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
 export const getTickets = cached(
@@ -89,6 +97,11 @@ export const getTickets = cached(
   TICKETS_CACHE_TTL,
   "tickets",
   withoutPagination,
+  (result, limit) => ({
+    ...result,
+    Tickets: result.Tickets.slice(0, limit),
+  }),
+  (r) => r.TicketCount,
 );
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
@@ -104,7 +117,7 @@ export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   if (res.status === 404) {
     throw new Error("Selected category no longer exists.");
   }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  await apiOrThrow(res, "Could not create that ticket.");
 
   // data changed, so drop cached lists
   getTickets.clear();
@@ -116,9 +129,10 @@ export async function putTicket(
   id: number | string,
   body: TicketUpdatePayload,
 ): Promise<Ticket> {
-  const res = await apiSendJson(`/ticket/${id}`, "PUT", body);
-
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await apiOrThrow(
+    await apiSendJson(`/ticket/${id}`, "PUT", body),
+    "Could not update that ticket.",
+  );
 
   // data changed, so drop cached lists
   getTickets.clear();
@@ -126,38 +140,35 @@ export async function putTicket(
   return res.json();
 }
 
-function mapTicketStatus(status: TicketStatus): TicketRow["status"] {
-  switch (status) {
-    case "accepted":
-      return "Accepted";
-    case "rejected":
-      return "Rejected";
-    default:
-      return "Pending";
-  }
-}
-
-export function mapBackendTicket(
-  bt: Ticket,
-  categoryById: Map<number, string>,
-  accountById: Map<string, string>,
+function mapTicket(
+  ticket: Ticket,
+  { categoryById, accountById }: Lookups,
 ): TicketRow {
+  const status = ticket.status;
+
   return {
-    id: String(bt.id),
-    title: bt.name,
-    status: mapTicketStatus(bt.status),
-    dueDate: formatShortDateTime(bt.due_date),
-    dueDateValue: toDateInputValue(bt.due_date),
-    createdDate: formatShortDateTime(bt.created, "created"),
-    lastUpdate: formatShortDateTime(bt.updated, "updated"),
-    category: categoryById.get(bt.category_id) ?? `Category #${bt.category_id}`,
-    description: bt.description ?? "",
-    createdBy: accountById.get(bt.created_by) ?? bt.created_by,
-    assignedTo: bt.assigned_id
-      ? (accountById.get(bt.assigned_id) ?? bt.assigned_id)
+    id: String(ticket.id),
+    title: ticket.name,
+    status:
+      status === "accepted"
+        ? "Accepted"
+        : status === "rejected"
+          ? "Rejected"
+          : "Pending",
+    dueDate: formatShortDateTime(ticket.due_date),
+    dueDateValue: toDateInputValue(ticket.due_date),
+    dueDateIso: ticket.due_date,
+    createdDate: formatShortDateTime(ticket.created, "created"),
+    lastUpdate: formatShortDateTime(ticket.updated, "updated"),
+    category:
+      categoryById.get(ticket.category_id) ?? `Category #${ticket.category_id}`,
+    description: ticket.description ?? "",
+    createdBy: accountById.get(ticket.created_by) ?? "-",
+    assignedTo: ticket.assigned_id
+      ? (accountById.get(ticket.assigned_id) ?? "-")
       : "",
-    categoryId: bt.category_id,
-    createdById: bt.created_by,
+    categoryId: ticket.category_id,
+    createdById: ticket.created_by,
   };
 }
 
@@ -166,30 +177,24 @@ export async function getTicketRowById(
   id: number,
   userRole: UserRole,
 ): Promise<TicketRow> {
-  const [ticketBody, catBody, accBody] = await Promise.all([
-    getTickets({
-      ...(userRole === "Lab Admin" ? {} : { onlyOwned: true }),
-      ticket_id: id,
-    }),
-    getCategories().catch(() => null),
-    getAccounts().catch(() => null),
+  const [body, lookups] = await Promise.all([
+    getTickets({ ...scope(userRole), ticket_id: id }),
+    loadLookups(),
   ]);
 
-  const ticket = ticketBody.Tickets.find((t) => t.id === id);
+  const ticket = body.Tickets.find((t) => t.id === id);
   if (!ticket) throw new Error("Ticket not found");
 
-  const categoryById = new Map<number, string>(
-    (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
-  );
-  const accountById = new Map<string, string>(
-    (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
-  );
-
-  return mapBackendTicket(ticket, categoryById, accountById);
+  return mapTicket(ticket, lookups);
 }
 
-export type TicketFilters = { status?: TicketStatus; categoryId?: number };
+export type TicketFilters = {
+  status?: TicketStatus;
+  categoryId?: number;
+  search?: string;
+};
 
+// one page of the ticket table. waits for the role, which decides the scope
 export function useTickets(
   userRole: UserRole,
   meLoading: boolean,
@@ -197,82 +202,35 @@ export function useTickets(
   filters: TicketFilters,
   enabled: boolean,
 ) {
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
-  const [ticketsHasNext, setTicketsHasNext] = useState(false);
-  const [ticketsLoading, setTicketsLoading] = useState(true);
-  const [ticketsError, setTicketsError] = useState<string | null>(null);
-  const [ticketsReloadKey, setTicketsReloadKey] = useState(0);
-  // page of the data we hold. differ from page = data is stale
-  const [ticketsLoadedPage, setTicketsLoadedPage] = useState(0);
+  const { status, categoryId, search } = filters;
 
-  const { status, categoryId } = filters;
-
-  useEffect(() => {
-    if (meLoading || !enabled) return;
-    let cancelled = false;
-
-    async function loadTickets() {
-      setTicketsLoading(true);
-      try {
-        const [ticketBody, catBody, accBody] = await Promise.all([
-          getTickets({
-            ...(userRole === "Lab Admin" ? {} : { onlyOwned: true }),
-            status,
-            category_id: categoryId,
-            ...pageParams(page),
-          }),
-          getCategories().catch(() => null),
-          getAccounts().catch(() => null),
-        ]);
-
-        const categoryById = new Map<number, string>(
-          (catBody?.Categories ?? []).map((c) => [c.id, c.name]),
-        );
-        const accountById = new Map<string, string>(
-          (accBody?.Accounts ?? []).map((a) => [a.id, a.username]),
-        );
-
-        if (!cancelled) {
-          const { rows, hasNext } = splitPage(ticketBody.Tickets);
-          setTickets(
-            rows.map((t) => mapBackendTicket(t, categoryById, accountById)),
-          );
-          setTicketsHasNext(hasNext);
-          setTicketsError(null);
-        }
-      } catch (err) {
-        if (!cancelled)
-          setTicketsError(
-            err instanceof Error ? err.message : "Failed to load tickets",
-          );
-      } finally {
-        if (!cancelled) {
-          setTicketsLoading(false);
-          setTicketsLoadedPage(page);
-        }
-      }
-    }
-
-    loadTickets();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    userRole,
-    meLoading,
-    enabled,
+  const list = usePagedList(
     page,
-    status,
-    categoryId,
-    ticketsReloadKey,
-  ]);
+    enabled && !meLoading,
+    [userRole, status, categoryId, search],
+    async (paging) => {
+      const body = await getTickets({
+        ...scope(userRole),
+        status,
+        category_id: categoryId,
+        search,
+        get_count: true,
+        ...paging,
+      });
+
+      return { items: body.Tickets, count: body.TicketCount ?? 0 };
+    },
+    mapTicket,
+    "Failed to load tickets",
+  );
 
   return {
-    tickets,
-    ticketsHasNext,
-    // loading also true on the render right after page change
-    ticketsLoading: ticketsLoading || ticketsLoadedPage !== page,
-    ticketsError,
-    setTicketsReloadKey,
+    tickets: list.rows,
+    ticketsHasNext: list.hasNext,
+    ticketsTotalPages: list.totalPages,
+    ticketsTotalResults: list.totalResults,
+    ticketsLoading: list.loading,
+    ticketsError: list.error,
+    reloadTickets: list.reload,
   };
 }
