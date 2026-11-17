@@ -30,7 +30,7 @@ const ADMIN_ROLES: AccountRole[] = ["Lab Owner", "Lab Admin"];
 // Several components (topbar, useCurrentAccount, page guards) ask for the same
 // row on every mount, so hold the answer here and share one request between
 // concurrent callers.
-const ME_CACHE_TTL = 60 * 60 * 1000; // an hour, so a role change is picked up soon enough
+const ME_CACHE_TTL = 2 * 60 * 1000; // an hour, so a role change is picked up soon enough
 
 // Cache API, not memory. Clear also drop old in-flight saves.
 const getMeCached = cached(fetchMe, ME_CACHE_TTL, "me");
@@ -71,7 +71,7 @@ export function outranks(actor: AccountRole, target: AccountRole): boolean {
   return ROLE_RANK[actor] > ROLE_RANK[target];
 }
 
-const ACCOUNTS_CACHE_TTL = 60 * 1000;
+const ACCOUNTS_CACHE_TTL = 5 * 60 * 1000;
 
 async function fetchAccounts(): Promise<AccountsResponse> {
   const res = await apiFetch("/account/");

@@ -10,14 +10,14 @@ import {
 } from "@/lib/cache/cache-flow";
 import {
   CACHE_PREFIX,
-  initializeApiCache,
+  clearExpiredApiCache,
   registerClearer,
 } from "@/lib/cache/cache-lifecycle";
 import { getCache, getKey, type CacheContext } from "@/lib/cache/cache-storage";
 
 export {
   clearAllApiCache,
-  initializeApiCache,
+  clearExpiredApiCache,
 } from "@/lib/cache/cache-lifecycle";
 export { withoutPagination } from "@/lib/cache/cache-utils";
 
@@ -44,7 +44,7 @@ export function cached<A extends unknown[], T>(
   let clearing: Promise<void> = Promise.resolve();
 
   const wrapped: CachedFunction<A, T> = async (...args: A): Promise<T> => {
-    await initializeApiCache();
+    await clearExpiredApiCache();
     // no session = no cache, so nothing can leak to next user
     const userId = await getUserId();
     if (!userId) return fn(...args);
