@@ -1,6 +1,7 @@
 "use client";
 
 import type { Member } from "@/lib/account";
+import { useCurrentAccount } from "@/lib/account";
 import Avatar from "@/components/ui/avatar";
 import Button from "@/components/ui/button";
 
@@ -20,6 +21,8 @@ export default function MemberPanel({
   error?: string | null;
   hint?: string;
 }) {
+  const { currentUserId } = useCurrentAccount();
+
   const allSelected =
     members.length > 0 && selectedIds.length === members.length;
 
@@ -31,8 +34,12 @@ export default function MemberPanel({
     );
   }
 
+  const sortedMembers = [...members].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
+
   return (
-    <div className="flex min-w-50 w-9/40 min-h-0 shrink-0 flex-col self-stretch rounded-[20px] bg-(--panel-bg) p-3">
+    <div className="flex min-w-50 w-1/4 min-h-0 shrink-0 flex-col self-stretch rounded-[20px] bg-(--panel-bg) p-3">
       <div
         className={`flex shrink-0 items-center justify-between ${hint ? "mb-2" : "mb-3"}`}
       >
@@ -53,7 +60,7 @@ export default function MemberPanel({
 
       {hint && <p className="mb-3 shrink-0 text-xs text-gray-500">{hint}</p>}
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin pr-2">
         {loading && (
           <div className="text-xs text-gray-400">Loading members…</div>
         )}
@@ -64,7 +71,7 @@ export default function MemberPanel({
 
         {!loading &&
           !error &&
-          members.map((member) => (
+          sortedMembers.map((member) => (
             <label key={member.id} className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -73,11 +80,19 @@ export default function MemberPanel({
                 className="size-4 shrink-0 accent-(--primary-color-2)"
               />
               <Avatar name={member.name} className="h-6 w-auto shrink-0" />
-              <div className="min-w-0">
-                <div className="truncate text-sm leading-tight font-medium text-gray-800">
-                  {member.name}
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center text-sm leading-tight font-medium">
+                  <span className="truncate text-gray-800" title={member.name}>
+                    {member.name}
+                  </span>
+                  {member.id === currentUserId && (
+                    <span className="shrink-0 text-gray-500"> (You)</span>
+                  )}
                 </div>
-                <div className="truncate text-xs leading-tight text-gray-500">
+                <div
+                  className="truncate text-xs leading-tight text-gray-500"
+                  title={member.email}
+                >
                   {member.email}
                 </div>
               </div>

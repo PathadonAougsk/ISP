@@ -203,17 +203,18 @@ export default function TicketDetailModal({
           readOnly={!canEdit}
         />
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <TextInput
             name="created_by"
             label="Created By"
-            className="flex-1 min-w-0"
+            className="min-w-35 flex-1"
             value={ticket.createdBy}
             readOnly
           />
+
           <Select
             label="Category"
-            className="flex-1 min-w-0"
+            className="min-w-35 flex-1"
             value={categoryId}
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
@@ -221,9 +222,10 @@ export default function TicketDetailModal({
             readOnly={!canEdit}
             readOnlyText={ticket.category}
           />
+
           <DateInput
             label="Due Date"
-            className="flex-1 min-w-0"
+            className="min-w-35 flex-1"
             value={dueDate}
             onChange={setDueDate}
             readOnly={!canEdit}

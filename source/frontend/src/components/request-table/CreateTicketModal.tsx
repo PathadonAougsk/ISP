@@ -74,17 +74,26 @@ export default function CreateTicketModal({
           placeholder="Enter a title"
           maxLength={255}
         />
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="flex flex-wrap gap-4">
           <Select
             label="Category"
+            className="min-w-35 flex-1"
             value={categoryId}
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
             placeholder={{ value: "", label: "Select a category" }}
-            firstItem={{ value: "", label: "None"}}
+            firstItem={{ value: "", label: "None" }}
           />
-          <DateInput label="Due Date" value={dueDate} onChange={setDueDate} />
+
+          <DateInput
+            label="Due Date"
+            className="min-w-35 flex-1"
+            value={dueDate}
+            onChange={setDueDate}
+          />
         </div>
+
         <TextArea
           name="description"
           label="Description"

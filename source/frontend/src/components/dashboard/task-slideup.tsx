@@ -61,11 +61,9 @@ export default function TaskSlideup({
 
   const verb = isCompleted ? "Unsubmit" : "Submit";
 
-  const sortedAssignees = [...task.assignees].sort((a, b) => {
-    if (a.id === currentUserId) return -1;
-    if (b.id === currentUserId) return 1;
-    return a.username.localeCompare(b.username);
-  });
+  const sortedAssignees = [...task.assignees].sort((a, b) =>
+    a.username.localeCompare(b.username, undefined, { sensitivity: "base" }),
+  );
 
   return (
     <Slideup onClose={onClose}>
@@ -116,9 +114,9 @@ export default function TaskSlideup({
               <SlideupDescription description={task.description} />
             </div>
 
-            <div className="flex min-w-55 w-9/40 shrink-0 flex-col">
+            <div className="flex min-w-55 w-1/4 shrink-0 flex-col">
               <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
-                <h1 className="text-base font-bold text-black">
+                <h1 className="text-lg font-bold text-black">
                   Responsible person
                 </h1>
 
@@ -131,14 +129,30 @@ export default function TaskSlideup({
                       >
                         <Avatar
                           name={assignee.username}
-                          className="h-5 w-auto shrink-0"
+                          className="size-8 shrink-0"
                         />
-                        <span className="truncate text-base font-normal text-gray-800">
-                          {assignee.username}
-                        </span>
-                        {assignee.id === currentUserId && (
-                          <span className="text-gray-500"> (You)</span>
-                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center text-base leading-tight font-medium">
+                            <span
+                              className="truncate text-gray-800"
+                              title={assignee.username}
+                            >
+                              {assignee.username}
+                            </span>
+                            {assignee.id === currentUserId && (
+                              <span className="shrink-0 text-gray-500">
+                                {" "}
+                                (You)
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className="truncate text-sm leading-tight text-gray-500"
+                            title={assignee.email}
+                          >
+                            {assignee.email}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

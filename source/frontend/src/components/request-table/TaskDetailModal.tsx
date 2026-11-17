@@ -160,10 +160,10 @@ export default function TaskDetailModal({
           readOnly={!isAdmin}
         />
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Select
             label="Category"
-            className="min-w-0 flex-1"
+            className="min-w-35 flex-1"
             value={categoryId}
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
@@ -175,24 +175,24 @@ export default function TaskDetailModal({
           <TextInput
             name="status"
             label="Status"
-            className="min-w-0 flex-1"
+            className="min-w-35 flex-1"
             value={task.status}
             readOnly
           />
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <TextInput
             name="created_by"
             label="Created By"
-            className="min-w-0 flex-1"
+            className="min-w-35 flex-1"
             value={task.createdBy}
             readOnly
           />
 
           <DateInput
             label="Due Date"
-            className="min-w-0 flex-1"
+            className="min-w-35 flex-1"
             value={dueDate}
             onChange={setDueDate}
             readOnly={!isAdmin}

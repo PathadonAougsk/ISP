@@ -227,7 +227,7 @@ export function TextInput({
   );
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-full flex-col gap-1">
       {wrap(control, inlineCounter ? null : counter)}
       {label === undefined && !inlineCounter && counter}
     </div>
@@ -293,7 +293,7 @@ export function TextArea({
 
   return (
     <div
-      className={`flex flex-col gap-1 ${
+      className={`flex w-full flex-col gap-1 ${
         label !== undefined || grow ? "min-h-0 flex-1" : ""
       }`}
     >
