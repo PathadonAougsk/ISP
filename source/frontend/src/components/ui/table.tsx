@@ -71,7 +71,7 @@ export function TableHeader({
               className="min-w-0 truncate text-left text-base font-bold text-white"
             >
               {title}
-              {isSorted && (sortDirection === "asc" ? " ↑" : " ↓")}
+              {isSorted && (sortDirection === "asc" ? " ↓" : " ↑")}
             </button>
           ) : (
             <h1 key={title} className="truncate text-base font-bold text-white">
