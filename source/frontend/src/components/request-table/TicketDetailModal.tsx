@@ -204,14 +204,6 @@ export default function TicketDetailModal({
         />
 
         <div className="flex flex-wrap gap-4">
-          <TextInput
-            name="created_by"
-            label="Created By"
-            className="min-w-35 flex-1"
-            value={ticket.createdBy}
-            readOnly
-          />
-
           <Select
             label="Category"
             className="min-w-35 flex-1"
@@ -230,6 +222,14 @@ export default function TicketDetailModal({
             onChange={setDueDate}
             readOnly={!canEdit}
             readOnlyText={formatDueDate(ticket)}
+          />
+
+          <TextInput
+            name="created_by"
+            label="Created By"
+            className="min-w-35 flex-1"
+            value={ticket.createdBy}
+            readOnly
           />
         </div>
 

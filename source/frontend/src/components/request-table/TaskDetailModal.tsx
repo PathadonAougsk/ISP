@@ -160,10 +160,27 @@ export default function TaskDetailModal({
           readOnly={!isAdmin}
         />
 
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <TextInput
+            name="created_by"
+            label="Created By"
+            className="w-full min-w-0"
+            value={task.createdBy}
+            readOnly
+          />
+
+          <DateInput
+            label="Due Date"
+            className="w-full min-w-0"
+            value={dueDate}
+            onChange={setDueDate}
+            readOnly={!isAdmin}
+            readOnlyText={formatDueDate(task)}
+          />
+
           <Select
             label="Category"
-            className="min-w-35 flex-1"
+            className="w-full min-w-0"
             value={categoryId}
             onChange={(value) => setCategoryId(value ? Number(value) : "")}
             options={categoryOptions(categories)}
@@ -175,28 +192,9 @@ export default function TaskDetailModal({
           <TextInput
             name="status"
             label="Status"
-            className="min-w-35 flex-1"
+            className="w-full min-w-0"
             value={task.status}
             readOnly
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-4">
-          <TextInput
-            name="created_by"
-            label="Created By"
-            className="min-w-35 flex-1"
-            value={task.createdBy}
-            readOnly
-          />
-
-          <DateInput
-            label="Due Date"
-            className="min-w-35 flex-1"
-            value={dueDate}
-            onChange={setDueDate}
-            readOnly={!isAdmin}
-            readOnlyText={formatDueDate(task)}
           />
         </div>
 
