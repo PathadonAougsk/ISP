@@ -6,6 +6,7 @@ import {
   Field,
   INPUT_LOOK,
   ReadOnlyBox,
+  useCloseOnOutside,
   type FieldLook,
 } from "@/components/ui/field";
 import { todayIso } from "@/lib/format";
@@ -41,8 +42,87 @@ function autoSlash(raw: string) {
   return out;
 }
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+// local date -> "yyyy-MM-dd", no toISOString so no utc shift
+function isoOf(date: Date) {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+// 6 rows x 7 days, start from sunday on or before day 1
+function monthCells(year: number, month: number) {
+  const start = 1 - new Date(year, month, 1).getDay();
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(year, month, start + index);
+    return {
+      iso: isoOf(date),
+      day: date.getDate(),
+      inMonth: date.getMonth() === month,
+    };
+  });
+}
+
+// label with up/down arrow stack on its right
+function Stepper({
+  label,
+  unit,
+  canDown,
+  onStep,
+}: {
+  label: string;
+  unit: string;
+  canDown: boolean;
+  onStep: (by: number) => void;
+}) {
+  const arrow =
+    "rounded p-0.5 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent";
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="min-w-20 font-semibold">{label}</span>
+      <div className="flex flex-col">
+        <button
+          type="button"
+          onClick={() => onStep(1)}
+          className={arrow}
+          aria-label={`Next ${unit}`}
+        >
+          <Icon src="/dropdown_arrow.svg" className="size-3 rotate-180" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onStep(-1)}
+          disabled={!canDown}
+          className={arrow}
+          aria-label={`Previous ${unit}`}
+        >
+          <Icon src="/dropdown_arrow.svg" className="size-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Typed as dd/mm/yyyy, held as "yyyy-MM-dd". Past dates are refused, and the
-// calendar button opens the native picker. Invalid input shows a message
+// calendar button opens our calendar popup. Invalid input shows a message
 // below the box and is reported to the parent through onValidityChange.
 export default function DateInput({
   label,
@@ -66,8 +146,17 @@ export default function DateInput({
   const [draft, setDraft] = useState(toDisplay(value));
   const [prevValue, setPrevValue] = useState(value);
   const [touched, setTouched] = useState(false);
-  const pickerRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState({ year: 0, month: 0 });
+  const boxRef = useRef<HTMLDivElement>(null);
   const today = todayIso();
+
+  useCloseOnOutside(open, setOpen, boxRef);
+
+  // month count, so compare to today month is easy
+  const [todayYear, todayMonth] = today.split("-").map(Number);
+  const minKey = todayYear * 12 + todayMonth - 1;
+  const viewKey = view.year * 12 + view.month;
 
   // value changed from outside, so show it in the box
   if (value !== prevValue) {
@@ -108,10 +197,35 @@ export default function DateInput({
     if (iso && iso >= today) onChange(iso);
   }
 
+  // open on picked month, or today month if empty
+  function toggleCalendar() {
+    if (!open) {
+      const [year, month] = (value || today).split("-").map(Number);
+      setView({ year, month: month - 1 });
+    }
+    setOpen(!open);
+  }
+
+  // Date handle the year rollover
+  function shiftMonth(by: number) {
+    const date = new Date(view.year, view.month + by, 1);
+    setView({ year: date.getFullYear(), month: date.getMonth() });
+  }
+
+  function pick(iso: string) {
+    setTouched(true);
+    setDraft(toDisplay(iso));
+    onChange(iso);
+    setOpen(false);
+  }
+
   const field = readOnly ? (
     <ReadOnlyBox>{readOnlyText}</ReadOnlyBox>
   ) : (
-    <div className={`relative ${label === undefined ? className : ""}`}>
+    <div
+      ref={boxRef}
+      className={`relative ${label === undefined ? className : ""}`}
+    >
       <div className="relative">
         <input
           name="date"
@@ -128,29 +242,68 @@ export default function DateInput({
 
         <button
           type="button"
-          onClick={() => pickerRef.current?.showPicker()}
+          onClick={toggleCalendar}
           className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-800"
           aria-label="Open calendar"
+          aria-expanded={open}
         >
           <Icon src="/calendar.svg" className="size-5" />
         </button>
-
-        {/* Hidden native picker, only used for the calendar popup */}
-        <input
-          name="date"
-          ref={pickerRef}
-          type="date"
-          value={value}
-          min={today}
-          onChange={(event) => {
-            setDraft(toDisplay(event.target.value));
-            onChange(event.target.value);
-          }}
-          tabIndex={-1}
-          aria-hidden
-          className="pointer-events-none absolute right-0 bottom-0 h-0 w-0 opacity-0"
-        />
       </div>
+
+      {open && (
+        <div className="absolute top-full right-0 z-9999 mt-2 w-max rounded-[20px] [corner-shape:squircle] border border-gray-200 bg-white p-3 text-sm text-black">
+          <div className="mb-2 flex items-center justify-between gap-4 pl-1">
+            <Stepper
+              label={MONTHS[view.month]}
+              unit="month"
+              canDown={viewKey > minKey}
+              onStep={shiftMonth}
+            />
+            <Stepper
+              label={String(view.year)}
+              unit="year"
+              canDown={viewKey - 12 >= minKey}
+              onStep={(by) => shiftMonth(by * 12)}
+            />
+          </div>
+
+          <div className="grid grid-cols-7 gap-0.5">
+            {WEEKDAYS.map((day) => (
+              <span
+                key={day}
+                className="flex h-6 items-center justify-center text-xs font-semibold text-gray-500"
+              >
+                {day}
+              </span>
+            ))}
+            {monthCells(view.year, view.month).map((cell) => {
+              const past = cell.iso < today;
+              const selected = cell.iso === value;
+
+              return (
+                <button
+                  key={cell.iso}
+                  type="button"
+                  disabled={past}
+                  onClick={() => pick(cell.iso)}
+                  className={`size-8 rounded-full ${
+                    selected
+                      ? "bg-(--primary-color-2) text-white"
+                      : `${past || !cell.inMonth ? "text-gray-300" : "text-black"} ${past ? "" : "hover:bg-gray-200"}`
+                  } ${
+                    cell.iso === today && !selected
+                      ? "ring-1 ring-inset ring-(--primary-color-1)"
+                      : ""
+                  }`}
+                >
+                  {cell.day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 

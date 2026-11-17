@@ -323,7 +323,7 @@ export type SelectOption = {
 };
 
 // Close dropdown when clicking outside or pressing Escape
-function useCloseOnOutside(
+export function useCloseOnOutside(
   open: boolean,
   setOpen: (open: boolean) => void,
   ref: React.RefObject<HTMLDivElement | null>,
