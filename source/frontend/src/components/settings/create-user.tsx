@@ -11,6 +11,20 @@ import { CARD, ERROR, MUTED } from "./settings-style";
 const DEFAULT_TRIAL_QUOTA = 10;
 const MIN_PASSWORD = 8;
 
+function passwordCharacterLength(value: string): number {
+  return Array.from(value).length;
+}
+
+function limitPasswordBytes(value: string): string {
+  let limited = "";
+  for (const character of value) {
+    const next = limited + character;
+    if (new TextEncoder().encode(next).length > 72) break;
+    limited = next;
+  }
+  return limited;
+}
+
 const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
     value: "member",
@@ -49,7 +63,9 @@ export default function CreateUser({
   const name = username.trim();
   const login = email.trim();
   const ready =
-    Boolean(name) && Boolean(login) && password.length >= MIN_PASSWORD;
+    Boolean(name) &&
+    Boolean(login) &&
+    passwordCharacterLength(password) >= MIN_PASSWORD;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,7 +114,7 @@ export default function CreateUser({
     }
   }
 
-  const missing = MIN_PASSWORD - password.length;
+  const missing = MIN_PASSWORD - passwordCharacterLength(password);
 
   return (
     <div className={CARD}>
@@ -156,7 +172,7 @@ export default function CreateUser({
             look="outlined"
             type="password"
             value={password}
-            onChange={setPassword}
+            onChange={(value) => setPassword(limitPasswordBytes(value))}
             disabled={busy}
             maxLength={72}
             showCounter={false}
@@ -189,7 +205,7 @@ export default function CreateUser({
           >
             {busy ? "Creating user..." : "Create User"}
           </Button>
-          {missing > 0 && password.length > 0 && (
+          {missing > 0 && passwordCharacterLength(password) > 0 && (
             <span className={MUTED}>
               Password must be at least {MIN_PASSWORD} characters long.
             </span>

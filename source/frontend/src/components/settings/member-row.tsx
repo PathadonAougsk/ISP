@@ -17,8 +17,21 @@ import { Select, TextInput } from "@/components/ui/field";
 import { MUTED } from "./settings-style";
 
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
-
 const MIN_PASSWORD = 8;
+
+function passwordCharacterLength(value: string): number {
+  return Array.from(value).length;
+}
+
+function limitPasswordBytes(value: string): string {
+  let limited = "";
+  for (const character of value) {
+    const next = limited + character;
+    if (new TextEncoder().encode(next).length > 72) break;
+    limited = next;
+  }
+  return limited;
+}
 
 // Runs one write against this member, then reloads the list. Returns false
 // when the server refused, with its `detail` already on screen.
@@ -52,7 +65,10 @@ function ResetForm({
       onError("Enter a new email address, a new password, or both.");
       return;
     }
-    if (password && password.length < MIN_PASSWORD) {
+    if (
+      password &&
+      passwordCharacterLength(password) < MIN_PASSWORD
+    ) {
       onError(
         `The new password must be at least ${MIN_PASSWORD} characters long.`,
       );
@@ -109,7 +125,7 @@ function ResetForm({
           look="outlined"
           type="password"
           value={password}
-          onChange={setPassword}
+          onChange={(value) => setPassword(limitPasswordBytes(value))}
           disabled={busy}
           maxLength={72}
           showCounter={false}
