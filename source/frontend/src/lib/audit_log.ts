@@ -2,6 +2,7 @@
 
 import { apiFetch, apiOrThrow } from "@/lib/api";
 import { buildQuery } from "@/lib/query";
+import { getUserId } from "@/lib/cache/cache-utils";
 
 // One row per changed column, written by the endpoint that made the change -
 // see the note in the API guide: there is no database trigger behind this.
@@ -30,9 +31,16 @@ export type AuditLogQuery = {
   by_whom?: string;
 };
 
-// Admin only on the server, so a 403 is expected for a Lab User - the panel
-// shows the server's `detail` rather than pretending the log is empty.
-export async function getAuditLogs(
+const CACHE_TTL = 1000;
+
+type CacheEntry = {
+  data: AuditLogsResponse;
+  expiresAt: number;
+};
+
+const auditLogCache = new Map<string, CacheEntry>();
+
+async function fetchAuditLogs(
   query: AuditLogQuery = {},
 ): Promise<AuditLogsResponse> {
   const qs = buildQuery(query).toString();
@@ -40,4 +48,47 @@ export async function getAuditLogs(
   await apiOrThrow(res, `HTTP ${res.status}`);
 
   return res.json();
+}
+
+// normal network request, used by pagination.
+export async function getAuditLogs(
+  query: AuditLogQuery = {},
+): Promise<AuditLogsResponse> {
+  return fetchAuditLogs(query);
+}
+
+// show cached data immediately, then replace it with fresh data.
+export async function loadAuditLogs(
+  query: AuditLogQuery,
+  onData: (data: AuditLogsResponse, stale: boolean) => void,
+  onError: (error: unknown) => void,
+): Promise<void> {
+  try {
+    const userId = await getUserId();
+    const key = userId ? `${userId}:${JSON.stringify(query)}` : null;
+
+    const cached = key ? auditLogCache.get(key) : undefined;
+
+    // expired entries are intentionally still displayed.
+    if (cached) {
+      onData(cached.data, cached.expiresAt <= Date.now());
+    }
+
+    try {
+      const fresh = await fetchAuditLogs(query);
+
+      if (key) {
+        auditLogCache.set(key, {
+          data: fresh,
+          expiresAt: Date.now() + CACHE_TTL,
+        });
+      }
+
+      onData(fresh, false);
+    } catch (error) {
+      onError(error);
+    }
+  } catch (error) {
+    onError(error);
+  }
 }

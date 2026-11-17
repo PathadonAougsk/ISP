@@ -11,15 +11,7 @@ import {
 } from "@/lib/category";
 import Button from "@/components/ui/button";
 import { TextInput } from "@/components/ui/field";
-import {
-  ERROR,
-  HEAD,
-  LIST_PANEL,
-  MESSAGE,
-  MUTED,
-  ROW,
-  TITLE,
-} from "./settings-style";
+import { ERROR, HEAD, LIST_PANEL, MESSAGE, MUTED, ROW } from "./settings-style";
 
 export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
