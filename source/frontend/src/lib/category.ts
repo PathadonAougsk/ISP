@@ -6,7 +6,7 @@ import { cached } from "@/lib/cache/cache";
 import { truncateLabel } from "@/lib/format";
 import { useFetched } from "@/lib/hooks";
 
-const CACHE_TTL = 30 * 60 * 1000;
+const CACHE_TTL = 5 * 60 * 1000;
 
 export type Category = {
   id: number;

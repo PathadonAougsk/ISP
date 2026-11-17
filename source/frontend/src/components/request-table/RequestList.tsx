@@ -133,9 +133,6 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
   const isEmpty =
     filters.status === "All" && filters.categoryId === "All" && !filters.search;
 
-  // "tasks" -> "task"
-  const singular = noun.replace(/s$/, "");
-
   return (
     <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) px-3 pt-3">
       <div className="mb-3 flex items-center gap-2">

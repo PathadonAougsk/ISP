@@ -33,7 +33,7 @@ const sweepExpired = async (prefix: string): Promise<void> => {
   }, undefined);
 };
 
-export function initializeApiCache(): Promise<void> {
+export function clearExpiredApiCache(): Promise<void> {
   if (!cacheInitialization) {
     // persist across reload, only remove expired
     cacheInitialization = sweepExpired(`${CACHE_PREFIX}-`);
