@@ -137,7 +137,7 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
     <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) px-3 pt-3">
       <div className="mb-3 flex items-center gap-2">
         {/* type and create button */}
-        <h1 className="flex h-9 w-32 shrink-0 gap-2 items-center pl-4 text-lg font-semibold">
+        <h1 className="flex h-9 w-32 shrink-0 items-center gap-2 pl-4 text-lg font-semibold">
           {title}
           {canCreate && (
             <Button
@@ -151,71 +151,75 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
           )}
         </h1>
 
-        <div className="flex h-9 flex-1 items-center gap-2">
-          <span className="w-42 shrink-0 text-sm font-medium text-gray-600 whitespace-nowrap">
-            {loading
-              ? "Results: Loading..."
-              : totalResults === 0
-                ? isEmpty
-                  ? `Results: 0 ${noun}`
-                  : "Results: No results found"
-                : `Results: ${resultStart}-${resultEnd} of ${totalResults}`}
-          </span>
+        <div className="@container min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-42 shrink-0 text-sm font-medium whitespace-nowrap text-gray-600">
+              {loading
+                ? "Results: Loading..."
+                : totalResults === 0
+                  ? isEmpty
+                    ? `Results: 0 ${noun}`
+                    : "Results: No results found"
+                  : `Results: ${resultStart}-${resultEnd} of ${totalResults}`}
+            </span>
 
-          <div className="relative min-w-0 flex-1">
-            <TextInput
-              name="search"
-              ref={searchRef}
-              look="panel"
-              placeholder="Search"
-              value={draft}
-              onChange={setDraft}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  onFilterChange({ search: draft.trim() });
-                }
-              }}
-              className="w-full pr-10"
-            />
-            {draft && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft("");
-                  onFilterChange({ search: "" });
-                  searchRef.current?.focus();
+            <div className="relative min-w-0 flex-1 basis-40">
+              <TextInput
+                name="search"
+                ref={searchRef}
+                look="panel"
+                placeholder="Search"
+                value={draft}
+                onChange={setDraft}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    onFilterChange({ search: draft.trim() });
+                  }
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2"
-                aria-label="Clear search"
-              >
-                <Icon src="/close.svg" className="size-3" />
-              </button>
-            )}
+                className="w-full pr-10"
+              />
+              {draft && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft("");
+                    onFilterChange({ search: "" });
+                    searchRef.current?.focus();
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2"
+                  aria-label="Clear search"
+                >
+                  <Icon src="/close.svg" className="size-3" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex w-full gap-2 @min-[700px]:w-auto">
+              <Select
+                look="panel"
+                className="w-1/2 min-w-0 flex-1 @min-[700px]:w-35 @min-[700px]:flex-none"
+                value={filters.categoryId}
+                placeholder={{ value: "All", label: "All categories" }}
+                firstItem={{ value: "All", label: "All categories" }}
+                options={categoryOptions(categories, true)}
+                onChange={(value) =>
+                  onFilterChange({
+                    categoryId: value === "All" ? "All" : Number(value),
+                  })
+                }
+              />
+
+              <Select
+                look="panel"
+                className="w-1/2 min-w-0 flex-1 @min-[700px]:w-35 @min-[700px]:flex-none"
+                value={filters.status}
+                placeholder={{ value: "All", label: "All statuses" }}
+                firstItem={{ value: "All", label: "All statuses" }}
+                options={statusOptions}
+                onChange={(status) => onFilterChange({ status })}
+              />
+            </div>
           </div>
-
-          <Select
-            look="panel"
-            className="w-35 shrink-0"
-            value={filters.categoryId}
-            placeholder={{ value: "All", label: "All categories" }}
-            firstItem={{ value: "All", label: "All categories" }}
-            options={categoryOptions(categories, true)}
-            onChange={(value) =>
-              onFilterChange({
-                categoryId: value === "All" ? "All" : Number(value),
-              })
-            }
-          />
-
-          <Select
-            look="panel"
-            className="w-35 shrink-0"
-            value={filters.status}
-            placeholder={{ value: "All", label: "All statuses" }}
-            firstItem={{ value: "All", label: "All statuses" }}
-            options={statusOptions}
-            onChange={(status) => onFilterChange({ status })}
-          />
         </div>
       </div>
 
