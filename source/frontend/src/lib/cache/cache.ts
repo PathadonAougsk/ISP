@@ -1,66 +1,29 @@
 import { getPaging, getUserId } from "@/lib/cache/cache-utils";
+import { type Families } from "@/lib/cache/cache-family";
 import {
-  addPage,
-  createFamily,
-  dropFamily,
-  getFamily,
-  resetFamily,
-  type Families,
-  type Family,
-} from "@/lib/cache/cache-family";
+  fetchAndSave,
+  readBigger,
+  readExact,
+  resolveFamily,
+  type Entry,
+  type FlowContext,
+} from "@/lib/cache/cache-flow";
 import {
-  getCache,
-  getKey,
-  readResult,
-  saveResult,
-  sweepExpired,
-  type CacheContext,
-} from "@/lib/cache/cache-storage";
+  CACHE_PREFIX,
+  initializeApiCache,
+  registerClearer,
+} from "@/lib/cache/cache-lifecycle";
+import { getCache, getKey, type CacheContext } from "@/lib/cache/cache-storage";
 
+export {
+  clearAllApiCache,
+  initializeApiCache,
+} from "@/lib/cache/cache-lifecycle";
 export { withoutPagination } from "@/lib/cache/cache-utils";
-
-type Entry<T> = {
-  promise: Promise<T>;
-  expiresAt: number;
-  settled: boolean;
-};
-
-const CACHE_PREFIX = "api-cache";
 
 type CachedFunction<A extends unknown[], T> = ((...args: A) => Promise<T>) & {
   clear: () => Promise<void>;
 };
-
-const cacheClearers = new Set<() => Promise<void>>();
-
-let cacheInitialization: Promise<void> | null = null;
-
-export function initializeApiCache(): Promise<void> {
-  if (!cacheInitialization) {
-    // persist across reload, only remove expired
-    cacheInitialization = sweepExpired(`${CACHE_PREFIX}-`);
-  }
-
-  return cacheInitialization;
-}
-
-export async function clearAllApiCache(): Promise<void> {
-  await Promise.all(Array.from(cacheClearers, (clear) => clear()));
-
-  // module not loaded yet never register, so sweep by prefix too
-  if (typeof window === "undefined" || !("caches" in window)) return;
-
-  try {
-    const names = await window.caches.keys();
-    await Promise.all(
-      names
-        .filter((name) => name.startsWith(`${CACHE_PREFIX}-`))
-        .map((name) => window.caches.delete(name)),
-    );
-  } catch {
-    // best effort, never block sign out
-  }
-}
 
 export function cached<A extends unknown[], T>(
   fn: (...args: A) => Promise<T>,
@@ -117,8 +80,6 @@ export function cached<A extends unknown[], T>(
           },
         };
 
-        const fetchFresh = () => fn(...args);
-
         // drop settled page from pending, never the current one
         const evict = (pageKey: string) => {
           if (pageKey !== key && pending.get(pageKey)?.settled) {
@@ -126,110 +87,51 @@ export function cached<A extends unknown[], T>(
           }
         };
 
+        const paging = getPaging(args);
+        const flow: FlowContext<T> = {
+          cache,
+          ctx,
+          entry,
+          pending,
+          families,
+          key,
+          familyKey,
+          ttlMs,
+          paging,
+          slice,
+          total,
+          evict,
+          fetchFresh: () => fn(...args),
+          page: {
+            key,
+            offset: paging?.offset ?? 0,
+            limit: paging?.limit ?? Number.MAX_SAFE_INTEGER,
+          },
+        };
+
         // 1. expiry from family record, own ttl if no family
-        let family: Family | null = null;
+        const family = await resolveFamily(flow);
 
-        if (familyKey) {
-          family = await getFamily(cache, families, familyKey);
-
-          if (family && family.expiresAt <= Date.now()) {
-            await dropFamily(cache, families, familyKey, family, evict);
-            family = null;
-          }
-
-          if (!family) {
-            family = await createFamily(
-              cache,
-              families,
-              familyKey,
-              Date.now() + ttlMs,
-            );
-          }
-
-          // clear() landed meanwhile, skip cache
-          if (!ctx.guard.isSameGeneration()) return fetchFresh();
-        }
+        // clear() landed meanwhile, skip cache
+        if (familyKey && !ctx.guard.isSameGeneration())
+          return flow.fetchFresh();
 
         const expiresAt = family ? family.expiresAt : Date.now() + ttlMs;
 
         entry.expiresAt = expiresAt;
 
-        const paging = getPaging(args);
-        const page = {
-          key,
-          offset: paging?.offset ?? 0,
-          limit: paging?.limit ?? Number.MAX_SAFE_INTEGER,
-        };
-
         // 2. bigger entry, same offset, is authoritative
-        if (family && slice && paging) {
-          for (const other of [...family.pages]) {
-            if (other.offset !== paging.offset || other.limit <= paging.limit) {
-              continue;
-            }
+        const bigger = await readBigger(flow, family);
 
-            const inMemory = pending.get(other.key);
-
-            if (inMemory?.settled) {
-              if (inMemory.expiresAt > Date.now()) {
-                return slice(await inMemory.promise, paging.limit);
-              }
-
-              pending.delete(other.key);
-            }
-
-            const bigger = await readResult<T>({
-              cache,
-              request: cache ? getKey(other.key) : null,
-              guard: ctx.guard,
-            });
-
-            if (bigger.hit) return slice(bigger.value as T, paging.limit);
-          }
-        }
+        if (bigger) return bigger.value;
 
         // 3. exact entry
-        const exact = await readResult<T>(ctx);
+        const exact = await readExact(flow, family);
 
-        if (exact.hit) {
-          // hit never extend expiry
-          if (!family && exact.expiresAt !== undefined) {
-            entry.expiresAt = exact.expiresAt;
-          }
-
-          if (familyKey && family && ctx.guard.isSameGeneration()) {
-            await addPage(cache, families, familyKey, page);
-          }
-
-          return exact.value as T;
-        }
+        if (exact) return exact.value;
 
         // 4. fetch and save
-        const result = await fetchFresh();
-
-        await saveResult(ctx, result, expiresAt);
-
-        if (
-          familyKey &&
-          family &&
-          ctx.guard.isSameGeneration() &&
-          families.get(familyKey) === family
-        ) {
-          const count = total?.(result);
-
-          // total changed = dataset changed, keep only this page
-          if (
-            count !== undefined &&
-            family.count !== undefined &&
-            count !== family.count
-          ) {
-            await resetFamily(cache, families, familyKey, count, key, evict);
-          }
-
-          await addPage(cache, families, familyKey, page, count);
-        }
-
-        return result;
+        return fetchAndSave(flow, family, expiresAt);
       }),
       expiresAt: Date.now() + ttlMs,
       settled: false,
@@ -269,7 +171,7 @@ export function cached<A extends unknown[], T>(
     return clearing;
   };
 
-  cacheClearers.add(wrapped.clear);
+  registerClearer(wrapped.clear);
 
   return wrapped;
 }

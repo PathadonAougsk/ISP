@@ -106,26 +106,3 @@ export const saveResult = async <T>(
     }
   }, undefined);
 };
-
-// one time sweep, remove expired entries (and old format without expiry)
-export const sweepExpired = async (prefix: string): Promise<void> => {
-  if (typeof window === "undefined" || !("caches" in window)) return;
-
-  await safe<void>(async () => {
-    const names = (await window.caches.keys()).filter((name) =>
-      name.startsWith(prefix),
-    );
-
-    await Promise.all(
-      names.map(async (name) => {
-        const cache = await window.caches.open(name);
-
-        for (const request of await cache.keys()) {
-          const response = await cache.match(request);
-
-          if (!response || !isFresh(response)) await cache.delete(request);
-        }
-      }),
-    );
-  }, undefined);
-};
