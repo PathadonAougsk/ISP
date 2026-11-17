@@ -10,7 +10,7 @@ const grid = (gridClassName: string) =>
   `grid flex-1 items-center gap-3 ${gridClassName}`;
 
 // green bar, one title per column. keeps room on the right for the scrollbar
-export function TableHeader({
+export function TableHeader<T extends string = string>({
   titles,
   gridClassName,
   hasOverflow = false,
@@ -28,10 +28,10 @@ export function TableHeader({
   onIconClick?: () => void;
   iconLabel?: string;
   iconPressed?: boolean;
-  sortKeys?: string[];
-  sortKey?: string;
+  sortKeys?: T[];
+  sortKey?: T;
   sortDirection?: "asc" | "desc";
-  onSort?: (key: string) => void;
+  onSort?: (key: T) => void;
 }) {
   return (
     <div
