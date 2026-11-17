@@ -159,7 +159,7 @@ function AuthForm() {
             deactivated && (
               <div
                 role="alert"
-                className="border-2 border-dashed border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
+                className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
               >
                 Your account has been deactivated. Ask a Lab Owner or Lab Admin
                 to turn it back on.
