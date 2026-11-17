@@ -26,6 +26,8 @@ export default function CreateTicketModal({
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const { saving, error, setError, run } = useFormSubmit();
+  // date box say invalid, block submit
+  const [dateInvalid, setDateInvalid] = useState(false);
 
   async function handleCreate(close: () => void) {
     if (!title.trim() || categoryId === "") {
@@ -59,7 +61,7 @@ export default function CreateTicketModal({
         <FormButton
           variant="green"
           onClick={() => handleCreate(close)}
-          disabled={saving}
+          disabled={saving || dateInvalid}
         >
           {saving ? "Creating…" : "Create"}
         </FormButton>
@@ -91,6 +93,7 @@ export default function CreateTicketModal({
             className="min-w-35 flex-1"
             value={dueDate}
             onChange={setDueDate}
+            onValidityChange={setDateInvalid}
           />
         </div>
 

@@ -33,7 +33,8 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
   const [table, setTable] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [fetchingLatest, setFetchingLatest] = useState(false);
+  // true from the start, first load begin right away
+  const [fetchingLatest, setFetchingLatest] = useState(true);
 
   // Which filter and refresh request the rows on screen came from.
   const [loadedTable, setLoadedTable] = useState<string | null>(null);
@@ -48,15 +49,22 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
   // Bumped by cleanup so responses from previous requests are discarded.
   const requestId = useRef(0);
 
-  // Show cached data immediately and refresh it in the background.
-  useEffect(() => {
-    const id = requestId.current;
+  // New filter or refresh: reset during render, not in the effect
+  const requestKey = `${table}|${refreshKey}`;
+  const [prevRequestKey, setPrevRequestKey] = useState(requestKey);
 
+  if (prevRequestKey !== requestKey) {
+    setPrevRequestKey(requestKey);
     setFetchingLatest(true);
     setLoadingMore(false);
     setError(null);
     setEntries([]);
     setHasMore(false);
+  }
+
+  // Show cached data immediately and refresh it in the background.
+  useEffect(() => {
+    const id = requestId.current;
 
     loadAuditLogs(
       { limit: PAGE_SIZE, from_table: table || undefined },
@@ -209,7 +217,10 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               {loading ? (
                 <p className={MESSAGE}>Loading activity...</p>
               ) : entries.length === 0 ? (
-                <p className={MESSAGE}>No activity has been recorded yet.</p>
+                // error already say why, no "empty" lie
+                !error && (
+                  <p className={MESSAGE}>No activity has been recorded yet.</p>
+                )
               ) : (
                 entries.map((entry) => (
                   <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>

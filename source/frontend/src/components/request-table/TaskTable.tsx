@@ -3,7 +3,7 @@
 import type { TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
 import type { UserRole } from "@/lib/account";
-import { isPastDate } from "@/lib/format";
+import { isMissingItem } from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
   RequestTableFrame,
@@ -61,6 +61,8 @@ export default function TaskTable({
   onCreate: () => void;
 }) {
   // The backend already limits a Lab User to their own tasks, so no extra filter here
+  const now = new Date();
+
   return (
     <RequestTableFrame
       title="Tasks"
@@ -83,8 +85,12 @@ export default function TaskTable({
       onSelect={onSelect}
       getRow={(task) => {
         const completed = task.status === "Completed";
-        // only unfinished task can be overdue
-        const overdue = !completed && isPastDate(task.dueDateValue);
+        // same rule as dashboard: in progress + deadline passed
+        const overdue = isMissingItem(
+          { status: task.status, due_date: task.dueDateIso },
+          ["In progress"],
+          now,
+        );
 
         return {
           overdue,

@@ -339,6 +339,8 @@ export function useCloseOnOutside(
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        // stop here, so modal behind (window listener) stay open
+        event.stopPropagation();
         setOpen(false);
       }
     };

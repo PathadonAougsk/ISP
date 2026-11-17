@@ -7,23 +7,13 @@ import Button from "@/components/ui/button";
 import { TextInput } from "@/components/ui/field";
 import Toggle from "@/components/ui/toggle";
 import { CARD, ERROR, MUTED } from "./settings-style";
+import {
+  MIN_PASSWORD,
+  limitPasswordBytes,
+  passwordCharacterLength,
+} from "@/lib/password";
 
 const DEFAULT_TRIAL_QUOTA = 10;
-const MIN_PASSWORD = 8;
-
-function passwordCharacterLength(value: string): number {
-  return Array.from(value).length;
-}
-
-function limitPasswordBytes(value: string): string {
-  let limited = "";
-  for (const character of value) {
-    const next = limited + character;
-    if (new TextEncoder().encode(next).length > 72) break;
-    limited = next;
-  }
-  return limited;
-}
 
 const KINDS: { value: UserKind; label: string; blurb: string }[] = [
   {
@@ -74,7 +64,8 @@ export default function CreateUser({
 
     let cap: number | null = null;
     if (trial) {
-      cap = Number(quota);
+      // blank is not 0, Number("") would say 0
+      cap = quota.trim() === "" ? NaN : Number(quota);
       if (!Number.isInteger(cap) || cap < 0) {
         setError("Enter a whole number greater than or equal to 0.");
         return;

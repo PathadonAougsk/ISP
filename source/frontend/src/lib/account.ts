@@ -30,7 +30,7 @@ const ADMIN_ROLES: AccountRole[] = ["Lab Owner", "Lab Admin"];
 // Several components (topbar, useCurrentAccount, page guards) ask for the same
 // row on every mount, so hold the answer here and share one request between
 // concurrent callers.
-const ME_CACHE_TTL = 2 * 60 * 1000; // an hour, so a role change is picked up soon enough
+const ME_CACHE_TTL = 2 * 60 * 1000; // 2 minutes, so a role change is picked up soon enough
 
 // Cache API, not memory. Clear also drop old in-flight saves.
 const getMeCached = cached(fetchMe, ME_CACHE_TTL, "me");
@@ -240,6 +240,7 @@ export async function adminCreateAccount(
 
   const { Account: account } = (await res.json()) as AccountResponse;
   getAccounts.clear();
+  notifyAccountChange();
 
   return account;
 }
@@ -303,7 +304,11 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
 }
 
 export function useMembers() {
-  const { data, loading, error } = useFetched(getAccounts);
+  const { data, loading, error } = useFetched(
+    getAccounts,
+    true,
+    onAccountChange,
+  );
   const members = useMemo(
     () =>
       data?.Accounts.map((account) => ({

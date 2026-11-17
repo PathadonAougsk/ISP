@@ -12,22 +12,11 @@ import Button from "@/components/ui/button";
 import { TextInput } from "@/components/ui/field";
 import Row, { EditButton } from "./row";
 import { ERROR, MUTED } from "./settings-style";
-
-const MIN_PASSWORD = 8;
-
-function passwordCharacterLength(value: string): number {
-  return Array.from(value).length;
-}
-
-function limitPasswordBytes(value: string): string {
-  let limited = "";
-  for (const character of value) {
-    const next = limited + character;
-    if (new TextEncoder().encode(next).length > 72) break;
-    limited = next;
-  }
-  return limited;
-}
+import {
+  MIN_PASSWORD,
+  limitPasswordBytes,
+  passwordCharacterLength,
+} from "@/lib/password";
 
 // the three things you can change about yourself, one open at a time
 type Editable = "username" | "email" | "password";

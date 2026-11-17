@@ -4,11 +4,18 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getMe } from "@/lib/account";
 import { createClient } from "@/lib/supabase/client";
+import { EyeIcon } from "@/components/ui/icon";
 
 const inputClass =
   "bg-(--panel-bg) px-3 py-2 text-black outline-none border border-(--panel-bg-hover) rounded-xl focus:border-(--primary-color-1)";
 
 const labelClass = "flex flex-col gap-1 text-base text-(--primary-color-deep)";
+
+const WRONG_LOGIN =
+  "The email or password you entered is incorrect. If you need to reset your credentials, please contact Lab Owner or Lab Admin.";
+
+const NO_ACCOUNT =
+  "This login has no account in the lab. Please contact Lab Owner or Lab Admin.";
 
 // useSearchParams needs a Suspense boundary above it during prerender.
 export default function AuthPage() {
@@ -43,13 +50,21 @@ function AuthForm() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        // wrong email/password get friendly text, others show real reason
+        throw new Error(
+          error.code === "invalid_credentials" ? WRONG_LOGIN : error.message,
+        );
       }
 
       // Supabase authenticates the login, but account.active is enforced by
       // the backend account row. Verify that row before entering the app.
       const account = await getMe({ force: true });
-      if (!account) return;
+
+      // no account row: sign out again and say why
+      if (!account) {
+        await supabase.auth.signOut();
+        throw new Error(NO_ACCOUNT);
+      }
 
       router.push("/dashboard");
     } catch (err) {
@@ -102,20 +117,7 @@ function AuthForm() {
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 aria-pressed={showPassword}
               >
-                <span
-                  aria-hidden="true"
-                  className="size-5 bg-(--primary-color-deep)"
-                  style={{
-                    maskImage: `url(${showPassword ? "/eye-on.svg" : "/eye-off.svg"})`,
-                    maskRepeat: "no-repeat",
-                    maskPosition: "center",
-                    maskSize: "contain",
-                    WebkitMaskImage: `url(${showPassword ? "/eye-on.svg" : "/eye-off.svg"})`,
-                    WebkitMaskRepeat: "no-repeat",
-                    WebkitMaskPosition: "center",
-                    WebkitMaskSize: "contain",
-                  }}
-                />
+                <EyeIcon shown={showPassword} />
               </button>
             </span>
             <input
@@ -152,8 +154,7 @@ function AuthForm() {
               role="alert"
               className="border-2 border-(--primary-red) bg-(--primary-red)/10 p-3 text-sm text-(--primary-red)"
             >
-              The email or password you entered is incorrect. If you need to
-              reset your credentials, please contact Lab Owner or Lab Admin.
+              {error}
             </div>
           ) : (
             deactivated && (

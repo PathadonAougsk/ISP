@@ -7,6 +7,7 @@ import { cached, withoutPagination } from "@/lib/cache/cache";
 import { loadLookups, type Lookups } from "@/lib/lookup";
 import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
+import { postTask, type TaskPayload } from "@/lib/task";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -138,6 +139,28 @@ export async function putTicket(
   getTickets.clear();
 
   return res.json();
+}
+
+// Accept with these values and make the task from them.
+// Task fail = ticket back to pending, so it can be accepted again.
+export async function acceptTicket(
+  id: number | string,
+  task: TaskPayload,
+): Promise<void> {
+  await putTicket(id, {
+    name: task.name,
+    description: task.description,
+    category_id: task.category_id,
+    due_date: task.due_date,
+    status: "accepted",
+  });
+
+  try {
+    await postTask(task);
+  } catch (taskError) {
+    await putTicket(id, { status: "pending" }).catch(() => {});
+    throw taskError;
+  }
 }
 
 function mapTicket(

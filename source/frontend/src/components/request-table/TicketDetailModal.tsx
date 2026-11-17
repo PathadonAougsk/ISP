@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { putTicket, type TicketRow } from "@/lib/ticket";
-import { postTask } from "@/lib/task";
+import { acceptTicket, putTicket, type TicketRow } from "@/lib/ticket";
 import { categoryOptions, type Category } from "@/lib/category";
 import { outranks, type AccountRole, type Member } from "@/lib/account";
 import DateInput from "@/components/ui/date-input";
@@ -14,7 +13,10 @@ import {
   useFormSubmit,
 } from "@/components/ui/form-modal";
 import MemberPanel from "@/components/request-table/MemberPanel";
-import { formatDueDate } from "@/components/request-table/RequestList";
+import {
+  dueDateEdit,
+  formatDueDate,
+} from "@/components/request-table/RequestList";
 
 export default function TicketDetailModal({
   ticket,
@@ -41,6 +43,8 @@ export default function TicketDetailModal({
   const [categoryId, setCategoryId] = useState<number | "">(ticket.categoryId);
   const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const { saving, error, setError, run } = useFormSubmit();
+  // date box say invalid, block submit
+  const [dateInvalid, setDateInvalid] = useState(false);
   const [action, setAction] = useState<"update" | "accept" | "reject" | null>(
     null,
   );
@@ -49,14 +53,17 @@ export default function TicketDetailModal({
     ticket.createdById === currentUserId &&
     (ticket.status === "Pending" || ticket.status === "Rejected");
 
-  // only role higher than creator can judge. creator not found = nobody
+  // only role higher than creator can judge, pending only. creator not found = nobody
   const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
-  const canJudge = !!creatorRole && outranks(currentRole, creatorRole);
+  const canJudge =
+    ticket.status === "Pending" &&
+    !!creatorRole &&
+    outranks(currentRole, creatorRole);
 
-  // The date input only holds a day, so sending it back would drop the time
-  // the backend stored. Send the saved value instead unless it was edited.
-  const dueDateChanged = (dueDate || "") !== (ticket.dueDateValue || "");
-  const dueDatePayload = dueDateChanged ? dueDate || null : ticket.dueDateIso;
+  const { changed: dueDateChanged, payload: dueDatePayload } = dueDateEdit(
+    dueDate,
+    ticket,
+  );
 
   const hasChanges =
     title.trim() !== ticket.title ||
@@ -88,36 +95,20 @@ export default function TicketDetailModal({
 
     setAction(newStatus === "Accepted" ? "accept" : "reject");
     const ok = await run(async () => {
-      // 1. Save the edits and the new status together. "Accepted" ->
-      // "accepted", the backend uses lowercase
-      await putTicket(ticket.id, {
+      // Edits and the new status are saved together
+      const values = {
         name,
         description: text || null,
         category_id: category,
         due_date: due,
-        status: newStatus.toLowerCase(),
-      });
+      };
 
-      if (newStatus !== "Accepted") return;
-
-      // 2. If accepted, create the task from the same values
-      try {
-        await postTask({
-          name,
-          description: text || null,
-          category_id: category,
-          due_date: due,
-          assignees: assignedIds,
-        });
-      } catch (taskError) {
-        // Task failed: restore the previous status so it can be accepted again
-        await putTicket(ticket.id, {
-          status: ticket.status.toLowerCase(),
-        }).catch(() => {});
-        throw taskError;
+      if (newStatus === "Accepted") {
+        await acceptTicket(ticket.id, { ...values, assignees: assignedIds });
+        onTaskCreated();
+      } else {
+        await putTicket(ticket.id, { ...values, status: "rejected" });
       }
-
-      onTaskCreated();
     }, "Failed to update ticket");
 
     if (ok) {
@@ -165,7 +156,7 @@ export default function TicketDetailModal({
             <FormButton
               variant="green"
               onClick={() => handleUpdate(close)}
-              disabled={saving || !hasChanges}
+              disabled={saving || !hasChanges || dateInvalid}
             >
               {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
@@ -220,6 +211,7 @@ export default function TicketDetailModal({
             className="min-w-35 flex-1"
             value={dueDate}
             onChange={setDueDate}
+            onValidityChange={setDateInvalid}
             readOnly={!canEdit}
             readOnlyText={formatDueDate(ticket)}
           />

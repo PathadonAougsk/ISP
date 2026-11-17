@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useCurrentAccount, useMembers } from "@/lib/account";
-import { useCategories } from "@/lib/category";
+import { onAccountChange, useCurrentAccount, useMembers } from "@/lib/account";
+import { onCategoryChange, useCategories } from "@/lib/category";
 import { getTicketRowById, useTickets, type TicketRow } from "@/lib/ticket";
 import { getTaskRowById, useTasks, type TaskRow } from "@/lib/task";
 import { CloseButton, Slideup } from "@/components/ui/slideup";
@@ -98,6 +98,21 @@ export default function RequestTable() {
   const { categories } = useCategories();
 
   const pathname = usePathname();
+
+  // rows hold category / user names, so refetch when settings change them
+  useEffect(() => {
+    const reloadRows = () => {
+      reloadTasks();
+      reloadTickets();
+    };
+    const offCategory = onCategoryChange(reloadRows);
+    const offAccount = onAccountChange(reloadRows);
+
+    return () => {
+      offCategory();
+      offAccount();
+    };
+  }, [reloadTasks, reloadTickets]);
 
   // open modal from link such as /request-table/task/12
   useEffect(() => {

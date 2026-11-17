@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { outranks, type AccountRole } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
-import { putTicket, type Ticket } from "@/lib/ticket";
+import { acceptTicket, putTicket, type Ticket } from "@/lib/ticket";
 import Button from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
@@ -62,7 +62,18 @@ export default function TicketSlideup({
     setSubmitting(true);
 
     try {
-      await putTicket(ticket.id, { status });
+      // accept = make task too, same as request-table judge
+      if (status === "accepted") {
+        await acceptTicket(ticket.id, {
+          name: ticket.name,
+          description: ticket.description,
+          category_id: ticket.category_id,
+          due_date: ticket.due_date,
+          assignees: [],
+        });
+      } else {
+        await putTicket(ticket.id, { status });
+      }
 
       onUpdated();
       close();

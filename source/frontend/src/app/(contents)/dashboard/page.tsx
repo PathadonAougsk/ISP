@@ -147,7 +147,11 @@ export default function Dashboard() {
           currentUserId={currentAccount?.id ?? null}
           currentRole={currentAccount?.role ?? null}
           onClose={() => setSelectedTicket(null)}
-          onUpdated={reloadTickets}
+          onUpdated={() => {
+            // accept make a task, so tasks change too
+            reloadTickets();
+            reloadTasks();
+          }}
         />
       )}
     </div>

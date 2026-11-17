@@ -15,23 +15,13 @@ import Button from "@/components/ui/button";
 import ConfirmModal from "@/components/ui/confirm-modal";
 import { Select, TextInput } from "@/components/ui/field";
 import { MUTED } from "./settings-style";
+import {
+  MIN_PASSWORD,
+  limitPasswordBytes,
+  passwordCharacterLength,
+} from "@/lib/password";
 
 const ASSIGNABLE_ROLES: AccountRole[] = ["Lab Admin", "Lab User"];
-const MIN_PASSWORD = 8;
-
-function passwordCharacterLength(value: string): number {
-  return Array.from(value).length;
-}
-
-function limitPasswordBytes(value: string): string {
-  let limited = "";
-  for (const character of value) {
-    const next = limited + character;
-    if (new TextEncoder().encode(next).length > 72) break;
-    limited = next;
-  }
-  return limited;
-}
 
 // Runs one write against this member, then reloads the list. Returns false
 // when the server refused, with its `detail` already on screen.

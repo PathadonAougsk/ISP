@@ -66,6 +66,16 @@ export function formatDueDate(row: { dueDateValue: string; dueDate: string }) {
     : row.dueDate || "-";
 }
 
+// The date input only holds a day, so sending it back would drop the time
+// the backend stored. Send the saved value instead unless it was edited.
+export function dueDateEdit(
+  dueDate: string,
+  row: { dueDateValue: string; dueDateIso: string | null },
+) {
+  const changed = (dueDate || "") !== (row.dueDateValue || "");
+  return { changed, payload: changed ? dueDate || null : row.dueDateIso };
+}
+
 // Whole table panel: title, create button, filters, header, rows, pagination.
 // getRow turns one row into its cells plus the mark before them (icon or dot).
 export function RequestTableFrame<T extends { id: string; title: string }>({

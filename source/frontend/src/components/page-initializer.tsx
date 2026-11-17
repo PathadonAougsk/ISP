@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { clearAllApiCache, clearExpiredApiCache } from "@/lib/cache/cache";
 import { getMe } from "@/lib/account";
+import Button from "@/components/ui/button";
 
 type Props = {
   children: React.ReactNode;
@@ -53,7 +54,24 @@ export default function PageInitializer({ children }: Props) {
   }, []);
 
   if (error) {
-    return <div>Failed to initialize application. Please reload.</div>;
+    return (
+      <div
+        role="alert"
+        className="flex h-full w-full flex-col items-center justify-center gap-4"
+      >
+        <p className="text-lg font-semibold text-red-700">
+          Failed to initialize application.
+        </p>
+        <Button
+          variant="green"
+          size="lg"
+          onClick={() => window.location.reload()}
+          className="font-semibold"
+        >
+          Reload
+        </Button>
+      </div>
+    );
   }
 
   if (!ready) {

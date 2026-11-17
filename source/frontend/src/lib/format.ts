@@ -132,12 +132,3 @@ export function todayIso() {
   const dd = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${mm}-${dd}`;
 }
-
-// isPastDate("2026-08-28") -> true once that day has gone (local time).
-// Empty means "no due date", which is never past.
-export function isPastDate(isoDate: string) {
-  if (!isoDate) return false;
-
-  // iso string compare is ok
-  return isoDate < todayIso();
-}

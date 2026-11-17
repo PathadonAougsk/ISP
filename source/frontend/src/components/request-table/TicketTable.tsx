@@ -3,13 +3,15 @@
 import type { TicketRow } from "@/lib/ticket";
 import type { Category } from "@/lib/category";
 import Icon from "@/components/ui/icon";
-import { ticketStatusIcon } from "@/components/dashboard/dashboard-data";
+import {
+  isMissingItem,
+  ticketStatusIcon,
+} from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
   RequestTableFrame,
   type TableFilters,
 } from "@/components/request-table/RequestList";
-import { isPastDate } from "@/lib/format";
 
 const titles = [
   "ID",
@@ -60,6 +62,8 @@ export default function TicketTable({
   onCreate: () => void;
   canCreate: boolean;
 }) {
+  const now = new Date();
+
   return (
     <RequestTableFrame
       title="Tickets"
@@ -81,9 +85,12 @@ export default function TicketTable({
       gridClassName={gridClassName}
       onSelect={onSelect}
       getRow={(ticket) => {
-        // only pending ticket can be overdue
-        const overdue =
-          ticket.status === "Pending" && isPastDate(ticket.dueDateValue);
+        // same rule as dashboard: pending/rejected + deadline passed
+        const overdue = isMissingItem(
+          { status: ticket.status, due_date: ticket.dueDateIso },
+          ["Pending", "Rejected"],
+          now,
+        );
 
         return {
           overdue,

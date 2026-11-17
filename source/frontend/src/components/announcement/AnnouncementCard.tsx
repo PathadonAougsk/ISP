@@ -42,13 +42,21 @@ export default function AnnouncementCard({
   }, []);
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`relative flex ${wrapped ? "h-48" : "h-45"} w-full max-[900px]:w-80 max-[900px]:shrink-0 flex-col gap-1 rounded-[15px] bg-white p-4 text-left ${
+    // div, not button: links inside can't live in a button.
+    // whole card click hit the cover button, links sit above it
+    <div
+      className={`pointer-events-none relative flex ${wrapped ? "h-48" : "h-45"} w-full max-[900px]:w-80 max-[900px]:shrink-0 flex-col gap-1 rounded-[15px] bg-white p-4 text-left [&_a]:pointer-events-auto [&_a]:relative ${
         selected ? "ring-2 ring-inset ring-(--primary-color-2)" : ""
       }`}
     >
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-label={announcement.name}
+        aria-pressed={selected}
+        className="pointer-events-auto absolute inset-0 rounded-[15px] focus-visible:outline-2 focus-visible:outline-(--primary-color-2)"
+      />
+
       <h1 className="text-2xl font-bold text-black line-clamp-2">
         {renderWithLinks(announcement.name)}
       </h1>
@@ -73,6 +81,6 @@ export default function AnnouncementCard({
           ? renderWithLinks(announcement.description)
           : "No description"}
       </div>
-    </button>
+    </div>
   );
 }

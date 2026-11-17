@@ -1,8 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getAccounts, type Account, type AccountRole } from "@/lib/account";
-import { getCategories, type Category } from "@/lib/category";
+import {
+  getAccounts,
+  onAccountChange,
+  type Account,
+  type AccountRole,
+} from "@/lib/account";
+import {
+  getCategories,
+  onCategoryChange,
+  type Category,
+} from "@/lib/category";
 import { getTasks } from "@/lib/task";
 import { getTickets } from "@/lib/ticket";
 import {
@@ -157,6 +166,19 @@ export function useDashboardFetching(
     error: false,
   });
 
+  // bump when settings change categories / accounts, so names refetch
+  const [categoriesKey, setCategoriesKey] = useState(0);
+  const [accountsKey, setAccountsKey] = useState(0);
+
+  useEffect(
+    () => onCategoryChange(() => setCategoriesKey((key) => key + 1)),
+    [],
+  );
+  useEffect(
+    () => onAccountChange(() => setAccountsKey((key) => key + 1)),
+    [],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -177,7 +199,7 @@ export function useDashboardFetching(
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categoriesKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,7 +214,7 @@ export function useDashboardFetching(
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accountsKey]);
 
   // fetch all at the same time, no more sequential
   const groups = {

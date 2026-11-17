@@ -13,7 +13,10 @@ import {
   useFormSubmit,
 } from "@/components/ui/form-modal";
 import MemberPanel from "@/components/request-table/MemberPanel";
-import { formatDueDate } from "@/components/request-table/RequestList";
+import {
+  dueDateEdit,
+  formatDueDate,
+} from "@/components/request-table/RequestList";
 
 export default function TaskDetailModal({
   task,
@@ -38,14 +41,16 @@ export default function TaskDetailModal({
   const [dueDate, setDueDate] = useState(task.dueDateValue);
   const [assignedIds, setAssignedIds] = useState<string[]>(task.assigneeIds);
   const { saving, error, setError, run } = useFormSubmit();
+  // date box say invalid, block submit
+  const [dateInvalid, setDateInvalid] = useState(false);
   const [action, setAction] = useState<"update" | "status" | null>(null);
 
   const isAdmin = userRole === "Lab Admin";
 
-  // The date input only holds a day, so sending it back would drop the time
-  // the backend stored. Send the saved value instead unless it was edited.
-  const dueDateChanged = (dueDate || "") !== (task.dueDateValue || "");
-  const dueDatePayload = dueDateChanged ? dueDate || null : task.dueDateIso;
+  const { changed: dueDateChanged, payload: dueDatePayload } = dueDateEdit(
+    dueDate,
+    task,
+  );
 
   const hasChanges =
     title.trim() !== task.title ||
@@ -123,7 +128,7 @@ export default function TaskDetailModal({
             <FormButton
               variant="green"
               onClick={() => handleUpdate(close)}
-              disabled={saving || !hasChanges}
+              disabled={saving || !hasChanges || dateInvalid}
             >
               {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
@@ -174,6 +179,7 @@ export default function TaskDetailModal({
             className="w-full min-w-0"
             value={dueDate}
             onChange={setDueDate}
+            onValidityChange={setDateInvalid}
             readOnly={!isAdmin}
             readOnlyText={formatDueDate(task)}
           />
