@@ -110,8 +110,6 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <section className="flex flex-col gap-5">
-      <h1 className={TITLE}>Categories</h1>
-
       <div className="flex flex-col gap-1.5">
         <p className="font-semibold">Categories for Tickets and Tasks</p>
         <p className={MUTED}>

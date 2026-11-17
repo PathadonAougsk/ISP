@@ -224,8 +224,13 @@ export default function AccountPanel({
   return (
     <>
       <section className="flex flex-col gap-4">
-        <h1 className={TITLE}>Account Information</h1>
-
+        <div className="flex flex-col gap-1.5">
+          <p className="font-semibold">Profile</p>
+          <p className={MUTED}>
+            Your account information. You can change your username, and email address here.
+          </p>
+        </div>
+        
         <Row
           label="Username"
           value={account?.username ?? placeholder}
@@ -314,7 +319,13 @@ export default function AccountPanel({
       <hr className="my-10 border-gray-200" />
 
       <section className="flex flex-col gap-4">
-        <h1 className={TITLE}>Password and Security</h1>
+        <div className="flex flex-col gap-1.5">
+          <p className="font-semibold">Password and Security</p>
+          <p className={MUTED}>
+            Your password is used to sign in to your account.
+          </p>
+        </div>
+        
 
         <Row label="Password" action={editAction("password")}>
           {open === "password" && (

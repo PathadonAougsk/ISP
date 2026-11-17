@@ -125,8 +125,6 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
 
   return (
     <section className="flex flex-col gap-5">
-      <h1 className={TITLE}>Activity Log</h1>
-
       <div className="flex flex-col gap-1.5">
         <p className="font-semibold">All Changes in Your Lab</p>
         <p className={MUTED}>
