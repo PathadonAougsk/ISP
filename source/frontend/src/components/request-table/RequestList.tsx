@@ -129,6 +129,13 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
 
   const resultEnd = Math.min(filters.page * pageSize, totalResults);
 
+  // no filter at all + no rows = database empty
+  const isEmpty =
+    filters.status === "All" && filters.categoryId === "All" && !filters.search;
+
+  // "tasks" -> "task"
+  const singular = noun.replace(/s$/, "");
+
   return (
     <div className="flex h-full min-h-0 flex-col rounded-t-[30px] bg-(--panel-bg) px-3 pt-3">
       <div className="mb-3 flex items-center gap-2">
@@ -152,7 +159,9 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
             {loading
               ? "Results: Loading..."
               : totalResults === 0
-                ? "Results: No results found"
+                ? isEmpty
+                  ? `Results: 0 ${noun}`
+                  : "Results: No results found"
                 : `Results: ${resultStart}-${resultEnd} of ${totalResults}`}
           </span>
 
@@ -245,7 +254,9 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
             </ListMessage>
           )}
           {!loading && !error && rows.length === 0 && (
-            <ListMessage>No {noun} match your search.</ListMessage>
+            <ListMessage>
+              {isEmpty ? `No ${noun} yet.` : `No ${noun} match your search.`}
+            </ListMessage>
           )}
 
           {/* floating page selection */}
