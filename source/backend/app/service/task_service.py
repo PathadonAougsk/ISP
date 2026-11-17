@@ -186,7 +186,7 @@ async def update_task(
             column_name=col_name,
             old_value=f"{old_val}",
             new_value=f"{new_value}",
-            by_whom=auth_user.id,
+            by_whom=me.id,
         )
         if al.old_value == al.new_value:
             return 0
