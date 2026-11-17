@@ -3,7 +3,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +34,21 @@ MIN_PASSWORD = 8
 MAX_PASSWORD = 72
 
 
+def validate_password_bytes(password: str) -> str:
+    if len(password.encode("utf-8")) > MAX_PASSWORD:
+        raise ValueError(
+            f"Password must be at most {MAX_PASSWORD} bytes when encoded as UTF-8"
+        )
+    return password
+
+
+Password = Annotated[
+    str,
+    Field(min_length=MIN_PASSWORD, max_length=MAX_PASSWORD),
+    AfterValidator(validate_password_bytes),
+]
+
+
 class ChangeEmailRequest(BaseModel):
     email: EmailStr
     # Not for identity - the token settled that. It stops someone at an unlocked browser pointing the login at their own address.
@@ -42,7 +57,7 @@ class ChangeEmailRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(min_length=1)
-    new_password: str = Field(min_length=MIN_PASSWORD, max_length=MAX_PASSWORD)
+    new_password: Password
 
 
 class UserKind(str, enum.Enum):
@@ -62,7 +77,7 @@ class CreateUserRequest(BaseModel):
     # Supabase keys a login on the email address, and signing in is email plus
     # password, so there is nothing to fall back on if this is missing.
     email: EmailStr
-    password: str = Field(min_length=MIN_PASSWORD, max_length=MAX_PASSWORD)
+    password: Password
     kind: UserKind = UserKind.MEMBER
     # Trial only, and ignored for a plain member - they have no cap at all.
     quota: int | None = Field(default=None, ge=0)

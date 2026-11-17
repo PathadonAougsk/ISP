@@ -108,7 +108,7 @@ function withLabel(
 
 // Character counter color
 function getCounterColor(value: string, maxLength: number) {
-  const percentage = (value.length / maxLength) * 100;
+  const percentage = (Array.from(value).length / maxLength) * 100;
 
   if (percentage <= 33) return "text-green-500";
   if (percentage <= 66) return "text-yellow-500";
@@ -133,9 +133,15 @@ function CharacterCounter({
     <span
       className={`text-xs font-normal ${getCounterColor(value, maxLength)}`}
     >
-      {value.length}/{maxLength}
+      {Array.from(value).length}/{maxLength}
     </span>
   );
+}
+
+function limitCharacters(value: string, maxLength?: number): string {
+  return maxLength === undefined
+    ? value
+    : Array.from(value).slice(0, maxLength).join("");
 }
 
 // Shared props
@@ -189,7 +195,9 @@ export function TextInput({
   const { controlClass, wrap } = withLabel(label, className, look);
 
   const invalid =
-    value.length > 0 && maxLength !== undefined && value.length >= maxLength;
+    value.length > 0 &&
+    maxLength !== undefined &&
+    Array.from(value).length >= maxLength;
 
   const counter =
     !readOnly && showCounter ? (
@@ -200,11 +208,12 @@ export function TextInput({
     <input
       type={type}
       value={value}
-      onChange={(event) => onChange?.(event.target.value)}
+      onChange={(event) =>
+        onChange?.(limitCharacters(event.target.value, maxLength))
+      }
       {...props}
       readOnly={readOnly}
       tabIndex={readOnly ? -1 : undefined}
-      maxLength={maxLength}
       aria-invalid={invalid}
       className={`${INPUT_LOOK[look]} ${controlClass}`}
     />
@@ -255,7 +264,9 @@ export function TextArea({
   );
 
   const invalid =
-    value.length > 0 && maxLength !== undefined && value.length >= maxLength;
+    value.length > 0 &&
+    maxLength !== undefined &&
+    Array.from(value).length >= maxLength;
 
   const counter =
     !readOnly && showCounter ? (
@@ -265,11 +276,12 @@ export function TextArea({
   const textarea = (
     <textarea
       value={value}
-      onChange={(event) => onChange?.(event.target.value)}
+      onChange={(event) =>
+        onChange?.(limitCharacters(event.target.value, maxLength))
+      }
       {...props}
       readOnly={readOnly}
       tabIndex={readOnly ? -1 : undefined}
-      maxLength={maxLength}
       aria-invalid={invalid}
       className={`${INPUT_LOOK[look]} min-h-24 flex-1 resize-none scrollbar-thin ${controlClass}`}
     />

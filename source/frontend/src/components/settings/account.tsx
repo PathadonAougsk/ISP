@@ -15,6 +15,20 @@ import { ERROR, MUTED, TITLE } from "./settings-style";
 
 const MIN_PASSWORD = 8;
 
+function passwordCharacterLength(value: string): number {
+  return Array.from(value).length;
+}
+
+function limitPasswordBytes(value: string): string {
+  let limited = "";
+  for (const character of value) {
+    const next = limited + character;
+    if (new TextEncoder().encode(next).length > 72) break;
+    limited = next;
+  }
+  return limited;
+}
+
 // the three things you can change about yourself, one open at a time
 type Editable = "username" | "email" | "password";
 
@@ -179,7 +193,7 @@ export default function AccountPanel({
     e.preventDefault();
     if (!account || !currentPassword) return;
 
-    if (newPassword.length < MIN_PASSWORD) {
+    if (passwordCharacterLength(newPassword) < MIN_PASSWORD) {
       say("password", {
         error: `The new password must be at least ${MIN_PASSWORD} characters long.`,
         done: null,
@@ -219,7 +233,7 @@ export default function AccountPanel({
     />
   );
 
-  const missing = MIN_PASSWORD - newPassword.length;
+  const missing = MIN_PASSWORD - passwordCharacterLength(newPassword);
 
   return (
     <>
@@ -366,7 +380,9 @@ export default function AccountPanel({
                     look="outlined"
                     type="password"
                     value={newPassword}
-                    onChange={draft("password", setNewPassword)}
+                    onChange={draft("password", (value) =>
+                      setNewPassword(limitPasswordBytes(value)),
+                    )}
                     disabled={busy}
                     maxLength={72}
                     showCounter={false}
@@ -389,7 +405,9 @@ export default function AccountPanel({
                     look="outlined"
                     type="password"
                     value={confirmPassword}
-                    onChange={draft("password", setConfirmPassword)}
+                    onChange={draft("password", (value) =>
+                      setConfirmPassword(limitPasswordBytes(value)),
+                    )}
                     disabled={busy}
                     maxLength={72}
                     showCounter={false}
