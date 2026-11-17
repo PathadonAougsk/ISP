@@ -68,17 +68,13 @@ export function TableHeader({
               type="button"
               onClick={() => onSort(key)}
               aria-label={`Sort by ${title}`}
-              aria-sort={isSorted ? sortDirection : "none"}
               className="min-w-0 truncate text-left text-base font-bold text-white"
             >
               {title}
               {isSorted && (sortDirection === "asc" ? " ↑" : " ↓")}
             </button>
           ) : (
-            <h1
-              key={title}
-              className="truncate text-base font-bold text-white"
-            >
+            <h1 key={title} className="truncate text-base font-bold text-white">
               {title}
             </h1>
           );
