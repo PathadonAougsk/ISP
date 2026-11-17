@@ -44,7 +44,10 @@ export default function MemberPanel({
         className={`flex shrink-0 items-center justify-between ${hint ? "mb-2" : "mb-3"}`}
       >
         <p className="text-base font-bold text-black">
-          Members <span className="text-green-800">{members.length}</span>
+          <span>Assignees</span>
+          <span className="ml-2 text-green-800">
+            {selectedIds.length} / {members.length}
+          </span>
         </p>
         <Button
           variant="green"
