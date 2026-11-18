@@ -217,6 +217,24 @@ async def update_ticket(
             detail="Ticket not found",
         )
 
+    if me.id != ticket.created_by and me.role == AccountRole.LAB_USER:
+        raise HTTPException(
+            status_code=403,
+            detail="You can update or edit only your own tickets",
+        )
+
+    if ticket.status == TicketStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot update or edit accepted tickets",
+        )
+
+    if data.status is not None and me.role == AccountRole.LAB_USER:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot update the ticket status",
+        )
+
     if data.category_id is not None:
         category = await session.get(Category, data.category_id)
 
@@ -226,7 +244,7 @@ async def update_ticket(
                 detail="Category not found",
             )
 
-    def create_audit_log(col_name, old_val, new_val):
+    def update_ticket_log(col_name, old_val, new_val):
         audit = AuditLog(
             from_table="ticket",
             row_id=str(ticket.id),
@@ -249,23 +267,23 @@ async def update_ticket(
 
     if data.name is not None:
         audit_list.append(
-            create_audit_log("name", ticket.name, data.name)
+            update_ticket_log("name", ticket.name, data.name)
         )
         ticket.name = data.name
 
-    if data.description is not None:
-        audit_list.append(
-            create_audit_log(
-                "description",
-                ticket.description,
-                data.description,
-            )
-        )
+    description_changed = update_ticket_log(
+        "description",
+        ticket.description,
+        data.description,
+    )
+    
+    if description_changed:
+        audit_list.append(description_changed)
         ticket.description = data.description
 
     if data.status is not None:
         audit_list.append(
-            create_audit_log(
+            update_ticket_log(
                 "status",
                 ticket.status,
                 data.status,
@@ -275,7 +293,7 @@ async def update_ticket(
 
     if data.category_id is not None:
         audit_list.append(
-            create_audit_log(
+            update_ticket_log(
                 "category_id",
                 ticket.category_id,
                 data.category_id,
@@ -283,16 +301,15 @@ async def update_ticket(
         )
         ticket.category_id = data.category_id
 
-    if data.due_date is not None:
-        new_due_date = to_due_date(data.due_date)
+    new_due_date = to_due_date(data.due_date)
+    due_date_changed = update_ticket_log(
+        "due_date",
+        to_utc(ticket.due_date),
+        new_due_date,
+    )
 
-        audit_list.append(
-            create_audit_log(
-                "due_date",
-                to_utc(ticket.due_date),
-                new_due_date,
-            )
-        )
+    if due_date_changed:
+        audit_list.append(due_date_changed)
         ticket.due_date = new_due_date
 
     for audit in audit_list:
@@ -316,6 +333,18 @@ async def delete_ticket(
         raise HTTPException(
             status_code=404,
             detail="Ticket not found",
+        )
+
+    if ticket.created_by != me.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can delete only your own tickets",
+        )
+
+    if ticket.status == TicketStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot delete accepted tickets",
         )
 
     audit_fields = {

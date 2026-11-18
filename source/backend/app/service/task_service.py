@@ -136,16 +136,6 @@ async def create_task(
         created_by=me.id,
     )
 
-    # Create an audit log for the creation!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=TaskStatus.IN_PROGRESS.value,
-        by_whom=me.id,
-    )
-
     if body.assignees:
         assignees = await session.scalars(
             select(Account).where(
@@ -157,9 +147,19 @@ async def create_task(
         if len(task.assignees) != len(set(body.assignees)):
             raise HTTPException(status_code=400, detail="One or more assignees are invalid")
 
-    # Add it to session, and update.
-    session.add(al)
     session.add(task)
+    await session.flush()
+
+    al = AuditLog(
+        from_table="task",
+        row_id=str(task.id),
+        column_name="status",
+        old_value=None,
+        new_value=body.status.value,
+        by_whom=me.id,
+    )
+    session.add(al)
+
     await session.commit()
     await session.refresh(task)
 
@@ -179,17 +179,17 @@ async def update_task(
     )
 
     # Create an audit log for the update!
-    def update_helper(col_name, old_val, new_value):
+    def create_audit_log(col_name, old_val, new_value):
         al = AuditLog(
             from_table="task",
             row_id=str(task.id),
             column_name=col_name,
-            old_value=f"{old_val}",
-            new_value=f"{new_value}",
-            by_whom=auth_user.id,
+            old_value=None if old_val is None else str(old_val),
+            new_value=None if new_value is None else str(new_value),
+            by_whom=me.id,
         )
         if al.old_value == al.new_value:
-            return 0
+            return None
         else:
             return al
 
@@ -200,7 +200,7 @@ async def update_task(
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
     if not is_admin(me):
-        if me not in task.assignees:
+        if not any(assignee.id == me.id for assignee in task.assignees):
             raise HTTPException(status_code=403, detail="You are not assigned to this task")
         if body.model_dump(exclude_unset=True).keys() - {"status"}:
             raise HTTPException(
@@ -210,42 +210,60 @@ async def update_task(
 
     # If it exists, then you definitely should update it!
     if body.name is not None:
-        audit_list.append(update_helper("name", task.name, body.name))
+        audit_list.append(create_audit_log("name", task.name, body.name))
         task.name = body.name
 
-    if body.description is not None:
-        audit_list.append(update_helper("description", task.description, body.description))
+    if "description" in body.model_fields_set:
+        audit_list.append(
+            create_audit_log("description", task.description, body.description)
+        )
         task.description = body.description
 
     if body.status is not None:
-        audit_list.append(update_helper("status", task.status, body.status))
+        audit_list.append(create_audit_log("status", task.status, body.status))
         task.status = body.status
 
     if body.category_id is not None:
-        audit_list.append(update_helper("category_id", task.category_id, body.category_id))
+        audit_list.append(
+            create_audit_log("category_id", task.category_id, body.category_id)
+        )
         task.category_id = body.category_id
 
-    if body.due_date is not None:
+    if "due_date" in body.model_fields_set:
         dt1 = to_utc(task.due_date)
         dt2 = to_due_date(body.due_date)
-        audit_list.append(update_helper("due_date", dt1, dt2))
+        audit_list.append(create_audit_log("due_date", dt1, dt2))
         task.due_date = dt2
 
     if body.assignees is not None:
-        audit_list.append(update_helper("assignees", task.assignees, body.assignees))
-        assignees = await session.scalars(
-            select(Account).where(
-                Account.id.in_(body.assignees),
-                Account.active.is_(True),
-            )
-        )
-        task.assignees = list(assignees.all())
-        if len(task.assignees) != len(set(body.assignees)):
-            raise HTTPException(status_code=400, detail="One or more assignees are invalid")
+        current_assignee_ids = {assignee.id for assignee in task.assignees}
+        requested_assignee_ids = set(body.assignees)
 
-    for i in audit_list:
-        if i != 0:
-            session.add(i)
+        if current_assignee_ids != requested_assignee_ids:
+            assignees = await session.scalars(
+                select(Account).where(
+                    Account.id.in_(requested_assignee_ids),
+                    Account.active.is_(True),
+                )
+            )
+            new_assignees = list(assignees.all())
+            if len(new_assignees) != len(requested_assignee_ids):
+                raise HTTPException(status_code=400, detail="One or more assignees are invalid")
+
+            old_assignee_value = ",".join(
+                sorted(str(assignee_id) for assignee_id in current_assignee_ids)
+            )
+            new_assignee_value = ",".join(
+                sorted(str(assignee_id) for assignee_id in requested_assignee_ids)
+            )
+            audit_list.append(
+                create_audit_log("assignees", old_assignee_value, new_assignee_value)
+            )
+            task.assignees = new_assignees
+
+    for audit in audit_list:
+        if audit is not None:
+            session.add(audit)
     await session.commit()
     await session.refresh(task)
 
@@ -265,16 +283,33 @@ async def delete_task(
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
+    if not is_admin(me):
+        raise HTTPException(
+            status_code=403,
+            detail="Only a Lab Owner or Lab Admin can delete tasks",
+        )
+
     # Create an audit log for the deletes!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=None,
-        by_whom=me.id,
-    )
-    session.add(al)
+    audit_fields = {
+        "name": task.name,
+        "description": task.description,
+        "status": task.status,
+        "category_id": task.category_id,
+        "due_date": task.due_date,
+    }
+
+    for column_name, old_value in audit_fields.items():
+        session.add(
+            AuditLog(
+                from_table="task",
+                row_id=str(task.id),
+                column_name=column_name,
+                old_value=str(old_value) if old_value is not None else None,
+                new_value=None,
+                by_whom=me.id,
+            )
+        )
+
     await session.delete(task)
     await session.commit()
 
