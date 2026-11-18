@@ -23,14 +23,12 @@ export default function TaskSlideup({
   usernames,
   currentUserId,
   onClose,
-  onUpdated,
 }: {
   task: Task;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   currentUserId: string | null;
   onClose: () => void;
-  onUpdated: () => void;
 }) {
   // local copy, task prop never change after putTask
   const [status, setStatus] = useState(task.status);
@@ -51,7 +49,6 @@ export default function TaskSlideup({
       await putTask(task.id, { status: next });
 
       setStatus(next);
-      onUpdated();
     } catch {
       setError(`Failed to ${action}`);
     } finally {

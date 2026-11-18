@@ -2,7 +2,7 @@
 
 import type { TaskRow } from "@/lib/task";
 import type { Category } from "@/lib/category";
-import type { UserRole } from "@/lib/account";
+import { isAdminRole, type AccountRole } from "@/lib/account";
 import { isMissingItem } from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
@@ -49,7 +49,7 @@ export default function TaskTable({
   tasks: TaskRow[];
   loading: boolean;
   error: string | null;
-  userRole: UserRole;
+  userRole: AccountRole;
   categories: Category[];
   filters: TableFilters;
   onFilterChange: (patch: Partial<Omit<TableFilters, "page">>) => void;
@@ -70,7 +70,7 @@ export default function TaskTable({
       rows={tasks}
       loading={loading}
       error={error}
-      canCreate={userRole === "Lab Admin"}
+      canCreate={isAdminRole(userRole)}
       onCreate={onCreate}
       categories={categories}
       statusOptions={statusOptions}

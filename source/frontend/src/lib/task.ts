@@ -103,13 +103,29 @@ export const getTasks = cached(
   (r) => r.TaskCount,
 );
 
+// Listener, so the dashboard refetch when a task change
+const taskListeners = new Set<() => void>();
+
+export function onTaskChange(listener: () => void) {
+  taskListeners.add(listener);
+
+  return () => {
+    taskListeners.delete(listener);
+  };
+}
+
+function notifyTaskChange() {
+  taskListeners.forEach((listener) => listener());
+}
+
 // data changed, so drop cached lists
 async function sendTask(
   request: Promise<Response>,
   fallback: string,
 ): Promise<TaskResponse> {
   const res = await apiOrThrow(await request, fallback);
-  getTasks.clear();
+  await getTasks.clear();
+  notifyTaskChange();
 
   return res.json();
 }

@@ -4,6 +4,7 @@ import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMemo } from "react";
 import { cached, clearAllApiCache } from "@/lib/cache/cache";
+import { clearAuditLogCache } from "@/lib/audit_log";
 import { useFetched } from "@/lib/hooks";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
@@ -55,7 +56,7 @@ function notifyAccountChange() {
   accountListeners.forEach((listener) => listener());
 }
 
-function isAdminRole(role: AccountRole): boolean {
+export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
@@ -97,6 +98,7 @@ export async function getMe({
 
 async function endSession(search = "") {
   await clearAllApiCache();
+  clearAuditLogCache();
   await createClient().auth.signOut();
 
   if (typeof window !== "undefined") {
@@ -141,12 +143,8 @@ async function fetchMe(): Promise<Account | null> {
     throw new Error(`${res.status} ${res.statusText || "Error"}: ${detail}`);
   }
 
-  const { Accounts } = await getAccounts();
-
-  return Accounts.find((user) => user.email === session.user.email) ?? null;
+  return null;
 }
-
-export type UserRole = "Lab Admin" | "Lab User";
 
 export type Member = {
   id: string;
@@ -270,7 +268,7 @@ export type CurrentAccount = (
       loading: false;
       error: null;
       account: Account;
-      userRole: UserRole;
+      userRole: AccountRole;
       currentUserId: string;
       isAdmin: boolean;
     }
@@ -305,7 +303,7 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
     loading: false,
     error: null,
     account,
-    userRole: admin ? "Lab Admin" : "Lab User",
+    userRole: account.role,
     currentUserId: account.id,
     isAdmin: admin,
     reload,

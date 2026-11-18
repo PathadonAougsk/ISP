@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
-import type { UserRole } from "@/lib/account";
+import { isAdminRole, type AccountRole } from "@/lib/account";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
 import { cached, withoutPagination } from "@/lib/cache/cache";
 import { loadLookups, type Lookups } from "@/lib/lookup";
@@ -76,8 +76,8 @@ export type TicketRow = {
 };
 
 // A Lab User only ever sees their own tickets, so the backend gets told so.
-function scope(userRole: UserRole) {
-  return userRole === "Lab Admin" ? {} : { onlyOwned: true };
+function scope(userRole: AccountRole) {
+  return isAdminRole(userRole) ? {} : { onlyOwned: true };
 }
 
 async function fetchTickets(
@@ -105,6 +105,21 @@ export const getTickets = cached(
   (r) => r.TicketCount,
 );
 
+// Listener, so the dashboard refetch when a ticket change
+const ticketListeners = new Set<() => void>();
+
+export function onTicketChange(listener: () => void) {
+  ticketListeners.add(listener);
+
+  return () => {
+    ticketListeners.delete(listener);
+  };
+}
+
+function notifyTicketChange() {
+  ticketListeners.forEach((listener) => listener());
+}
+
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
 
@@ -121,7 +136,8 @@ export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   await apiOrThrow(res, "Could not create that ticket.");
 
   // data changed, so drop cached lists
-  getTickets.clear();
+  await getTickets.clear();
+  notifyTicketChange();
 
   return res.json();
 }
@@ -136,7 +152,8 @@ export async function putTicket(
   );
 
   // data changed, so drop cached lists
-  getTickets.clear();
+  await getTickets.clear();
+  notifyTicketChange();
 
   return res.json();
 }
@@ -198,7 +215,7 @@ function mapTicket(
 // fetch one ticket by id for the modal. throw if not found
 export async function getTicketRowById(
   id: number,
-  userRole: UserRole,
+  userRole: AccountRole,
 ): Promise<TicketRow> {
   const [body, lookups] = await Promise.all([
     getTickets({ ...scope(userRole), ticket_id: id }),
@@ -219,7 +236,7 @@ export type TicketFilters = {
 
 // one page of the ticket table. waits for the role, which decides the scope
 export function useTickets(
-  userRole: UserRole,
+  userRole: AccountRole,
   meLoading: boolean,
   page: number,
   filters: TicketFilters,

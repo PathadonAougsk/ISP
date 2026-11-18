@@ -53,12 +53,13 @@ export default function TicketDetailModal({
     ticket.createdById === currentUserId &&
     (ticket.status === "Pending" || ticket.status === "Rejected");
 
-  // only role higher than creator can judge, pending only. creator not found = nobody
+  // only role higher than creator can judge, pending only. creator not found = any admin
   const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
   const canJudge =
     ticket.status === "Pending" &&
-    !!creatorRole &&
-    outranks(currentRole, creatorRole);
+    (creatorRole
+      ? outranks(currentRole, creatorRole)
+      : currentRole !== "Lab User");
 
   const { changed: dueDateChanged, payload: dueDatePayload } = dueDateEdit(
     dueDate,

@@ -40,6 +40,11 @@ type CacheEntry = {
 
 const auditLogCache = new Map<string, CacheEntry>();
 
+// drop all cached logs, used on sign-out
+export function clearAuditLogCache() {
+  auditLogCache.clear();
+}
+
 async function fetchAuditLogs(
   query: AuditLogQuery = {},
 ): Promise<AuditLogsResponse> {

@@ -29,7 +29,6 @@ export default function TicketSlideup({
   currentUserId,
   currentRole,
   onClose,
-  onUpdated,
 }: {
   ticket: Ticket;
   categoryMap: CategoryMap;
@@ -38,21 +37,21 @@ export default function TicketSlideup({
   currentUserId: string | null;
   currentRole: AccountRole | null;
   onClose: () => void;
-  onUpdated: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isMine = ticket.created_by === currentUserId;
 
-  // only higher role can judge pending ticket of lower role
+  // higher role judge pending ticket. creator not found = any admin
   const creatorRole = creatorRoles[ticket.created_by];
   const canJudge =
     currentRole !== null &&
-    creatorRole !== undefined &&
     ticket.status === "pending" &&
     !isMine &&
-    outranks(currentRole, creatorRole);
+    (creatorRole === undefined
+      ? currentRole !== "Lab User"
+      : outranks(currentRole, creatorRole));
 
   async function handleJudge(
     status: "accepted" | "rejected",
@@ -75,7 +74,6 @@ export default function TicketSlideup({
         await putTicket(ticket.id, { status });
       }
 
-      onUpdated();
       close();
     } catch {
       setError(`Failed to ${status === "accepted" ? "accept" : "reject"}`);

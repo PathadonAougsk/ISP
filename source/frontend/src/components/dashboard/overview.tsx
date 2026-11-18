@@ -9,10 +9,10 @@ import Toggle from "@/components/ui/toggle";
 import {
   dueBucketColor,
   dueBucketMeta,
-  getDueBucketLimits,
   type BucketCounts,
   type DashboardItem,
   type DashboardView,
+  type DueBucketLimits,
 } from "@/components/dashboard/dashboard-data";
 
 // Which list the dashboard shows, and whose items are in it.
@@ -68,15 +68,16 @@ export function ScopeToggle({
 export function Summary({
   items,
   counts,
+  limits,
   loading,
   view,
 }: {
   items: DashboardItem[];
   counts: BucketCounts;
+  limits: DueBucketLimits;
   loading: boolean;
   view: DashboardView;
 }) {
-  const limits = getDueBucketLimits(new Date());
   // compare day on Thai clock
   const today = getThaiDateKey(limits.now);
 

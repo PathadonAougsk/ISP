@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { putTask, type TaskRow } from "@/lib/task";
 import { categoryOptions, type Category } from "@/lib/category";
-import type { Member, UserRole } from "@/lib/account";
+import { isAdminRole, type AccountRole, type Member } from "@/lib/account";
 import DateInput from "@/components/ui/date-input";
 import { Select, TextArea, TextInput } from "@/components/ui/field";
 import {
@@ -28,7 +28,7 @@ export default function TaskDetailModal({
   onSaved,
 }: {
   task: TaskRow;
-  userRole: UserRole;
+  userRole: AccountRole;
   currentUserId: string;
   members: Member[];
   categories: Category[];
@@ -45,7 +45,7 @@ export default function TaskDetailModal({
   const [dateInvalid, setDateInvalid] = useState(false);
   const [action, setAction] = useState<"update" | "status" | null>(null);
 
-  const isAdmin = userRole === "Lab Admin";
+  const isAdmin = isAdminRole(userRole);
 
   const { changed: dueDateChanged, payload: dueDatePayload } = dueDateEdit(
     dueDate,
@@ -60,21 +60,32 @@ export default function TaskDetailModal({
     JSON.stringify([...assignedIds].sort()) !==
       JSON.stringify([...task.assigneeIds].sort());
 
-  // Submit and unsubmit only flip the status; other fields stay as saved.
+  // Submit and unsubmit only flip the status. (save before submit)
   async function handleSetStatus(
     status: "completed" | "in_progress",
     close: () => void,
   ) {
     setAction("status");
+
     const ok = await run(
-      () =>
-        putTask(task.id, {
-          name: task.title,
-          description: task.description || null,
-          status,
-          category_id: task.categoryId,
-          due_date: task.dueDateIso,
-        }),
+      async () => {
+        if (isAdmin && hasChanges) {
+          if (!title.trim() || categoryId === "") {
+            throw new Error("Title and category are required.");
+          }
+
+          await putTask(task.id, {
+            name: title.trim(),
+            description: description || null,
+            status: task.status === "Completed" ? "completed" : "in_progress",
+            category_id: categoryId,
+            due_date: dueDatePayload,
+            assignees: assignedIds,
+          });
+        }
+
+        await putTask(task.id, { status });
+      },
       status === "completed"
         ? "Failed to submit task"
         : "Failed to unsubmit task",
@@ -134,7 +145,7 @@ export default function TaskDetailModal({
             </FormButton>
           )}
 
-          {(!isAdmin || task.assigneeIds.includes(currentUserId)) && (
+          {task.assigneeIds.includes(currentUserId) && (
             <FormButton
               variant={completed ? "red" : "green"}
               onClick={() =>

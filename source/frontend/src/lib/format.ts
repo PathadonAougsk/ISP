@@ -125,10 +125,7 @@ export function toDateInputValue(iso: string | null) {
   }).format(new Date(iso));
 }
 
-// today in local time as yyyy-MM-dd
+// today in Bangkok time as yyyy-MM-dd
 export function todayIso() {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${mm}-${dd}`;
+  return toDateInputValue(new Date().toISOString());
 }
