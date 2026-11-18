@@ -1,12 +1,13 @@
 "use client";
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
-import type { UserRole } from "@/lib/account";
+import { isAdminRole, outranks, type AccountRole } from "@/lib/account";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached, withoutPagination } from "@/lib/cache/cache";
+import { cached } from "@/lib/cache/cache";
 import { loadLookups, type Lookups } from "@/lib/lookup";
 import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
+import { tasksChanged } from "@/lib/task";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -54,6 +55,8 @@ export type TicketCreatePayload = {
 // Body for PUT /ticket/{id} (TicketUpdate in the backend, every field optional)
 export type TicketUpdatePayload = Partial<TicketCreatePayload> & {
   status?: TicketStatus;
+  // only read on accept: who the new task goes to
+  assignees?: string[];
 };
 
 // Shape the request-table UI renders
@@ -75,8 +78,8 @@ export type TicketRow = {
 };
 
 // A Lab User only ever sees their own tickets, so the backend gets told so.
-function scope(userRole: UserRole) {
-  return userRole === "Lab Admin" ? {} : { onlyOwned: true };
+function scope(userRole: AccountRole) {
+  return isAdminRole(userRole) ? {} : { onlyOwned: true };
 }
 
 async function fetchTickets(
@@ -92,17 +95,22 @@ async function fetchTickets(
 const TICKETS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
-export const getTickets = cached(
-  fetchTickets,
-  TICKETS_CACHE_TTL,
-  "tickets",
-  withoutPagination,
-  (result, limit) => ({
-    ...result,
-    Tickets: result.Tickets.slice(0, limit),
-  }),
-  (r) => r.TicketCount,
-);
+export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL);
+
+// Listener, so the dashboard refetch when a ticket change
+const ticketListeners = new Set<() => void>();
+
+export function onTicketChange(listener: () => void) {
+  ticketListeners.add(listener);
+
+  return () => {
+    ticketListeners.delete(listener);
+  };
+}
+
+function notifyTicketChange() {
+  ticketListeners.forEach((listener) => listener());
+}
 
 export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   const res = await apiSendJson("/ticket/", "POST", body);
@@ -120,7 +128,8 @@ export async function postTicket(body: TicketCreatePayload): Promise<Ticket> {
   await apiOrThrow(res, "Could not create that ticket.");
 
   // data changed, so drop cached lists
-  getTickets.clear();
+  await getTickets.clear();
+  notifyTicketChange();
 
   return res.json();
 }
@@ -135,9 +144,38 @@ export async function putTicket(
   );
 
   // data changed, so drop cached lists
-  getTickets.clear();
+  await getTickets.clear();
+  notifyTicketChange();
 
   return res.json();
+}
+
+// Higher role than the creator judge a pending ticket, never their own.
+// Creator unknown (members not loaded) = any admin, backend check again.
+export function canJudgeTicket(
+  myRole: AccountRole | null,
+  creatorRole: AccountRole | undefined,
+  isMine: boolean,
+  isPending: boolean,
+) {
+  if (myRole === null || !isPending || isMine) return false;
+  return creatorRole ? outranks(myRole, creatorRole) : isAdminRole(myRole);
+}
+
+// Accept or reject. Accept make the task from the saved ticket on the
+// backend, same transaction, so `assignees` is all it need.
+export async function judgeTicket(
+  id: number | string,
+  status: "accepted" | "rejected",
+  assignees: string[] = [],
+): Promise<void> {
+  if (status === "rejected") {
+    await putTicket(id, { status });
+    return;
+  }
+
+  await putTicket(id, { status, assignees });
+  await tasksChanged();
 }
 
 function mapTicket(
@@ -175,7 +213,7 @@ function mapTicket(
 // fetch one ticket by id for the modal. throw if not found
 export async function getTicketRowById(
   id: number,
-  userRole: UserRole,
+  userRole: AccountRole,
 ): Promise<TicketRow> {
   const [body, lookups] = await Promise.all([
     getTickets({ ...scope(userRole), ticket_id: id }),
@@ -196,7 +234,7 @@ export type TicketFilters = {
 
 // one page of the ticket table. waits for the role, which decides the scope
 export function useTickets(
-  userRole: UserRole,
+  userRole: AccountRole,
   meLoading: boolean,
   page: number,
   filters: TicketFilters,

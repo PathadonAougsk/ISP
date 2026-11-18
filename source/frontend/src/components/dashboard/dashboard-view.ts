@@ -33,7 +33,8 @@ export function useDashboardView(
   const error = items.length === 0 && active.some((group) => group.error);
 
   // no useMemo, so "now" is fresh on every render
-  const bucketCounts = countDueBuckets(items, getDueBucketLimits(new Date()));
+  const limits = getDueBucketLimits(new Date());
+  const bucketCounts = countDueBuckets(items, limits);
 
-  return { items, loading, error, bucketCounts };
+  return { items, loading, error, bucketCounts, limits };
 }

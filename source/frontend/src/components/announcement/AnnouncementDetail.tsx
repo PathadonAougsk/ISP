@@ -9,19 +9,21 @@ export default function AnnouncementDetail({
   announcement,
   authorName,
   canManage = false,
+  emptyMessage = "Select an announcement to read it.",
   onEdit,
   onDelete,
 }: {
   announcement: Announcement | null;
   authorName: string;
   canManage?: boolean;
+  emptyMessage?: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   if (!announcement) {
     return (
       <div className="flex h-full items-center justify-center rounded-t-[15px] bg-white text-base font-medium text-gray-400">
-        Select an announcement to read it.
+        {emptyMessage}
       </div>
     );
   }

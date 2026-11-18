@@ -29,14 +29,19 @@ export default function Topbar() {
 
   return (
     <div className="sticky top-0 z-10 flex h-15 w-full flex-row items-center justify-between bg-(--primary-color-3) p-7.5">
-      <h1
-        className="cursor-pointer text-3xl font-bold"
-        onClick={async () => {
-          await clearAllApiCache();
-          window.location.reload();
-        }}
-      >
-        {pathname[0]?.toUpperCase() + pathname.slice(1)}
+      <h1 className="text-3xl font-bold">
+        {/* button so keyboard can reach. font from h1, not button */}
+        <button
+          type="button"
+          onClick={async () => {
+            await clearAllApiCache();
+            window.location.reload();
+          }}
+          title="Reload page"
+          className="font-(family-name:--font-noto-sans-thai)"
+        >
+          {pathname[0]?.toUpperCase() + pathname.slice(1)}
+        </button>
       </h1>
 
       <div

@@ -195,12 +195,11 @@ class DB:
 
     def seed_ticket(self, name: str = "pytest ticket", **fields) -> int:
         fields.setdefault("status", TicketStatus.PENDING)
+        fields.setdefault("created_by", self.me_id)
 
         async def go():
             async with self.session() as s:
-                ticket = Ticket(
-                    category_id=self.category_id, created_by=self.me_id, **fields
-                )
+                ticket = Ticket(category_id=self.category_id, **fields)
                 ticket.name = name
                 s.add(ticket)
                 await s.commit()

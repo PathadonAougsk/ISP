@@ -14,5 +14,9 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/report/:path*", "/request-table/:path*", "/setting/:path*", '/announcement/:path*'],
+  matcher: [
+    "/dashboard/:path*",
+    "/request-table/:path*",
+    "/announcement/:path*",
+  ],
 };

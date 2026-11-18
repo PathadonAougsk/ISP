@@ -236,7 +236,7 @@ export function TextInput({
   );
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-full flex-col gap-1">
       {wrap(control, inlineCounter ? null : counter)}
       {label === undefined && !inlineCounter && counter}
     </div>
@@ -305,7 +305,7 @@ export function TextArea({
 
   return (
     <div
-      className={`flex flex-col gap-1 ${
+      className={`flex w-full flex-col gap-1 ${
         label !== undefined || grow ? "min-h-0 flex-1" : ""
       }`}
     >
@@ -323,7 +323,7 @@ export type SelectOption = {
 };
 
 // Close dropdown when clicking outside or pressing Escape
-function useCloseOnOutside(
+export function useCloseOnOutside(
   open: boolean,
   setOpen: (open: boolean) => void,
   ref: React.RefObject<HTMLDivElement | null>,
@@ -339,6 +339,8 @@ function useCloseOnOutside(
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        // stop here, so modal behind (window listener) stay open
+        event.stopPropagation();
         setOpen(false);
       }
     };
@@ -418,19 +420,25 @@ export function Select({
 
       {open && (
         <div className="absolute top-full left-0 z-9999 mt-2 max-h-60 w-max min-w-full overflow-y-auto overflow-x-hidden scrollbar-none rounded-2xl border border-gray-200 bg-white text-black">
-          {rows.map((row, index) => (
-            <button
-              key={row.value}
-              type="button"
-              title={row.title}
-              onClick={() => pick(row.value)}
-              className={`block w-full transform-none! cursor-pointer px-3 py-2 text-left text-sm font-normal whitespace-nowrap hover:bg-gray-200 ${
-                index === 0 && firstItem ? "text-gray-600" : "text-black"
-              }`}
-            >
-              {row.label}
-            </button>
-          ))}
+          {rows.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-gray-500">
+              No options available
+            </div>
+          ) : (
+            rows.map((row, index) => (
+              <button
+                key={row.value}
+                type="button"
+                title={row.title}
+                onClick={() => pick(row.value)}
+                className={`block w-full transform-none! cursor-pointer px-3 py-2 text-left text-sm font-normal whitespace-nowrap hover:bg-gray-200 ${
+                  index === 0 && firstItem ? "text-gray-600" : "text-black"
+                }`}
+              >
+                {row.label}
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>,

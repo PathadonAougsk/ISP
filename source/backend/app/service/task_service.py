@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
@@ -8,14 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.datetime_utils import to_due_date, to_utc
-from app.limits import DESCRIPTION_MAX, NAME_MAX
-from app.model import Account, AccountRole, AuditLog, Task, TaskStatus
+from app.limits import DESCRIPTION_MAX, Name
+from app.model import Account, AccountRole, AuditLog, Category, Task, TaskStatus
 from app.service.account_service import is_admin
 
 
 # Base Task model.
 class TaskRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=NAME_MAX)
+    name: Name
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
@@ -24,12 +24,28 @@ class TaskRequest(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    name: Name | None = None
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus | None = None
     category_id: int | None = None
     due_date: datetime | None = None
     assignees: list[uuid.UUID] | None = None
+
+
+async def ensure_category(session: AsyncSession, category_id: int) -> None:
+    # check first, else bad id hit the FK and come back as 500
+    if await session.get(Category, category_id) is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+
+# completed_by / completed_at follow the status: submit stamp, unsubmit clear
+def stamp_completion(task: Task, status: TaskStatus, me: Account) -> None:
+    if status is TaskStatus.COMPLETED:
+        task.completed_by = me.id
+        task.completed_at = datetime.now(timezone.utc)
+    else:
+        task.completed_by = None
+        task.completed_at = None
 
 
 async def retrieve_tasks(
@@ -124,7 +140,22 @@ async def create_task(
     body: TaskRequest,
     session: AsyncSession,
 ):
+    task = await add_task(me, body, session)
+
+    await session.commit()
+    await session.refresh(task)
+
+    return {"Task": task}
+
+
+# Task + its audit rows, no commit, so ticket accept can share the transaction
+async def add_task(
+    me: Account,
+    body: TaskRequest,
+    session: AsyncSession,
+) -> Task:
     # Create new task based on the body.
+    await ensure_category(session, body.category_id)
     conv_duedate = to_due_date(body.due_date)
 
     task = Task(
@@ -135,16 +166,7 @@ async def create_task(
         due_date=conv_duedate,
         created_by=me.id,
     )
-
-    # Create an audit log for the creation!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=TaskStatus.IN_PROGRESS.value,
-        by_whom=me.id,
-    )
+    stamp_completion(task, body.status, me)
 
     if body.assignees:
         assignees = await session.scalars(
@@ -157,13 +179,35 @@ async def create_task(
         if len(task.assignees) != len(set(body.assignees)):
             raise HTTPException(status_code=400, detail="One or more assignees are invalid")
 
-    # Add it to session, and update.
-    session.add(al)
     session.add(task)
-    await session.commit()
-    await session.refresh(task)
+    await session.flush()
 
-    return {"Task": task}
+    # one row per field, same as create_ticket
+    audit_fields = {
+        "name": body.name,
+        "description": body.description,
+        "status": body.status.value,
+        "category_id": body.category_id,
+        "due_date": conv_duedate,
+        "assignees": ",".join(
+            sorted(str(assignee.id) for assignee in task.assignees)
+        )
+        or None,
+    }
+
+    for column_name, new_value in audit_fields.items():
+        session.add(
+            AuditLog(
+                from_table="task",
+                row_id=str(task.id),
+                column_name=column_name,
+                old_value=None,
+                new_value=None if new_value is None else str(new_value),
+                by_whom=me.id,
+            )
+        )
+
+    return task
 
 
 async def update_task(
@@ -179,17 +223,17 @@ async def update_task(
     )
 
     # Create an audit log for the update!
-    def update_helper(col_name, old_val, new_value):
+    def create_audit_log(col_name, old_val, new_value):
         al = AuditLog(
             from_table="task",
             row_id=str(task.id),
             column_name=col_name,
-            old_value=f"{old_val}",
-            new_value=f"{new_value}",
-            by_whom=auth_user.id,
+            old_value=None if old_val is None else str(old_val),
+            new_value=None if new_value is None else str(new_value),
+            by_whom=me.id,
         )
         if al.old_value == al.new_value:
-            return 0
+            return None
         else:
             return al
 
@@ -200,7 +244,7 @@ async def update_task(
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
     if not is_admin(me):
-        if me not in task.assignees:
+        if not any(assignee.id == me.id for assignee in task.assignees):
             raise HTTPException(status_code=403, detail="You are not assigned to this task")
         if body.model_dump(exclude_unset=True).keys() - {"status"}:
             raise HTTPException(
@@ -210,42 +254,70 @@ async def update_task(
 
     # If it exists, then you definitely should update it!
     if body.name is not None:
-        audit_list.append(update_helper("name", task.name, body.name))
+        audit_list.append(create_audit_log("name", task.name, body.name))
         task.name = body.name
 
-    if body.description is not None:
-        audit_list.append(update_helper("description", task.description, body.description))
+    if "description" in body.model_fields_set:
+        audit_list.append(
+            create_audit_log("description", task.description, body.description)
+        )
         task.description = body.description
 
     if body.status is not None:
-        audit_list.append(update_helper("status", task.status, body.status))
+        # .value, str() of the enum give "TaskStatus.COMPLETED"
+        audit_list.append(
+            create_audit_log("status", task.status.value, body.status.value)
+        )
+        if body.status is not task.status:
+            stamp_completion(task, body.status, me)
         task.status = body.status
 
     if body.category_id is not None:
-        audit_list.append(update_helper("category_id", task.category_id, body.category_id))
+        await ensure_category(session, body.category_id)
+        audit_list.append(
+            create_audit_log("category_id", task.category_id, body.category_id)
+        )
         task.category_id = body.category_id
 
-    if body.due_date is not None:
+    if "due_date" in body.model_fields_set:
         dt1 = to_utc(task.due_date)
         dt2 = to_due_date(body.due_date)
-        audit_list.append(update_helper("due_date", dt1, dt2))
+        audit_list.append(create_audit_log("due_date", dt1, dt2))
         task.due_date = dt2
 
     if body.assignees is not None:
-        audit_list.append(update_helper("assignees", task.assignees, body.assignees))
-        assignees = await session.scalars(
-            select(Account).where(
-                Account.id.in_(body.assignees),
-                Account.active.is_(True),
-            )
-        )
-        task.assignees = list(assignees.all())
-        if len(task.assignees) != len(set(body.assignees)):
-            raise HTTPException(status_code=400, detail="One or more assignees are invalid")
+        current_assignee_ids = {assignee.id for assignee in task.assignees}
+        requested_assignee_ids = set(body.assignees)
 
-    for i in audit_list:
-        if i != 0:
-            session.add(i)
+        if current_assignee_ids != requested_assignee_ids:
+            assignees = await session.scalars(
+                select(Account).where(Account.id.in_(requested_assignee_ids))
+            )
+            new_assignees = list(assignees.all())
+            # only newly added must be active. one already on the task may
+            # stay after deactivation, so it does not block other edits
+            added_ids = requested_assignee_ids - current_assignee_ids
+            if len(new_assignees) != len(requested_assignee_ids) or any(
+                not assignee.active
+                for assignee in new_assignees
+                if assignee.id in added_ids
+            ):
+                raise HTTPException(status_code=400, detail="One or more assignees are invalid")
+
+            old_assignee_value = ",".join(
+                sorted(str(assignee_id) for assignee_id in current_assignee_ids)
+            )
+            new_assignee_value = ",".join(
+                sorted(str(assignee_id) for assignee_id in requested_assignee_ids)
+            )
+            audit_list.append(
+                create_audit_log("assignees", old_assignee_value, new_assignee_value)
+            )
+            task.assignees = new_assignees
+
+    for audit in audit_list:
+        if audit is not None:
+            session.add(audit)
     await session.commit()
     await session.refresh(task)
 
@@ -265,16 +337,33 @@ async def delete_task(
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
+    if not is_admin(me):
+        raise HTTPException(
+            status_code=403,
+            detail="Only a Lab Owner or Lab Admin can delete tasks",
+        )
+
     # Create an audit log for the deletes!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=None,
-        by_whom=me.id,
-    )
-    session.add(al)
+    audit_fields = {
+        "name": task.name,
+        "description": task.description,
+        "status": task.status.value,
+        "category_id": task.category_id,
+        "due_date": task.due_date,
+    }
+
+    for column_name, old_value in audit_fields.items():
+        session.add(
+            AuditLog(
+                from_table="task",
+                row_id=str(task.id),
+                column_name=column_name,
+                old_value=str(old_value) if old_value is not None else None,
+                new_value=None,
+                by_whom=me.id,
+            )
+        )
+
     await session.delete(task)
     await session.commit()
 

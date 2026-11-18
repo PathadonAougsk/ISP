@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import AnnouncementDetail from "@/components/announcement/AnnouncementDetail";
 import AnnouncementList from "@/components/announcement/AnnouncementList";
@@ -27,18 +27,8 @@ type List = {
 };
 
 // Fetch announcements without updating React state
-async function fetchList(limit: number, linkId: number | null): Promise<List> {
-  let rows = await getAnnouncements({ limit: limit + 1 });
-
-  // opened by link: load more til found
-  while (
-    linkId !== null &&
-    rows.length > limit &&
-    !rows.slice(0, limit).some((item) => item.id === linkId)
-  ) {
-    limit += PAGE_SIZE;
-    rows = await getAnnouncements({ limit: limit + 1 });
-  }
+async function fetchList(limit: number): Promise<List> {
+  const rows = await getAnnouncements({ limit: limit + 1 });
 
   return {
     items: rows.slice(0, limit),
@@ -66,9 +56,6 @@ export default function AnnouncementPage() {
     Number.isInteger(idParam) ? idParam : null,
   );
 
-  // id from link, clear when user pick other. load keep going til found
-  const linkIdRef = useRef<number | null>(selectedId);
-
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -79,7 +66,7 @@ export default function AnnouncementPage() {
     setFetching(true);
 
     try {
-      const result = await fetchList(limit, linkIdRef.current);
+      const result = await fetchList(limit);
 
       setList(result);
       setError(null);
@@ -97,7 +84,7 @@ export default function AnnouncementPage() {
 
     async function initialLoad() {
       try {
-        const result = await fetchList(PAGE_SIZE, linkIdRef.current);
+        const result = await fetchList(PAGE_SIZE);
 
         if (cancelled) return;
 
@@ -136,13 +123,15 @@ export default function AnnouncementPage() {
   // nothing on screen yet, so the error takes over the whole panel
   const blank = error !== null && list.items.length === 0;
 
-  // first one selected by default
+  // first one selected by default. id from link not in list = not found
   const selected =
-    list.items.find((item) => item.id === selectedId) ?? list.items[0] ?? null;
+    selectedId === null
+      ? (list.items[0] ?? null)
+      : (list.items.find((item) => item.id === selectedId) ?? null);
+  const notFound = loaded && !blank && selectedId !== null && !selected;
 
   // clear [id] from url when other one picked
   const handleSelect = (id: number) => {
-    linkIdRef.current = null;
     setSelectedId(id);
     window.history.replaceState(null, "", "/announcement");
   };
@@ -164,7 +153,6 @@ export default function AnnouncementPage() {
   const handleDelete = async () => {
     if (!selected) return;
     await deleteAnnouncement(selected.id);
-    linkIdRef.current = null;
     setSelectedId(null);
     reload();
   };
@@ -187,8 +175,8 @@ export default function AnnouncementPage() {
       )}
 
       {/* green panel hold list + detail */}
-      <div className="flex min-h-0 flex-1 gap-3 rounded-t-[30px] bg-(--panel-bg) px-4 pt-4">
-        <div className="w-2/5 shrink-0 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 gap-3 rounded-t-[30px] bg-(--panel-bg) px-4 pt-4 max-[900px]:flex-col">
+        <div className="w-2/5 shrink-0 overflow-y-auto max-[900px]:w-full max-[900px]:overflow-visible">
           <AnnouncementList
             announcements={list.items}
             selectedId={selected?.id ?? null}
@@ -208,10 +196,11 @@ export default function AnnouncementPage() {
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-h-0 min-w-0 flex-1">
           <AnnouncementDetail
             announcement={selected}
             authorName={selected ? authorName(selected.created_by) : ""}
+            emptyMessage={notFound ? "Announcement not found." : undefined}
             canManage={isAdmin}
             onEdit={() => setEditing(true)}
             onDelete={() => setDeleting(true)}

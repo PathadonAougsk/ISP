@@ -2,19 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { getAuditLogs, type AuditLog } from "@/lib/audit_log";
+import { getAuditLogs, loadAuditLogs, type AuditLog } from "@/lib/audit_log";
 import { formatLogDateTime } from "@/lib/format";
 import Button from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
-import {
-  ERROR,
-  HEAD,
-  LIST_PANEL,
-  MESSAGE,
-  MUTED,
-  ROW,
-  TITLE,
-} from "./settings-style";
+import { ERROR, HEAD, LIST_PANEL, MESSAGE, MUTED, ROW } from "./settings-style";
 
 // The log is written by hand, one row per changed column, by whichever endpoint
 // made the change so these are the only tables that can show up.
@@ -40,60 +32,81 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [table, setTable] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // true from the start, first load begin right away
+  const [fetchingLatest, setFetchingLatest] = useState(true);
 
-  // Which filter the rows on screen came from, null before the first fetch.
-  // Loading is derived from it, so a new filter cannot show the old rows.
+  // Which filter and refresh request the rows on screen came from.
   const [loadedTable, setLoadedTable] = useState<string | null>(null);
-  const loading = loadedTable !== table;
+  const [loadedRefreshKey, setLoadedRefreshKey] = useState(-1);
+
+  const loading = loadedTable !== table || loadedRefreshKey !== refreshKey;
+  const refreshing = loading || fetchingLatest;
 
   // A full page back means there is probably another one behind it.
   const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Bumped by the cleanup below, and shared with "Load more" so a response
-  // from before the filter changed knows it is stale and drops itself.
+  // Bumped by cleanup so responses from previous requests are discarded.
   const requestId = useRef(0);
 
-  // Refetches whenever the table filter or refresh key changes.
-  // The server already refuses a Lab User, so dont spend a request on a 403.
+  // New filter or refresh: reset during render, not in the effect
+  const requestKey = `${table}|${refreshKey}`;
+  const [prevRequestKey, setPrevRequestKey] = useState(requestKey);
+
+  if (prevRequestKey !== requestKey) {
+    setPrevRequestKey(requestKey);
+    setFetchingLatest(true);
+    setLoadingMore(false);
+    setError(null);
+    setEntries([]);
+    setHasMore(false);
+  }
+
+  // Show cached data immediately and refresh it in the background.
   useEffect(() => {
     const id = requestId.current;
 
-    getAuditLogs({ limit: PAGE_SIZE, from_table: table || undefined })
-      .then((body) => {
+    loadAuditLogs(
+      { limit: PAGE_SIZE, from_table: table || undefined },
+      (body, stale) => {
         if (requestId.current !== id) return;
+
         setEntries(body.AuditLogs);
         setHasMore(body.AuditLogs.length === PAGE_SIZE);
-        setError(null);
-      })
-      .catch((err) => {
+        setLoadedTable(table);
+        setLoadedRefreshKey(refreshKey);
+
+        if (!stale) {
+          setError(null);
+          setFetchingLatest(false);
+        }
+      },
+      (err) => {
         if (requestId.current !== id) return;
-        setEntries([]);
-        setHasMore(false);
+
         setError(
           err instanceof Error
             ? err.message
             : "Could not load the activity log.",
         );
-      })
-      .finally(() => {
-        if (requestId.current === id) {
-          setLoadedTable(table);
-          setRefreshing(false);
-        }
-      });
+        setLoadedTable(table);
+        setLoadedRefreshKey(refreshKey);
+        setFetchingLatest(false);
+        setLoadingMore(false);
+      },
+    );
 
     return () => {
       requestId.current += 1;
     };
   }, [table, refreshKey]);
 
-  // Keyset would be steadier, but offset matches the endpoint we have. A new
-  // entry on top shifts every page down, so drop rows already in hand.
   async function loadMore() {
+    if (refreshing || loadingMore || !hasMore) return;
+
     const id = requestId.current;
     setLoadingMore(true);
+    setError(null);
 
     try {
       const { AuditLogs } = await getAuditLogs({
@@ -107,19 +120,22 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
       setEntries((current) => {
         const seen = new Set(current.map((entry) => entry.id));
         const fresh = AuditLogs.filter((entry) => !seen.has(entry.id));
+
         return [...current, ...fresh];
       });
 
-      // On what the server sent, not on what survived the dedupe.
+      // Use the server response, not the deduplicated result.
       setHasMore(AuditLogs.length === PAGE_SIZE);
-      setError(null);
     } catch (err) {
       if (requestId.current !== id) return;
+
       setError(
         err instanceof Error ? err.message : "Could not load more entries.",
       );
     } finally {
-      setLoadingMore(false);
+      if (requestId.current === id) {
+        setLoadingMore(false);
+      }
     }
   }
 
@@ -140,7 +156,7 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
           <div className="flex items-center justify-between gap-3">
             <p className="text-lg font-semibold">
               All Entries
-              {!loading && !refreshing && !error && (
+              {!loading && !error && (
                 <span className={MUTED}>
                   {" "}
                   ({entries.length}
@@ -164,11 +180,14 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
               />
 
               <Button
-                variant={loading || refreshing ? "busy" : "outline-white"}
+                variant={
+                  loading || refreshing || loadingMore
+                    ? "busy"
+                    : "outline-white"
+                }
                 icon="/reset.svg"
                 disabled={loading || refreshing || loadingMore}
                 onClick={() => {
-                  setRefreshing(true);
                   setRefreshKey((current) => current + 1);
                 }}
                 title="Refresh Log"
@@ -182,7 +201,9 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
           {/* Six columns, hence text-sm rows and a title on every column that
               can truncate. Only account row_ids are UUIDs - category, ticket
               and task ids are small integers. */}
-          <div className={`${LIST_PANEL} overflow-x-auto scrollbar-thin scrollbar-gutter-stable`}>
+          <div
+            className={`${LIST_PANEL} overflow-x-auto scrollbar-thin scrollbar-gutter-stable`}
+          >
             <div className="flex min-w-3xl flex-col gap-2">
               <div className={`${HEAD} ${COLS}`}>
                 <span>Record ID</span>
@@ -193,10 +214,13 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
                 <span>Change</span>
               </div>
 
-              {loading || refreshing ? (
+              {loading ? (
                 <p className={MESSAGE}>Loading activity...</p>
               ) : entries.length === 0 ? (
-                <p className={MESSAGE}>No activity has been recorded yet.</p>
+                // error already say why, no "empty" lie
+                !error && (
+                  <p className={MESSAGE}>No activity has been recorded yet.</p>
+                )
               ) : (
                 entries.map((entry) => (
                   <div key={entry.id} className={`${ROW} ${COLS} text-sm`}>
@@ -242,13 +266,13 @@ export default function Log({ accountLoading }: { accountLoading: boolean }) {
             </div>
           </div>
 
-          {hasMore && !loading && !refreshing && (
+          {hasMore && !loading && (
             <Button
               variant="outline"
               size="md"
               onClick={loadMore}
-              disabled={loadingMore}
-              className="w-full font-semibold"
+              disabled={loadingMore || refreshing}
+              className="w-full font-semibold disabled:bg-gray-200"
             >
               {loadingMore ? "Loading more entries..." : "Load More"}
             </Button>

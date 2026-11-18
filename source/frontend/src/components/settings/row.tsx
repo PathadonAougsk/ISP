@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { maskEmail } from "@/lib/format";
 import Button from "@/components/ui/button";
+import { EyeIcon } from "@/components/ui/icon";
 import { CARD } from "./settings-style";
 
 export function EditButton({
@@ -57,20 +58,7 @@ export default function Row({
             aria-label={shown ? `Hide ${label}` : `Show ${label}`}
             aria-pressed={shown}
           >
-            <span
-              aria-hidden="true"
-              className="size-5 bg-(--primary-color-deep)"
-              style={{
-                maskImage: `url(${shown ? "/eye-on.svg" : "/eye-off.svg"})`,
-                maskRepeat: "no-repeat",
-                maskPosition: "center",
-                maskSize: "contain",
-                WebkitMaskImage: `url(${shown ? "/eye-on.svg" : "/eye-off.svg"})`,
-                WebkitMaskRepeat: "no-repeat",
-                WebkitMaskPosition: "center",
-                WebkitMaskSize: "contain",
-              }}
-            />
+            <EyeIcon shown={shown} />
           </button>
         )}
         <div className="flex w-25 justify-end">{action}</div>

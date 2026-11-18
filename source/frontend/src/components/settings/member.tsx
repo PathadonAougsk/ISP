@@ -16,14 +16,7 @@ import { TextInput } from "@/components/ui/field";
 import Button from "@/components/ui/button";
 import CreateUser from "./create-user";
 import MemberRow from "./member-row";
-import {
-  ERROR,
-  HEAD,
-  LIST_PANEL,
-  MESSAGE,
-  MUTED,
-  TITLE,
-} from "./settings-style";
+import { ERROR, HEAD, LIST_PANEL, MESSAGE, MUTED } from "./settings-style";
 
 // Lab Owner first, then Lab Admin, then Lab User
 const ROLE_ORDER: Record<AccountRole, number> = {

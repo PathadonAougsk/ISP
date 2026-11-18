@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { outranks, type AccountRole } from "@/lib/account";
+import type { AccountRole } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
-import { putTicket, type Ticket } from "@/lib/ticket";
+import { canJudgeTicket, judgeTicket, type Ticket } from "@/lib/ticket";
 import Button from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
@@ -29,7 +29,6 @@ export default function TicketSlideup({
   currentUserId,
   currentRole,
   onClose,
-  onUpdated,
 }: {
   ticket: Ticket;
   categoryMap: CategoryMap;
@@ -38,21 +37,18 @@ export default function TicketSlideup({
   currentUserId: string | null;
   currentRole: AccountRole | null;
   onClose: () => void;
-  onUpdated: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isMine = ticket.created_by === currentUserId;
 
-  // only higher role can judge pending ticket of lower role
-  const creatorRole = creatorRoles[ticket.created_by];
-  const canJudge =
-    currentRole !== null &&
-    creatorRole !== undefined &&
-    ticket.status === "pending" &&
-    !isMine &&
-    outranks(currentRole, creatorRole);
+  const canJudge = canJudgeTicket(
+    currentRole,
+    creatorRoles[ticket.created_by],
+    isMine,
+    ticket.status === "pending",
+  );
 
   async function handleJudge(
     status: "accepted" | "rejected",
@@ -62,9 +58,8 @@ export default function TicketSlideup({
     setSubmitting(true);
 
     try {
-      await putTicket(ticket.id, { status });
+      await judgeTicket(ticket.id, status);
 
-      onUpdated();
       close();
     } catch {
       setError(`Failed to ${status === "accepted" ? "accept" : "reject"}`);

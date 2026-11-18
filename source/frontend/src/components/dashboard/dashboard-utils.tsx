@@ -160,10 +160,7 @@ export function SlideupDueRow({
         {dueDate === null ? (
           <span>{formatFullDateTime(dueDate)}</span>
         ) : (
-          <>
-            <span>Due</span>
-            <span>{formatFullDateTime(dueDate)}</span>
-          </>
+          <span>Due {formatFullDateTime(dueDate)}</span>
         )}
       </div>
 

@@ -4,26 +4,26 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import get_current_auth_user
 from app.database import getSession
-from app.limits import DESCRIPTION_MAX, NAME_MAX
+from app.limits import DESCRIPTION_MAX, Name
 from app.model import Account
 from app.service import account_service, announcement_service
 
 
 class AnnouncementCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=NAME_MAX)
+    name: Name
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
 
 
 class AnnouncementUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    name: Name | None = None
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
 
 
 announcementRouter = APIRouter(
     prefix="/announcement",
-    dependencies=[Depends(get_current_auth_user)]
+    # account check, not only token, so a deactivated member is kept out
+    dependencies=[Depends(account_service.get_current_account)]
 )
 
 
