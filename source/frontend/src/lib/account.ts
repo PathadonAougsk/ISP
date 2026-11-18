@@ -130,7 +130,16 @@ async function fetchMe(): Promise<Account | null> {
     return null;
   }
 
-  if (res.status !== 404) throw new Error(`HTTP ${res.status}`);
+  if (res.status !== 404) {
+    const body = await res.json().catch(() => null);
+
+    const detail =
+      typeof body?.detail === "string"
+        ? body.detail
+        : res.statusText || "Request failed";
+
+    throw new Error(`${res.status} ${res.statusText || "Error"}: ${detail}`);
+  }
 
   const { Accounts } = await getAccounts();
 

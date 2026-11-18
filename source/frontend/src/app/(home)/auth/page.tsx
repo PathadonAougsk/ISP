@@ -145,7 +145,7 @@ function AuthForm() {
         <div
           className={`overflow-hidden transition-all duration-300 ease-in-out ${
             deactivated || error
-              ? "mt-4 max-h-32 opacity-100"
+              ? "mt-4 max-h-48 opacity-100"
               : "max-h-0 opacity-0"
           }`}
         >
