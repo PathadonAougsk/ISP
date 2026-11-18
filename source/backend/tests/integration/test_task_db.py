@@ -38,18 +38,11 @@ def test_create_task_persists_row_and_assignees(client, db):
     assert [a["id"] for a in mine.json()["Tasks"][0]["assignees"]] == [str(db.me_id)]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="create_task builds the audit row before flush, so row_id is the string 'None'",
-)
 def test_create_task_audit_row_points_at_the_task(client, db):
-    response = client.post(
-        "/task/", json={"name": unique("task"), "category_id": db.category_id, "due_date": DUE},
-        headers=AUTH_HEADER,
-    )
+    response = client.post("/task/", json={"name": unique("task"), "category_id": db.category_id, "due_date": DUE, }, headers=AUTH_HEADER,)
+    assert response.status_code == 200, response.text
     task_id = response.json()["Task"]["id"]
     db.track("task", task_id)
-
     assert [r.column_name for r in db.audit_rows("task", task_id)] == ["status"]
 
 
@@ -120,10 +113,6 @@ def test_delete_task_removes_row(client, db):
     assert db.fetch(Task, task_id) is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="delete_task reads task.id before the None check, so a missing task is a 500 not a 404",
-)
 def test_delete_missing_task_is_404(client, db):
     response = client.delete("/task/999999999", headers=AUTH_HEADER)
 
