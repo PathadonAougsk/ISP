@@ -217,6 +217,12 @@ async def update_ticket(
             detail="Ticket not found",
         )
 
+    if ticket.created_by != me.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can update or edit only your own tickets",
+        )
+
     if data.category_id is not None:
         category = await session.get(Category, data.category_id)
 
@@ -316,6 +322,12 @@ async def delete_ticket(
         raise HTTPException(
             status_code=404,
             detail="Ticket not found",
+        )
+
+    if ticket.created_by != me.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can delete only your own tickets",
         )
 
     audit_fields = {
