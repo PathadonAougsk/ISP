@@ -340,8 +340,12 @@ async def delete_account(
         )
     account_service.assert_can_manage(me, target, "delete this account")
 
+    # Read these now: rollback() expires every attribute on target, and lazily
+    # reloading one in an async session raises MissingGreenlet.
+    username, email = target.username, target.email
+
     account_service.audit_account(
-        session, target.id, "deleted", target.username, None, me.id
+        session, target.id, "deleted", username, None, me.id
     )
     await session.delete(target)
 
@@ -353,7 +357,7 @@ async def delete_account(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"{target.username} still owns tasks, tickets or announcements. "
+                f"{username} still owns tasks, tickets or announcements. "
                 "Deactivate the account instead."
             ),
         ) from exc
@@ -368,13 +372,13 @@ async def delete_account(
     if not await account_service.delete_auth_user(target.id):
         return {
             "Message": (
-                f"Deleted {target.username}, but their Supabase login is still "
-                f"there. Remove {target.email} from the Supabase dashboard, or "
+                f"Deleted {username}, but their Supabase login is still "
+                f"there. Remove {email} from the Supabase dashboard, or "
                 "that address cannot be used again."
             )
         }
 
-    return {"Message": f"Successfully deleted {target.username}"}
+    return {"Message": f"Successfully deleted {username}"}
 
 @accountRouter.post("/admin", tags=["Admin"], status_code=status.HTTP_201_CREATED)
 async def admin_create_account(
