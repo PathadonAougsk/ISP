@@ -78,6 +78,6 @@ async def update_task(
 async def delete_task(
     task_id: int,
     session: Annotated[AsyncSession, Depends(getSession)],
-    me: Annotated[Account, Depends(account_service.require_admin)],
+    me: Annotated[Account, Depends(account_service.get_current_account)],
 ):
     return await task_service.delete_task(task_id, session, me)

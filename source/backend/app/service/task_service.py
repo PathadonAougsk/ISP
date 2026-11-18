@@ -200,7 +200,7 @@ async def update_task(
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
 
     if not is_admin(me):
-        if me not in task.assignees:
+        if not any(assignee.id == me.id for assignee in task.assignees):
             raise HTTPException(status_code=403, detail="You are not assigned to this task")
         if body.model_dump(exclude_unset=True).keys() - {"status"}:
             raise HTTPException(
@@ -282,6 +282,12 @@ async def delete_task(
     # If it does not exist, 404!
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
+
+    if not is_admin(me):
+        raise HTTPException(
+            status_code=403,
+            detail="Only a Lab Owner or Lab Admin can delete tasks",
+        )
 
     # Create an audit log for the deletes!
     audit_fields = {
