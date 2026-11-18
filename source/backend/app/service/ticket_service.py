@@ -217,10 +217,22 @@ async def update_ticket(
             detail="Ticket not found",
         )
 
-    if ticket.created_by != me.id:
+    if me.id != ticket.created_by and me.role == AccountRole.LAB_USER:
         raise HTTPException(
             status_code=403,
             detail="You can update or edit only your own tickets",
+        )
+
+    if ticket.status == TicketStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot update or edit accepted tickets",
+        )
+
+    if data.status is not None and me.role == AccountRole.LAB_USER:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot update the ticket status",
         )
 
     if data.category_id is not None:
@@ -328,6 +340,12 @@ async def delete_ticket(
         raise HTTPException(
             status_code=403,
             detail="You can delete only your own tickets",
+        )
+
+    if ticket.status == TicketStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot delete accepted tickets",
         )
 
     audit_fields = {
