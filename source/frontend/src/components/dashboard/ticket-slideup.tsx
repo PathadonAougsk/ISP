@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { AccountRole } from "@/lib/account";
+import type { AccountRole, Member } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import { canJudgeTicket, judgeTicket, type Ticket } from "@/lib/ticket";
 import Button from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
 import { CloseButton, Slideup } from "@/components/ui/slideup";
+import MemberPanel from "@/components/request-table/MemberPanel";
 import {
   ticketStatusIcon,
   ticketStatusText,
@@ -26,6 +27,7 @@ export default function TicketSlideup({
   categoryMap,
   usernames,
   creatorRoles,
+  members,
   currentUserId,
   currentRole,
   onClose,
@@ -34,12 +36,14 @@ export default function TicketSlideup({
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   creatorRoles: Record<string, AccountRole>;
+  members: Member[];
   currentUserId: string | null;
   currentRole: AccountRole | null;
   onClose: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assignedIds, setAssignedIds] = useState<string[]>([]);
 
   const isMine = ticket.created_by === currentUserId;
 
@@ -58,7 +62,7 @@ export default function TicketSlideup({
     setSubmitting(true);
 
     try {
-      await judgeTicket(ticket.id, status);
+      await judgeTicket(ticket.id, status, assignedIds);
 
       close();
     } catch {
@@ -79,6 +83,7 @@ export default function TicketSlideup({
     <Slideup onClose={onClose}>
       {(close) => (
         <>
+          {/* Header */}
           <div className="flex items-center justify-between gap-4 pb-2">
             <div className="flex items-baseline gap-2">
               <h1 className="text-2xl font-bold text-black">Ticket</h1>
@@ -97,37 +102,59 @@ export default function TicketSlideup({
             </div>
           </div>
 
-          <h1 className="min-w-0 wrap-break-word text-xl font-bold text-black">
-            {renderWithLinks(ticket.name)}
-          </h1>
+          {/* Main content */}
+          <div className="flex min-h-0 flex-1 gap-5">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <h1 className="min-w-0 wrap-break-word text-xl font-bold text-black">
+                {renderWithLinks(ticket.name)}
+              </h1>
 
-          <SlideupMeta
-            categoryName={categoryMap[ticket.category_id] ?? "-"}
-            createdDate={ticket.created}
-          >
-            <div className="flex items-center gap-2">
-              <Icon src={ticketStatusIcon[ticket.status]} className="size-4"/>
-              <span>{ticketStatusText[ticket.status]}</span>
+              <SlideupMeta
+                categoryName={categoryMap[ticket.category_id] ?? "-"}
+                createdDate={ticket.created}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon
+                    src={ticketStatusIcon[ticket.status]}
+                    className="size-4"
+                  />
+                  <span>{ticketStatusText[ticket.status]}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Icon src="/account.svg" alt="" className="size-4" />
+                  <span>{usernames[ticket.created_by] ?? "-"}</span>
+                </div>
+              </SlideupMeta>
+
+              <SlideupEdited
+                created={ticket.created}
+                updated={ticket.updated}
+              />
+
+              <SlideupDueRow
+                type="ticket"
+                status={ticket.status}
+                dueDate={ticket.due_date}
+              />
+
+              <SlideupDescription description={ticket.description} />
             </div>
-            <div className="flex items-center gap-2">
-              <Icon src="/account.svg" alt="" className="size-4" />
-              <span>{usernames[ticket.created_by] ?? "-"}</span>
-            </div>
-          </SlideupMeta>
 
-          <SlideupEdited created={ticket.created} updated={ticket.updated} />
+            {canJudge && (
+              <MemberPanel
+                members={members}
+                selectedIds={assignedIds}
+                onChange={setAssignedIds}
+                hint="Selected members are assigned to the task when you accept."
+              />
+            )}
+          </div>
 
-          <SlideupDueRow
-            type="ticket"
-            status={ticket.status}
-            dueDate={ticket.due_date}
-          />
-
-          <SlideupDescription description={ticket.description} />
-
+          {/* Footer */}
           {canJudge && (
-            <div className="mt-2 flex h-10 justify-end gap-2">
+            <div className="mt-3 flex h-10 shrink-0 justify-end gap-2">
               {error && <SlideupError message={error} />}
+
               {(["rejected", "accepted"] as const).map((status) => (
                 <Button
                   key={status}

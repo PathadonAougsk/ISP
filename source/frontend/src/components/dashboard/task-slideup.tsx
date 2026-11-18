@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import type { Member } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
-import Avatar from "@/components/ui/avatar";
 import Button from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
 import { CloseButton, Slideup } from "@/components/ui/slideup";
+import MemberPanel from "@/components/request-table/MemberPanel";
 import {
   RequestTableButton,
   SlideupDescription,
@@ -58,9 +59,13 @@ export default function TaskSlideup({
 
   const verb = isCompleted ? "Unsubmit" : "Submit";
 
-  const sortedAssignees = [...task.assignees].sort((a, b) =>
-    a.username.localeCompare(b.username, undefined, { sensitivity: "base" }),
-  );
+  // panel want Member shape
+  const members = task.assignees.map((a) => ({
+    id: a.id,
+    name: a.username,
+    email: a.email,
+    active: true,
+  })) as Member[];
 
   return (
     <Slideup onClose={onClose}>
@@ -112,49 +117,14 @@ export default function TaskSlideup({
             </div>
 
             <div className="flex min-w-55 w-1/4 shrink-0 flex-col">
-              <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
-                <h1 className="text-lg font-bold text-black">
-                  Responsible person
-                </h1>
-
-                <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-                  <div className="flex flex-col gap-2">
-                    {sortedAssignees.map((assignee) => (
-                      <div
-                        key={assignee.id}
-                        className="flex items-center gap-2"
-                      >
-                        <Avatar
-                          name={assignee.username}
-                          className="size-8 shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center text-base leading-tight font-medium">
-                            <span
-                              className="truncate text-gray-800"
-                              title={assignee.username}
-                            >
-                              {assignee.username}
-                            </span>
-                            {assignee.id === currentUserId && (
-                              <span className="shrink-0 text-gray-500">
-                                {" "}
-                                (You)
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className="truncate text-sm leading-tight text-gray-500"
-                            title={assignee.email}
-                          >
-                            {assignee.email}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <MemberPanel
+                readOnly
+                title="Responsible person"
+                members={members}
+                selectedIds={[]}
+                onChange={() => {}}
+                className="w-full flex-1"
+              />
 
               {error && (
                 <SlideupError message={error} className="mt-2 text-center" />

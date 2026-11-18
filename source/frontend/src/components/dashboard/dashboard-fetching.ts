@@ -7,11 +7,7 @@ import {
   type Account,
   type AccountRole,
 } from "@/lib/account";
-import {
-  getCategories,
-  onCategoryChange,
-  type Category,
-} from "@/lib/category";
+import { getCategories, onCategoryChange, type Category } from "@/lib/category";
 import { getTasks, onTaskChange, type GetTasksParams } from "@/lib/task";
 import {
   getTickets,
@@ -234,14 +230,8 @@ export function useDashboardFetching(
     () => onCategoryChange(() => setCategoriesKey((key) => key + 1)),
     [],
   );
-  useEffect(
-    () => onAccountChange(() => setAccountsKey((key) => key + 1)),
-    [],
-  );
-  useEffect(
-    () => onTaskChange(() => setTasksReloadKey((key) => key + 1)),
-    [],
-  );
+  useEffect(() => onAccountChange(() => setAccountsKey((key) => key + 1)), []);
+  useEffect(() => onTaskChange(() => setTasksReloadKey((key) => key + 1)), []);
   useEffect(
     () => onTicketChange(() => setTicketsReloadKey((key) => key + 1)),
     [],
@@ -286,48 +276,32 @@ export function useDashboardFetching(
 
   // fetch all at the same time, no more sequential
   const groups = {
-    myTasks: useGroup(
-      account,
-      true,
-      tasksReloadKey,
-      async (id) =>
-        getAllTasks({
-          status: "in_progress",
-          assignsTo: id,
-        }),
+    myTasks: useGroup(account, true, tasksReloadKey, async (id) =>
+      getAllTasks({
+        status: "in_progress",
+        assignsTo: id,
+      }),
     ),
 
-    otherTasks: useGroup(
-      account,
-      canSeeOthers,
-      tasksReloadKey,
-      async (id) =>
-        getAllTasks({
-          status: "in_progress",
-          notassignsTo: id,
-        }),
+    otherTasks: useGroup(account, canSeeOthers, tasksReloadKey, async (id) =>
+      getAllTasks({
+        status: "in_progress",
+        notassignsTo: id,
+      }),
     ),
 
-    myRejectedTickets: useGroup(
-      account,
-      true,
-      ticketsReloadKey,
-      async () =>
-        getAllTickets({
-          status: "rejected",
-          onlyOwned: true,
-        }),
+    myRejectedTickets: useGroup(account, true, ticketsReloadKey, async () =>
+      getAllTickets({
+        status: "rejected",
+        onlyOwned: true,
+      }),
     ),
 
-    myPendingTickets: useGroup(
-      account,
-      true,
-      ticketsReloadKey,
-      async () =>
-        getAllTickets({
-          status: "pending",
-          onlyOwned: true,
-        }),
+    myPendingTickets: useGroup(account, true, ticketsReloadKey, async () =>
+      getAllTickets({
+        status: "pending",
+        onlyOwned: true,
+      }),
     ),
 
     otherRejectedTickets: useGroup(
@@ -371,11 +345,17 @@ export function useDashboardFetching(
   );
 
   return {
-    // the six lists, each with items, count, flags and loadMore
     groups,
     categories,
     usernames,
     creatorRoles,
+    members: accounts.map((item) => ({
+      id: item.id,
+      name: item.username,
+      email: item.email,
+      role: item.role,
+      active: item.active,
+    })),
     loadingCategories: categoryState.loading,
     errorCategories: categoryState.error,
   };

@@ -7,19 +7,25 @@ import Button from "@/components/ui/button";
 
 // right side panel of a form. pick members with checkbox
 export default function MemberPanel({
-  members,
+  members = [],
   selectedIds,
   onChange,
   loading = false,
   error = null,
   hint,
+  readOnly = false,
+  title = "Assignees",
+  className,
 }: {
-  members: Member[];
+  members?: Member[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   loading?: boolean;
   error?: string | null;
   hint?: string;
+  readOnly?: boolean;
+  title?: string;
+  className?: string;
 }) {
   const { currentUserId } = useCurrentAccount();
 
@@ -46,28 +52,34 @@ export default function MemberPanel({
   );
 
   return (
-    <div className="flex min-w-50 w-1/4 min-h-0 shrink-0 flex-col self-stretch rounded-[20px] bg-(--panel-bg) p-3">
+    <div
+      className={`flex min-h-0 flex-col self-stretch rounded-[20px] bg-(--panel-bg) p-3 ${className ?? "min-w-50 w-1/4 shrink-0"}`}
+    >
       <div
         className={`flex shrink-0 items-center justify-between ${hint ? "mb-2" : "mb-3"}`}
       >
         <p className="text-base font-bold text-black">
-          <span>Assignees</span>
-          <span className="ml-2 text-green-800">
-            {selectedIds.length} / {activeMembers.length}
-          </span>
+          <span>{title}</span>
+          {!readOnly && (
+            <span className="ml-2 text-green-800">
+              {selectedIds.length} / {activeMembers.length}
+            </span>
+          )}
         </p>
-        <Button
-          variant="green"
-          onClick={() =>
-            onChange(
-              allSelected ? [] : activeMembers.map((member) => member.id),
-            )
-          }
-          disabled={activeMembers.length === 0}
-          className="px-3 py-1 text-xs font-semibold"
-        >
-          {allSelected ? "Clear all" : "Assign all"}
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="green"
+            onClick={() =>
+              onChange(
+                allSelected ? [] : activeMembers.map((member) => member.id),
+              )
+            }
+            disabled={activeMembers.length === 0}
+            className="px-3 py-1 text-xs font-semibold"
+          >
+            {allSelected ? "Clear all" : "Assign all"}
+          </Button>
+        )}
       </div>
 
       {hint && <p className="mb-3 shrink-0 text-xs text-gray-500">{hint}</p>}
@@ -85,12 +97,14 @@ export default function MemberPanel({
           !error &&
           sortedMembers.map((member) => (
             <label key={member.id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(member.id)}
-                onChange={() => toggle(member.id)}
-                className="size-4 shrink-0 accent-(--primary-color-2)"
-              />
+              {!readOnly && (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(member.id)}
+                  onChange={() => toggle(member.id)}
+                  className="size-4 shrink-0 accent-(--primary-color-2)"
+                />
+              )}
               <Avatar name={member.name} className="h-6 w-auto shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center text-sm leading-tight font-medium">

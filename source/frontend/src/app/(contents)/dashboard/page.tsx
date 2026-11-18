@@ -35,6 +35,7 @@ export default function Dashboard() {
     categories,
     usernames,
     creatorRoles,
+    members,
     loadingCategories,
     errorCategories,
   } = useDashboardFetching(currentAccount, accountLoading, accountError);
@@ -143,6 +144,7 @@ export default function Dashboard() {
           categoryMap={categoryMap}
           usernames={usernames}
           creatorRoles={creatorRoles}
+          members={members}
           currentUserId={currentAccount?.id ?? null}
           currentRole={currentAccount?.role ?? null}
           onClose={() => setSelectedTicket(null)}
