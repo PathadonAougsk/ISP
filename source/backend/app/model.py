@@ -173,7 +173,7 @@ class Task(Base):
         server_onupdate=FetchedValue(),
     )
     completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
-    due_date: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    due_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True))
 
     category: Mapped[Category] = relationship(back_populates="tasks")
     creator: Mapped[Account] = relationship(

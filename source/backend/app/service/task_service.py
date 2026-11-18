@@ -229,7 +229,7 @@ async def update_task(
         )
         task.category_id = body.category_id
 
-    if body.due_date is not None:
+    if "due_date" in body.model_fields_set:
         dt1 = to_utc(task.due_date)
         dt2 = to_due_date(body.due_date)
         audit_list.append(create_audit_log("due_date", dt1, dt2))
