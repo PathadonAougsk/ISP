@@ -1,7 +1,6 @@
 "use client";
 
 import type { TicketRow } from "@/lib/ticket";
-import type { Category } from "@/lib/category";
 import Icon from "@/components/ui/icon";
 import {
   isMissingItem,
@@ -10,7 +9,7 @@ import {
 import {
   formatDueDate,
   RequestTableFrame,
-  type TableFilters,
+  type TableProps,
 } from "@/components/request-table/RequestList";
 
 const titles = [
@@ -33,57 +32,17 @@ const statusOptions = [
   { value: "accepted", label: "Accepted" },
 ];
 
-export default function TicketTable({
-  tickets,
-  loading,
-  error,
-  categories,
-  filters,
-  onFilterChange,
-  onPageChange,
-  hasNext,
-  totalPages,
-  totalResults,
-  onSelect,
-  onCreate,
-  canCreate,
-}: {
-  tickets: TicketRow[];
-  loading: boolean;
-  error: string | null;
-  categories: Category[];
-  filters: TableFilters;
-  onFilterChange: (patch: Partial<Omit<TableFilters, "page">>) => void;
-  onPageChange: (page: number) => void;
-  hasNext: boolean;
-  totalPages: number;
-  totalResults: number;
-  onSelect: (ticket: TicketRow) => void;
-  onCreate: () => void;
-  canCreate: boolean;
-}) {
+export default function TicketTable(props: TableProps<TicketRow>) {
   const now = new Date();
 
   return (
     <RequestTableFrame
+      {...props}
       title="Tickets"
       noun="tickets"
-      rows={tickets}
-      loading={loading}
-      error={error}
-      canCreate={canCreate}
-      onCreate={onCreate}
-      categories={categories}
       statusOptions={statusOptions}
-      filters={filters}
-      onFilterChange={onFilterChange}
-      onPageChange={onPageChange}
-      hasNext={hasNext}
-      totalPages={totalPages}
-      totalResults={totalResults}
       titles={titles}
       gridClassName={gridClassName}
-      onSelect={onSelect}
       getRow={(ticket) => {
         // same rule as dashboard: pending/rejected + deadline passed
         const overdue = isMissingItem(

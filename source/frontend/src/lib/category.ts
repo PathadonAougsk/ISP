@@ -25,7 +25,7 @@ async function fetchCategories(): Promise<CategoriesResponse> {
   return res.json();
 }
 
-export const getCategories = cached(fetchCategories, CACHE_TTL, "categories");
+export const getCategories = cached(fetchCategories, CACHE_TTL);
 
 // Listener, so pages already open pick up a change made in settings.
 const categoryListeners = new Set<() => void>();

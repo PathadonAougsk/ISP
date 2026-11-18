@@ -1,13 +1,13 @@
 "use client";
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
-import { isAdminRole, type AccountRole } from "@/lib/account";
+import { isAdminRole, outranks, type AccountRole } from "@/lib/account";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached, withoutPagination } from "@/lib/cache/cache";
+import { cached } from "@/lib/cache/cache";
 import { loadLookups, type Lookups } from "@/lib/lookup";
 import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
-import { tasksChanged, type TaskPayload } from "@/lib/task";
+import { tasksChanged } from "@/lib/task";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -95,17 +95,7 @@ async function fetchTickets(
 const TICKETS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
-export const getTickets = cached(
-  fetchTickets,
-  TICKETS_CACHE_TTL,
-  "tickets",
-  withoutPagination,
-  (result, limit) => ({
-    ...result,
-    Tickets: result.Tickets.slice(0, limit),
-  }),
-  (r) => r.TicketCount,
-);
+export const getTickets = cached(fetchTickets, TICKETS_CACHE_TTL);
 
 // Listener, so the dashboard refetch when a ticket change
 const ticketListeners = new Set<() => void>();
@@ -160,21 +150,31 @@ export async function putTicket(
   return res.json();
 }
 
-// Accept with these values. Backend make the task from them too.
-export async function acceptTicket(
-  id: number | string,
-  task: TaskPayload,
-): Promise<void> {
-  // one transaction on backend: task fail = ticket stay as it was
-  await putTicket(id, {
-    name: task.name,
-    description: task.description,
-    category_id: task.category_id,
-    due_date: task.due_date,
-    assignees: task.assignees,
-    status: "accepted",
-  });
+// Higher role than the creator judge a pending ticket, never their own.
+// Creator unknown (members not loaded) = any admin, backend check again.
+export function canJudgeTicket(
+  myRole: AccountRole | null,
+  creatorRole: AccountRole | undefined,
+  isMine: boolean,
+  isPending: boolean,
+) {
+  if (myRole === null || !isPending || isMine) return false;
+  return creatorRole ? outranks(myRole, creatorRole) : isAdminRole(myRole);
+}
 
+// Accept or reject. Accept make the task from the saved ticket on the
+// backend, same transaction, so `assignees` is all it need.
+export async function judgeTicket(
+  id: number | string,
+  status: "accepted" | "rejected",
+  assignees: string[] = [],
+): Promise<void> {
+  if (status === "rejected") {
+    await putTicket(id, { status });
+    return;
+  }
+
+  await putTicket(id, { status, assignees });
   await tasksChanged();
 }
 

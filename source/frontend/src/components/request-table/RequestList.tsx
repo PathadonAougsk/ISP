@@ -76,30 +76,7 @@ export function dueDateEdit(
   return { changed, payload: changed ? dueDate || null : row.dueDateIso };
 }
 
-// Whole table panel: title, create button, filters, header, rows, pagination.
-// getRow turns one row into its cells plus the mark before them (icon or dot).
-export function RequestTableFrame<T extends { id: string; title: string }>({
-  title,
-  noun,
-  rows,
-  loading,
-  error,
-  canCreate,
-  onCreate,
-  categories,
-  statusOptions,
-  filters,
-  onFilterChange,
-  onPageChange,
-  hasNext,
-  totalPages,
-  totalResults,
-  pageSize = PAGE_SIZE,
-  titles,
-  gridClassName,
-  onSelect,
-  getRow,
-}: {
+type RequestTableProps<T> = {
   title: string;
   noun: string;
   rows: T[];
@@ -125,7 +102,38 @@ export function RequestTableFrame<T extends { id: string; title: string }>({
     overdue: boolean;
     spacingClassName: string;
   };
-}) {
+};
+
+// What the task / ticket table take from the page. The rest is their own.
+export type TableProps<T> = Omit<
+  RequestTableProps<T>,
+  "title" | "noun" | "statusOptions" | "titles" | "gridClassName" | "getRow"
+>;
+
+// Whole table panel: title, create button, filters, header, rows, pagination.
+// getRow turns one row into its cells plus the mark before them (icon or dot).
+export function RequestTableFrame<T extends { id: string; title: string }>({
+  title,
+  noun,
+  rows,
+  loading,
+  error,
+  canCreate,
+  onCreate,
+  categories,
+  statusOptions,
+  filters,
+  onFilterChange,
+  onPageChange,
+  hasNext,
+  totalPages,
+  totalResults,
+  pageSize = PAGE_SIZE,
+  titles,
+  gridClassName,
+  onSelect,
+  getRow,
+}: RequestTableProps<T>) {
   // Draft only, search run on Enter. Start from saved search
   const [draft, setDraft] = useState(filters.search);
   const searchRef = useRef<HTMLInputElement>(null);

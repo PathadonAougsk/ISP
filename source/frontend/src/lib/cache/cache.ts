@@ -1,177 +1,62 @@
-import { getPaging, getUserId } from "@/lib/cache/cache-utils";
-import { type Families } from "@/lib/cache/cache-family";
-import {
-  fetchAndSave,
-  readBigger,
-  readExact,
-  resolveFamily,
-  type Entry,
-  type FlowContext,
-} from "@/lib/cache/cache-flow";
-import {
-  CACHE_PREFIX,
-  clearExpiredApiCache,
-  registerClearer,
-} from "@/lib/cache/cache-lifecycle";
-import { getCache, getKey, type CacheContext } from "@/lib/cache/cache-storage";
+import { createClient } from "@/lib/supabase/client";
 
-export {
-  clearAllApiCache,
-  clearExpiredApiCache,
-} from "@/lib/cache/cache-lifecycle";
-export { withoutPagination } from "@/lib/cache/cache-utils";
+// Small in-memory cache for GET calls. Key = signed in user + args, so one
+// user never see another's data. Every write call clear(), so lists stay fresh.
 
 type CachedFunction<A extends unknown[], T> = ((...args: A) => Promise<T>) & {
   clear: () => Promise<void>;
 };
 
+const clearers = new Set<() => void>();
+
+// signed in user id, null if no session or lookup fail
+export async function getUserId(): Promise<string | null> {
+  try {
+    const {
+      data: { session },
+    } = await createClient().auth.getSession();
+
+    return session?.user.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function cached<A extends unknown[], T>(
   fn: (...args: A) => Promise<T>,
   ttlMs: number,
-  name: string,
-  family?: (...args: A) => string,
-  slice?: (result: T, limit: number) => T,
-  total?: (result: T) => number | undefined,
-) {
-  const pending = new Map<string, Entry<T>>();
-  const families: Families = new Map();
-  const cacheName = `${CACHE_PREFIX}-${name}`;
+): CachedFunction<A, T> {
+  const entries = new Map<string, { promise: Promise<T>; expiresAt: number }>();
 
-  // bump on every clear(), so old requests can't save stale results
-  let generation = 0;
-
-  // last delete job, reads wait for it
-  let clearing: Promise<void> = Promise.resolve();
-
-  const wrapped: CachedFunction<A, T> = async (...args: A): Promise<T> => {
-    await clearExpiredApiCache();
+  const wrapped = async (...args: A): Promise<T> => {
     // no session = no cache, so nothing can leak to next user
     const userId = await getUserId();
     if (!userId) return fn(...args);
 
     const key = `${userId}:${JSON.stringify(args)}`;
-    const familyKey =
-      family && ttlMs > 0 ? `${userId}:${family(...args)}` : null;
+    const hit = entries.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.promise;
 
-    const hit = pending.get(key);
+    // same promise for calls at the same time, one request only
+    const entry = { promise: fn(...args), expiresAt: Date.now() + ttlMs };
+    entries.set(key, entry);
 
-    if (hit) {
-      if (!hit.settled || hit.expiresAt > Date.now()) return hit.promise;
-
-      pending.delete(key);
-    }
-
-    const startedGeneration = generation;
-
-    const entry: Entry<T> = {
-      promise: Promise.resolve().then(async () => {
-        // wait old delete finish, so no half deleted read
-        await clearing;
-
-        const cache = await getCache(cacheName);
-
-        const ctx: CacheContext = {
-          cache,
-          request: cache && ttlMs > 0 ? getKey(key) : null,
-          guard: {
-            isActive: () =>
-              pending.get(key) === entry && generation === startedGeneration,
-            isSameGeneration: () => generation === startedGeneration,
-          },
-        };
-
-        // drop settled page from pending, never the current one
-        const evict = (pageKey: string) => {
-          if (pageKey !== key && pending.get(pageKey)?.settled) {
-            pending.delete(pageKey);
-          }
-        };
-
-        const paging = getPaging(args);
-        const flow: FlowContext<T> = {
-          cache,
-          ctx,
-          entry,
-          pending,
-          families,
-          key,
-          familyKey,
-          ttlMs,
-          paging,
-          slice,
-          total,
-          evict,
-          fetchFresh: () => fn(...args),
-          page: {
-            key,
-            offset: paging?.offset ?? 0,
-            limit: paging?.limit ?? Number.MAX_SAFE_INTEGER,
-          },
-        };
-
-        // 1. expiry from family record, own ttl if no family
-        const family = await resolveFamily(flow);
-
-        // clear() landed meanwhile, skip cache
-        if (familyKey && !ctx.guard.isSameGeneration())
-          return flow.fetchFresh();
-
-        const expiresAt = family ? family.expiresAt : Date.now() + ttlMs;
-
-        entry.expiresAt = expiresAt;
-
-        // 2. bigger entry, same offset, is authoritative
-        const bigger = await readBigger(flow, family);
-
-        if (bigger) return bigger.value;
-
-        // 3. exact entry
-        const exact = await readExact(flow, family);
-
-        if (exact) return exact.value;
-
-        // 4. fetch and save
-        return fetchAndSave(flow, family, expiresAt);
-      }),
-      expiresAt: Date.now() + ttlMs,
-      settled: false,
-    };
-
-    pending.set(key, entry);
-
-    entry.promise.then(
-      () => {
-        entry.settled = true;
-      },
-      () => {
-        if (pending.get(key) === entry) {
-          pending.delete(key);
-        }
-      },
-    );
+    // failed request is not kept, next call try again
+    entry.promise.catch(() => {
+      if (entries.get(key) === entry) entries.delete(key);
+    });
 
     return entry.promise;
   };
 
-  wrapped.clear = (): Promise<void> => {
-    pending.clear();
-    families.clear();
-    generation += 1;
+  const clear = () => entries.clear();
+  clearers.add(clear);
 
-    if (typeof window !== "undefined" && "caches" in window) {
-      // chain deletes, never reject
-      clearing = clearing
-        .then(() => window.caches.delete(cacheName))
-        .then(
-          () => {},
-          () => {},
-        );
-    }
+  return Object.assign(wrapped, {
+    clear: async () => clear(),
+  });
+}
 
-    return clearing;
-  };
-
-  registerClearer(wrapped.clear);
-
-  return wrapped;
+export async function clearAllApiCache(): Promise<void> {
+  clearers.forEach((clear) => clear());
 }

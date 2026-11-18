@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { onAccountChange, useCurrentAccount, useMembers } from "@/lib/account";
+import {
+  isAdminRole,
+  onAccountChange,
+  useCurrentAccount,
+  useMembers,
+} from "@/lib/account";
 import { onCategoryChange, useCategories } from "@/lib/category";
 import { getTicketRowById, useTickets, type TicketRow } from "@/lib/ticket";
 import { getTaskRowById, useTasks, type TaskRow } from "@/lib/task";
 import { CloseButton, Slideup } from "@/components/ui/slideup";
 import Toggle from "@/components/ui/toggle";
-import CreateTaskModal from "@/components/request-table/CreateTaskModal";
-import CreateTicketModal from "@/components/request-table/CreateTicketModal";
+import CreateRequestModal from "@/components/request-table/CreateRequestModal";
 import {
   toQuery,
   useTableFilters,
@@ -171,7 +175,7 @@ export default function RequestTable() {
       <div className="min-h-0 flex-1">
         {tab === "ticket" ? (
           <TicketTable
-            tickets={tickets}
+            rows={tickets}
             loading={ticketsLoading}
             error={ticketsError}
             categories={categories}
@@ -187,10 +191,10 @@ export default function RequestTable() {
           />
         ) : (
           <TaskTable
-            tasks={tasks}
+            rows={tasks}
             loading={tasksLoading}
             error={tasksError}
-            userRole={userRole}
+            canCreate={isAdminRole(userRole)}
             categories={categories}
             filters={taskView.filters}
             onFilterChange={taskView.setFilter}
@@ -247,7 +251,8 @@ export default function RequestTable() {
       )}
 
       {isCreatingTicket && (
-        <CreateTicketModal
+        <CreateRequestModal
+          kind="ticket"
           categories={categories}
           onClose={() => setIsCreatingTicket(false)}
           onCreated={reloadTickets}
@@ -255,7 +260,8 @@ export default function RequestTable() {
       )}
 
       {isCreatingTask && (
-        <CreateTaskModal
+        <CreateRequestModal
+          kind="task"
           categories={categories}
           members={members}
           membersLoading={membersLoading}

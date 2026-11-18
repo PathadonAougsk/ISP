@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { clearAllApiCache, clearExpiredApiCache } from "@/lib/cache/cache";
+import { clearAllApiCache } from "@/lib/cache/cache";
 import { getMe, isSessionEnding } from "@/lib/account";
 import Button from "@/components/ui/button";
 
@@ -18,10 +18,6 @@ export default function PageInitializer({ children }: Props) {
 
     async function initialize() {
       try {
-        await clearExpiredApiCache();
-
-        if (cancelled) return;
-
         const account = await getMe();
 
         if (cancelled) return;

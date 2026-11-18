@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { outranks, type AccountRole } from "@/lib/account";
+import type { AccountRole } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
-import { acceptTicket, putTicket, type Ticket } from "@/lib/ticket";
+import { canJudgeTicket, judgeTicket, type Ticket } from "@/lib/ticket";
 import Button from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
@@ -43,15 +43,12 @@ export default function TicketSlideup({
 
   const isMine = ticket.created_by === currentUserId;
 
-  // higher role judge pending ticket. creator not found = any admin
-  const creatorRole = creatorRoles[ticket.created_by];
-  const canJudge =
-    currentRole !== null &&
-    ticket.status === "pending" &&
-    !isMine &&
-    (creatorRole === undefined
-      ? currentRole !== "Lab User"
-      : outranks(currentRole, creatorRole));
+  const canJudge = canJudgeTicket(
+    currentRole,
+    creatorRoles[ticket.created_by],
+    isMine,
+    ticket.status === "pending",
+  );
 
   async function handleJudge(
     status: "accepted" | "rejected",
@@ -61,18 +58,7 @@ export default function TicketSlideup({
     setSubmitting(true);
 
     try {
-      // accept = make task too, same as request-table judge
-      if (status === "accepted") {
-        await acceptTicket(ticket.id, {
-          name: ticket.name,
-          description: ticket.description,
-          category_id: ticket.category_id,
-          due_date: ticket.due_date,
-          assignees: [],
-        });
-      } else {
-        await putTicket(ticket.id, { status });
-      }
+      await judgeTicket(ticket.id, status);
 
       close();
     } catch {

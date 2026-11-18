@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
-import { cached, withoutPagination } from "@/lib/cache/cache";
+import { cached } from "@/lib/cache/cache";
 import { buildQuery } from "@/lib/query";
 
 export type Announcement = {
@@ -48,9 +48,6 @@ const ANNOUNCEMENTS_CACHE_TTL = 5 * 60 * 1000;
 export const getAnnouncements = cached(
   fetchAnnouncements,
   ANNOUNCEMENTS_CACHE_TTL,
-  "announcements",
-  withoutPagination,
-  (result, limit) => result.slice(0, limit),
 );
 
 export async function createAnnouncement(

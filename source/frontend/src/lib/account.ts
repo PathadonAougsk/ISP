@@ -34,7 +34,7 @@ const ADMIN_ROLES: AccountRole[] = ["Lab Owner", "Lab Admin"];
 const ME_CACHE_TTL = 2 * 60 * 1000; // 2 minutes, so a role change is picked up soon enough
 
 // Cache API, not memory. Clear also drop old in-flight saves.
-const getMeCached = cached(fetchMe, ME_CACHE_TTL, "me");
+const getMeCached = cached(fetchMe, ME_CACHE_TTL);
 
 // Drop every account related cache.
 export function clearAccountCache() {
@@ -80,11 +80,7 @@ async function fetchAccounts(): Promise<AccountsResponse> {
   return res.json();
 }
 
-export const getAccounts = cached(
-  fetchAccounts,
-  ACCOUNTS_CACHE_TTL,
-  "accounts",
-);
+export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
 
 // The signed in user's own account row, straight from /account/{account_id}.
 // Cached - pass { force: true } to go back to the network.

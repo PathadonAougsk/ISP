@@ -2,7 +2,7 @@
 
 import { apiFetch, apiOrThrow } from "@/lib/api";
 import { buildQuery } from "@/lib/query";
-import { getUserId } from "@/lib/cache/cache-utils";
+import { getUserId } from "@/lib/cache/cache";
 
 // One row per changed column, written by the endpoint that made the change -
 // see the note in the API guide: there is no database trigger behind this.
@@ -45,7 +45,8 @@ export function clearAuditLogCache() {
   auditLogCache.clear();
 }
 
-async function fetchAuditLogs(
+// normal network request, also used by pagination
+export async function getAuditLogs(
   query: AuditLogQuery = {},
 ): Promise<AuditLogsResponse> {
   const qs = buildQuery(query).toString();
@@ -55,44 +56,30 @@ async function fetchAuditLogs(
   return res.json();
 }
 
-// normal network request, used by pagination.
-export async function getAuditLogs(
-  query: AuditLogQuery = {},
-): Promise<AuditLogsResponse> {
-  return fetchAuditLogs(query);
-}
-
 // show cached data immediately, then replace it with fresh data.
 export async function loadAuditLogs(
   query: AuditLogQuery,
   onData: (data: AuditLogsResponse, stale: boolean) => void,
   onError: (error: unknown) => void,
 ): Promise<void> {
+  const userId = await getUserId();
+  const key = userId ? `${userId}:${JSON.stringify(query)}` : null;
+  const saved = key ? auditLogCache.get(key) : undefined;
+
+  // expired entries are intentionally still displayed.
+  if (saved) onData(saved.data, saved.expiresAt <= Date.now());
+
   try {
-    const userId = await getUserId();
-    const key = userId ? `${userId}:${JSON.stringify(query)}` : null;
+    const fresh = await getAuditLogs(query);
 
-    const cached = key ? auditLogCache.get(key) : undefined;
-
-    // expired entries are intentionally still displayed.
-    if (cached) {
-      onData(cached.data, cached.expiresAt <= Date.now());
+    if (key) {
+      auditLogCache.set(key, {
+        data: fresh,
+        expiresAt: Date.now() + CACHE_TTL,
+      });
     }
 
-    try {
-      const fresh = await fetchAuditLogs(query);
-
-      if (key) {
-        auditLogCache.set(key, {
-          data: fresh,
-          expiresAt: Date.now() + CACHE_TTL,
-        });
-      }
-
-      onData(fresh, false);
-    } catch (error) {
-      onError(error);
-    }
+    onData(fresh, false);
   } catch (error) {
     onError(error);
   }

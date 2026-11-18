@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { acceptTicket, putTicket, type TicketRow } from "@/lib/ticket";
-import { categoryOptions, type Category } from "@/lib/category";
-import { outranks, type AccountRole, type Member } from "@/lib/account";
-import DateInput from "@/components/ui/date-input";
-import { Select, TextArea, TextInput } from "@/components/ui/field";
+import {
+  canJudgeTicket,
+  judgeTicket,
+  putTicket,
+  type TicketRow,
+} from "@/lib/ticket";
+import type { Category } from "@/lib/category";
+import type { AccountRole, Member } from "@/lib/account";
+import { TextInput } from "@/components/ui/field";
 import {
   FormButton,
   FormColumn,
@@ -14,9 +18,10 @@ import {
 } from "@/components/ui/form-modal";
 import MemberPanel from "@/components/request-table/MemberPanel";
 import {
-  dueDateEdit,
-  formatDueDate,
-} from "@/components/request-table/RequestList";
+  REQUIRED_MESSAGE,
+  RequestFields,
+  useRequestForm,
+} from "@/components/request-table/RequestForm";
 
 export default function TicketDetailModal({
   ticket,
@@ -37,112 +42,68 @@ export default function TicketDetailModal({
   onSaved: () => void;
   onTaskCreated: () => void;
 }) {
-  const [title, setTitle] = useState(ticket.title);
-  const [description, setDescription] = useState(ticket.description);
-  const [dueDate, setDueDate] = useState(ticket.dueDateValue);
-  const [categoryId, setCategoryId] = useState<number | "">(ticket.categoryId);
+  const form = useRequestForm(ticket);
   const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const { saving, error, setError, run } = useFormSubmit();
-  // date box say invalid, block submit
-  const [dateInvalid, setDateInvalid] = useState(false);
   const [action, setAction] = useState<"update" | "accept" | "reject" | null>(
     null,
   );
 
+  const isMine = ticket.createdById === currentUserId;
   const canEdit =
-    ticket.createdById === currentUserId &&
-    (ticket.status === "Pending" || ticket.status === "Rejected");
-
-  // only role higher than creator can judge, pending only. creator not found = any admin
-  const creatorRole = members.find((m) => m.id === ticket.createdById)?.role;
-  const canJudge =
-    ticket.status === "Pending" &&
-    (creatorRole
-      ? outranks(currentRole, creatorRole)
-      : currentRole !== "Lab User");
-
-  const { changed: dueDateChanged, payload: dueDatePayload } = dueDateEdit(
-    dueDate,
-    ticket,
+    isMine && (ticket.status === "Pending" || ticket.status === "Rejected");
+  const canJudge = canJudgeTicket(
+    currentRole,
+    members.find((m) => m.id === ticket.createdById)?.role,
+    isMine,
+    ticket.status === "Pending",
   );
 
-  const hasChanges =
-    title.trim() !== ticket.title ||
-    (description || "") !== (ticket.description || "") ||
-    dueDateChanged ||
-    categoryId !== ticket.categoryId ||
-    ticket.status === "Rejected";
+  // a rejected ticket can be resubmitted as it is
+  const hasChanges = form.hasChanges || ticket.status === "Rejected";
 
-  async function handleDecision(
-    newStatus: TicketRow["status"],
+  // run one save, then close on success
+  async function submit(
+    nextAction: NonNullable<typeof action>,
+    save: () => Promise<unknown>,
     close: () => void,
   ) {
-    if (ticket.status === newStatus) return;
-    if (!canJudge) {
-      setError("You can't accept or reject this ticket.");
-      return;
-    }
+    setAction(nextAction);
 
-    // Use the edited form values when the user can edit, otherwise the saved ones
-    const name = canEdit ? title.trim() : ticket.title;
-    const text = canEdit ? description : ticket.description;
-    const category = canEdit ? categoryId : ticket.categoryId;
-    const due = canEdit ? dueDatePayload : ticket.dueDateIso;
-
-    if (!name || category === "") {
-      setError("Title and category are required.");
-      return;
-    }
-
-    setAction(newStatus === "Accepted" ? "accept" : "reject");
-    const ok = await run(async () => {
-      // Edits and the new status are saved together
-      const values = {
-        name,
-        description: text || null,
-        category_id: category,
-        due_date: due,
-      };
-
-      if (newStatus === "Accepted") {
-        await acceptTicket(ticket.id, { ...values, assignees: assignedIds });
-        onTaskCreated();
-      } else {
-        await putTicket(ticket.id, { ...values, status: "rejected" });
-      }
-    }, "Failed to update ticket");
-
-    if (ok) {
+    if (await run(save, "Failed to update ticket")) {
       onSaved();
       close();
     }
   }
 
-  async function handleUpdate(close: () => void) {
-    if (!hasChanges) return;
+  // judge only send the decision, the backend keep the saved fields
+  function handleDecision(status: "accepted" | "rejected", close: () => void) {
+    submit(
+      status === "accepted" ? "accept" : "reject",
+      async () => {
+        await judgeTicket(ticket.id, status, assignedIds);
+        if (status === "accepted") onTaskCreated();
+      },
+      close,
+    );
+  }
 
-    if (!title.trim() || categoryId === "") {
-      setError("Title and category are required.");
+  function handleUpdate(close: () => void) {
+    const values = form.values;
+    if (!values) {
+      setError(REQUIRED_MESSAGE);
       return;
     }
 
-    setAction("update");
-    const ok = await run(
+    submit(
+      "update",
       () =>
         putTicket(ticket.id, {
-          name: title.trim(),
-          description: description || null,
-          category_id: categoryId,
-          due_date: dueDatePayload,
+          ...values,
           status: ticket.status === "Rejected" ? "pending" : undefined,
         }),
-      "Failed to update ticket",
+      close,
     );
-
-    if (ok) {
-      onSaved();
-      close();
-    }
   }
 
   return (
@@ -157,7 +118,7 @@ export default function TicketDetailModal({
             <FormButton
               variant="green"
               onClick={() => handleUpdate(close)}
-              disabled={saving || !hasChanges || dateInvalid}
+              disabled={saving || !hasChanges || form.dateInvalid}
             >
               {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
@@ -167,15 +128,15 @@ export default function TicketDetailModal({
             <>
               <FormButton
                 variant="red"
-                onClick={() => handleDecision("Rejected", close)}
-                disabled={saving || ticket.status === "Rejected"}
+                onClick={() => handleDecision("rejected", close)}
+                disabled={saving}
               >
                 {saving && action === "reject" ? "Rejecting…" : "Reject"}
               </FormButton>
               <FormButton
                 variant="green"
-                onClick={() => handleDecision("Accepted", close)}
-                disabled={saving || ticket.status === "Accepted"}
+                onClick={() => handleDecision("accepted", close)}
+                disabled={saving}
               >
                 {saving && action === "accept" ? "Accepting…" : "Accept"}
               </FormButton>
@@ -185,38 +146,7 @@ export default function TicketDetailModal({
       )}
     >
       <FormColumn>
-        <TextInput
-          name="title"
-          label="Title"
-          value={title}
-          onChange={setTitle}
-          placeholder="Enter a title"
-          maxLength={255}
-          readOnly={!canEdit}
-        />
-
-        <div className="flex flex-wrap gap-4">
-          <Select
-            label="Category"
-            className="min-w-35 flex-1"
-            value={categoryId}
-            onChange={(value) => setCategoryId(value ? Number(value) : "")}
-            options={categoryOptions(categories)}
-            placeholder={{ value: "", label: "Select a category" }}
-            readOnly={!canEdit}
-            readOnlyText={ticket.category}
-          />
-
-          <DateInput
-            label="Due Date"
-            className="min-w-35 flex-1"
-            value={dueDate}
-            onChange={setDueDate}
-            onValidityChange={setDateInvalid}
-            readOnly={!canEdit}
-            readOnlyText={formatDueDate(ticket)}
-          />
-
+        <RequestFields form={form} categories={categories} readOnly={!canEdit}>
           <TextInput
             name="created_by"
             label="Created By"
@@ -224,21 +154,10 @@ export default function TicketDetailModal({
             value={ticket.createdBy}
             readOnly
           />
-        </div>
-
-        <TextArea
-          name="description"
-          label="Description"
-          value={description}
-          onChange={setDescription}
-          placeholder="Add more details"
-          maxLength={1000}
-          readOnly={!canEdit}
-          grow
-        />
+        </RequestFields>
       </FormColumn>
 
-      {canJudge && ticket.status !== "Accepted" && (
+      {canJudge && (
         <MemberPanel
           members={members}
           selectedIds={assignedIds}
