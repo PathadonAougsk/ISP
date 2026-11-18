@@ -186,7 +186,7 @@ async def update_task(
             column_name=col_name,
             old_value=f"{old_val}",
             new_value=f"{new_value}",
-            by_whom=auth_user.id,
+            by_whom=me.id,
         )
         if al.old_value == al.new_value:
             return 0
@@ -232,16 +232,30 @@ async def update_task(
         task.due_date = dt2
 
     if body.assignees is not None:
-        audit_list.append(update_helper("assignees", task.assignees, body.assignees))
-        assignees = await session.scalars(
-            select(Account).where(
-                Account.id.in_(body.assignees),
-                Account.active.is_(True),
+        current_assignee_ids = {assignee.id for assignee in task.assignees}
+        requested_assignee_ids = set(body.assignees)
+
+        if current_assignee_ids != requested_assignee_ids:
+            assignees = await session.scalars(
+                select(Account).where(
+                    Account.id.in_(requested_assignee_ids),
+                    Account.active.is_(True),
+                )
             )
-        )
-        task.assignees = list(assignees.all())
-        if len(task.assignees) != len(set(body.assignees)):
-            raise HTTPException(status_code=400, detail="One or more assignees are invalid")
+            new_assignees = list(assignees.all())
+            if len(new_assignees) != len(requested_assignee_ids):
+                raise HTTPException(status_code=400, detail="One or more assignees are invalid")
+
+            old_assignee_value = ",".join(
+                sorted(str(assignee_id) for assignee_id in current_assignee_ids)
+            )
+            new_assignee_value = ",".join(
+                sorted(str(assignee_id) for assignee_id in requested_assignee_ids)
+            )
+            audit_list.append(
+                update_helper("assignees", old_assignee_value, new_assignee_value)
+            )
+            task.assignees = new_assignees
 
     for i in audit_list:
         if i != 0:
