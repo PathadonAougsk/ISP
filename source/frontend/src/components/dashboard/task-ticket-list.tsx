@@ -113,10 +113,7 @@ function sortTickets(
 
     const values = {
       name: [first.name, second.name],
-      status: [
-        ticketStatusText[first.status],
-        ticketStatusText[second.status],
-      ],
+      status: [ticketStatusText[first.status], ticketStatusText[second.status]],
       category: [
         categoryMap[first.category_id] ?? "-",
         categoryMap[second.category_id] ?? "-",
@@ -208,7 +205,7 @@ function ListPanel({
         sortDirection={sort.direction}
         onSort={onSort}
       />
-      
+
       <div
         className={`grid min-h-0 flex-1 overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out ${
           collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"
