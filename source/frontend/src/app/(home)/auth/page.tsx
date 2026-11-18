@@ -30,11 +30,15 @@ function AuthForm() {
   const router = useRouter();
   // Set by getMe when the backend turns a deactivated account away, so they
   // are told why instead of just landing back here.
-  const deactivated = useSearchParams().has("deactivated");
+  const searchParams = useSearchParams();
+  const deactivated = searchParams.has("deactivated");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // noaccount: getMe found a login with no account row and signed it out
+  const [error, setError] = useState<string | null>(
+    searchParams.has("noaccount") ? NO_ACCOUNT : null,
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,11 +64,8 @@ function AuthForm() {
       // the backend account row. Verify that row before entering the app.
       const account = await getMe({ force: true });
 
-      // no account row: sign out again and say why
-      if (!account) {
-        await supabase.auth.signOut();
-        throw new Error(NO_ACCOUNT);
-      }
+      // no row or deactivated: getMe signed out and reload with the reason
+      if (!account) return;
 
       router.push("/dashboard");
     } catch (err) {

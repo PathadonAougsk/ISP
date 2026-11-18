@@ -60,7 +60,8 @@ export default function TaskDetailModal({
     JSON.stringify([...assignedIds].sort()) !==
       JSON.stringify([...task.assigneeIds].sort());
 
-  // Submit and unsubmit only flip the status. (save before submit)
+  // Submit and unsubmit flip the status. Admin edits go in the same PUT,
+  // so it all save or nothing save
   async function handleSetStatus(
     status: "completed" | "in_progress",
     close: () => void,
@@ -69,22 +70,23 @@ export default function TaskDetailModal({
 
     const ok = await run(
       async () => {
-        if (isAdmin && hasChanges) {
-          if (!title.trim() || categoryId === "") {
-            throw new Error("Title and category are required.");
-          }
-
-          await putTask(task.id, {
-            name: title.trim(),
-            description: description || null,
-            status: task.status === "Completed" ? "completed" : "in_progress",
-            category_id: categoryId,
-            due_date: dueDatePayload,
-            assignees: assignedIds,
-          });
+        if (!isAdmin || !hasChanges) {
+          await putTask(task.id, { status });
+          return;
         }
 
-        await putTask(task.id, { status });
+        if (!title.trim() || categoryId === "") {
+          throw new Error("Title and category are required.");
+        }
+
+        await putTask(task.id, {
+          name: title.trim(),
+          description: description || null,
+          status,
+          category_id: categoryId,
+          due_date: dueDatePayload,
+          assignees: assignedIds,
+        });
       },
       status === "completed"
         ? "Failed to submit task"
@@ -151,7 +153,7 @@ export default function TaskDetailModal({
               onClick={() =>
                 handleSetStatus(completed ? "in_progress" : "completed", close)
               }
-              disabled={saving}
+              disabled={saving || dateInvalid}
             >
               {saving && action === "status"
                 ? completed

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { clearAllApiCache, clearExpiredApiCache } from "@/lib/cache/cache";
-import { getMe } from "@/lib/account";
+import { getMe, isSessionEnding } from "@/lib/account";
 import Button from "@/components/ui/button";
 
 type Props = {
@@ -27,6 +27,9 @@ export default function PageInitializer({ children }: Props) {
         if (cancelled) return;
 
         if (!account) {
+          // getMe already sent them to /auth with a reason
+          if (isSessionEnding()) return;
+
           await clearAllApiCache();
 
           if (!cancelled) {

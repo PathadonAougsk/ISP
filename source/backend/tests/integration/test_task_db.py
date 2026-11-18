@@ -43,7 +43,14 @@ def test_create_task_audit_row_points_at_the_task(client, db):
     assert response.status_code == 200, response.text
     task_id = response.json()["Task"]["id"]
     db.track("task", task_id)
-    assert [r.column_name for r in db.audit_rows("task", task_id)] == ["status"]
+    assert {r.column_name for r in db.audit_rows("task", task_id)} == {
+        "name",
+        "description",
+        "status",
+        "category_id",
+        "due_date",
+        "assignees",
+    }
 
 
 def test_retrieve_tasks_filters_search_and_count(client, db):
@@ -94,11 +101,12 @@ def test_update_task_persists_and_audits_changes(client, db):
     assert response.status_code == 200, response.text
     row = db.fetch(Task, task_id)
     assert (row.name, row.status) == ("pytest after", TaskStatus.COMPLETED)
+    assert row.completed_by == db.me_id and row.completed_at is not None
     assert response.json()["Task"]["assignees"] == []
 
     audit = {r.column_name: (r.old_value, r.new_value) for r in db.audit_rows("task", task_id)}
     assert audit["name"] == ("pytest before", "pytest after")
-    assert audit["status"] == ("TaskStatus.IN_PROGRESS", "TaskStatus.COMPLETED")
+    assert audit["status"] == ("in_progress", "completed")
     assert "assignees" in audit
 
     assert client.put("/task/999999999", json={"name": "x"}, headers=AUTH_HEADER).status_code == 404

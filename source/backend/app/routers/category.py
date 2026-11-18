@@ -1,21 +1,23 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import get_current_auth_user
 from app.database import getSession
-from app.limits import CATEGORY_NAME_MAX
+from app.limits import CategoryName
 from app.model import Account, Category
 from app.service import category_service, account_service
 
-categoryRouter = APIRouter(prefix="/category", dependencies=[Depends(get_current_auth_user)])
+# account check, not only token, so a deactivated member is kept out
+categoryRouter = APIRouter(
+    prefix="/category", dependencies=[Depends(account_service.get_current_account)]
+)
 
 class CategoryRequestBody(BaseModel):
-    name : str = Field(min_length=1, max_length=CATEGORY_NAME_MAX)
+    name : CategoryName
 
 NAME_TAKEN = HTTPException(
     status_code=status.HTTP_409_CONFLICT,

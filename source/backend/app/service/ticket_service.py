@@ -264,13 +264,23 @@ async def update_ticket(
         ticket.description = data.description
 
     if data.status is not None:
+        # .value, str() of the enum give "TicketStatus.ACCEPTED"
         audit_list.append(
             create_audit_log(
                 "status",
-                ticket.status,
-                data.status,
+                ticket.status.value,
+                data.status.value,
             )
         )
+
+        # accept stamp who and when. stamped once, never cleared
+        if (
+            data.status is TicketStatus.ACCEPTED
+            and ticket.status is not TicketStatus.ACCEPTED
+        ):
+            ticket.completed_by = me.id
+            ticket.completed_at = dt.datetime.now(dt.timezone.utc)
+
         ticket.status = data.status
 
     if data.category_id is not None:
@@ -321,7 +331,7 @@ async def delete_ticket(
     audit_fields = {
         "name": ticket.name,
         "description": ticket.description,
-        "status": ticket.status,
+        "status": ticket.status.value,
         "category_id": ticket.category_id,
         "due_date": ticket.due_date,
     }

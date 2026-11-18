@@ -60,22 +60,17 @@ def test_admin_creates_trial_user_with_login_and_audit(client, db):
     assert duplicate.status_code == 409
 
 
-def test_user_claims_their_own_account_row(client, db):
+def test_login_without_account_cannot_claim_a_row(client, db):
     username, email = new_identity()
     user_id = db.run(account_service.create_auth_user, email, PASSWORD, username)
     db.track("account", user_id)
-    # POST /account/ copies the address off the Supabase user, so the fake
-    # token has to carry it.
     client.login(user_id, email=email)
 
-    first = client.post("/account/", json={"username": username}, headers=AUTH_HEADER)
-    again = client.post("/account/", json={"username": "ignored"}, headers=AUTH_HEADER)
+    # admin only now, and a login with no row is not anybody yet
+    response = client.post("/account/", json={"username": username}, headers=AUTH_HEADER)
 
-    assert first.status_code == 201, first.text
-    assert again.status_code == 201
-    assert again.json()["Message"] == "Account already set up"
-    row = db.fetch(Account, user_id)
-    assert (row.username, row.email, row.role) == (username, email, AccountRole.LAB_USER)
+    assert response.status_code == 404, response.text
+    assert db.fetch(Account, user_id) is None
 
 
 def test_account_visibility_rules(client, db):

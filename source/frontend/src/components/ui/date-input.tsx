@@ -123,7 +123,7 @@ function Stepper({
 
 // Typed as dd/mm/yyyy, held as "yyyy-MM-dd". Past dates are refused, and the
 // calendar button opens our calendar popup. Invalid input shows a message
-// below the box and is reported to the parent through onValidityChange.
+// beside the label and is reported to the parent through onValidityChange.
 export default function DateInput({
   label,
   value,
@@ -309,15 +309,20 @@ export default function DateInput({
 
   return label === undefined ? (
     <>
+      {message && <p className="mb-1 text-xs text-red-500">{message}</p>}
       {field}
-      {message && <p className="mt-1 text-xs text-red-500">{message}</p>}
     </>
   ) : (
-    <Field label={label} className={className}>
-      <div>
-        {field}
-        {message && <p className="mt-1 text-xs text-red-500">{message}</p>}
-      </div>
+    <Field
+      label={label}
+      className={className}
+      counter={
+        message && (
+          <span className="text-xs font-normal text-red-500">{message}</span>
+        )
+      }
+    >
+      {field}
     </Field>
   );
 }

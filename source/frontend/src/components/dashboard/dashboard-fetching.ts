@@ -12,8 +12,12 @@ import {
   onCategoryChange,
   type Category,
 } from "@/lib/category";
-import { getTasks, onTaskChange } from "@/lib/task";
-import { getTickets, onTicketChange } from "@/lib/ticket";
+import { getTasks, onTaskChange, type GetTasksParams } from "@/lib/task";
+import {
+  getTickets,
+  onTicketChange,
+  type GetTicketsParams,
+} from "@/lib/ticket";
 import {
   type DashboardItem,
   type GroupState,
@@ -25,8 +29,61 @@ const INITIAL_LIMIT = 10;
 // limit increment when clicking Load More button
 const INCREMENT = 10;
 
-// backend default is 100, so ask for 100 on purpose
+// one page size. backend default is 100, so ask for 100 on purpose
 const FETCH_LIMIT = 100;
+
+// First page ask the total too, then the rest come in parallel, so every
+// count on the dashboard see all items, not only the first 100.
+async function fetchAllPages<T extends { id: number }>(
+  fetchPage: (
+    offset: number,
+    getCount: boolean,
+  ) => Promise<{ items: T[]; count?: number }>,
+): Promise<T[]> {
+  const first = await fetchPage(0, true);
+  const total = first.count ?? first.items.length;
+
+  const offsets: number[] = [];
+  for (let offset = FETCH_LIMIT; offset < total; offset += FETCH_LIMIT) {
+    offsets.push(offset);
+  }
+
+  const rest = await Promise.all(
+    offsets.map((offset) => fetchPage(offset, false)),
+  );
+
+  // row can shift between pages, so drop repeat ids
+  const byId = new Map<number, T>();
+  for (const item of [first, ...rest].flatMap((page) => page.items)) {
+    byId.set(item.id, item);
+  }
+
+  return [...byId.values()];
+}
+
+function getAllTasks(params: GetTasksParams) {
+  return fetchAllPages(async (offset, get_count) => {
+    const body = await getTasks({
+      ...params,
+      limit: FETCH_LIMIT,
+      offset,
+      get_count,
+    });
+    return { items: body.Tasks, count: body.TaskCount };
+  });
+}
+
+function getAllTickets(params: GetTicketsParams) {
+  return fetchAllPages(async (offset, get_count) => {
+    const body = await getTickets({
+      ...params,
+      limit: FETCH_LIMIT,
+      offset,
+      get_count,
+    });
+    return { items: body.Tickets, count: body.TicketCount };
+  });
+}
 
 // loading + error flag of one request
 type Flags = { loading: boolean; error: boolean };
@@ -234,13 +291,10 @@ export function useDashboardFetching(
       true,
       tasksReloadKey,
       async (id) =>
-        (
-          await getTasks({
-            status: "in_progress",
-            assignsTo: id,
-            limit: FETCH_LIMIT,
-          })
-        ).Tasks,
+        getAllTasks({
+          status: "in_progress",
+          assignsTo: id,
+        }),
     ),
 
     otherTasks: useGroup(
@@ -248,13 +302,10 @@ export function useDashboardFetching(
       canSeeOthers,
       tasksReloadKey,
       async (id) =>
-        (
-          await getTasks({
-            status: "in_progress",
-            notassignsTo: id,
-            limit: FETCH_LIMIT,
-          })
-        ).Tasks,
+        getAllTasks({
+          status: "in_progress",
+          notassignsTo: id,
+        }),
     ),
 
     myRejectedTickets: useGroup(
@@ -262,13 +313,10 @@ export function useDashboardFetching(
       true,
       ticketsReloadKey,
       async () =>
-        (
-          await getTickets({
-            status: "rejected",
-            onlyOwned: true,
-            limit: FETCH_LIMIT,
-          })
-        ).Tickets,
+        getAllTickets({
+          status: "rejected",
+          onlyOwned: true,
+        }),
     ),
 
     myPendingTickets: useGroup(
@@ -276,13 +324,10 @@ export function useDashboardFetching(
       true,
       ticketsReloadKey,
       async () =>
-        (
-          await getTickets({
-            status: "pending",
-            onlyOwned: true,
-            limit: FETCH_LIMIT,
-          })
-        ).Tickets,
+        getAllTickets({
+          status: "pending",
+          onlyOwned: true,
+        }),
     ),
 
     otherRejectedTickets: useGroup(
@@ -290,13 +335,10 @@ export function useDashboardFetching(
       canSeeOthers,
       ticketsReloadKey,
       async () =>
-        (
-          await getTickets({
-            status: "rejected",
-            notOwned: true,
-            limit: FETCH_LIMIT,
-          })
-        ).Tickets,
+        getAllTickets({
+          status: "rejected",
+          notOwned: true,
+        }),
     ),
 
     otherPendingTickets: useGroup(
@@ -304,13 +346,10 @@ export function useDashboardFetching(
       canSeeOthers,
       ticketsReloadKey,
       async () =>
-        (
-          await getTickets({
-            status: "pending",
-            notOwned: true,
-            limit: FETCH_LIMIT,
-          })
-        ).Tickets,
+        getAllTickets({
+          status: "pending",
+          notOwned: true,
+        }),
     ),
   };
 

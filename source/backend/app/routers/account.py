@@ -96,10 +96,13 @@ async def create_my_account(
     body: CreateAccountRequest,
     session: Annotated[AsyncSession, Depends(getSession)],
     auth_user: Annotated[AuthUser, Depends(get_current_auth_user)],
+    _admin: Annotated[Account, Depends(account_service.require_admin)],
 ):
     """Claim the account row for the signed in user. A user who has a login
     but no account row picks their username here - the row does not exist
-    until they do."""
+    until they do.
+
+    Admin only, so a stray Supabase sign up cannot join the lab by itself."""
     username = body.username.strip()
     if not username:
         raise HTTPException(

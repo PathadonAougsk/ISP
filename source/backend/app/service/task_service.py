@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
@@ -8,14 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.datetime_utils import to_due_date, to_utc
-from app.limits import DESCRIPTION_MAX, NAME_MAX
-from app.model import Account, AccountRole, AuditLog, Task, TaskStatus
+from app.limits import DESCRIPTION_MAX, Name
+from app.model import Account, AccountRole, AuditLog, Category, Task, TaskStatus
 from app.service.account_service import is_admin
 
 
 # Base Task model.
 class TaskRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=NAME_MAX)
+    name: Name
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus = TaskStatus.IN_PROGRESS
     category_id: int
@@ -24,12 +24,28 @@ class TaskRequest(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX)
+    name: Name | None = None
     description: str | None = Field(default=None, max_length=DESCRIPTION_MAX)
     status: TaskStatus | None = None
     category_id: int | None = None
     due_date: datetime | None = None
     assignees: list[uuid.UUID] | None = None
+
+
+async def ensure_category(session: AsyncSession, category_id: int) -> None:
+    # check first, else bad id hit the FK and come back as 500
+    if await session.get(Category, category_id) is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+
+# completed_by / completed_at follow the status: submit stamp, unsubmit clear
+def stamp_completion(task: Task, status: TaskStatus, me: Account) -> None:
+    if status is TaskStatus.COMPLETED:
+        task.completed_by = me.id
+        task.completed_at = datetime.now(timezone.utc)
+    else:
+        task.completed_by = None
+        task.completed_at = None
 
 
 async def retrieve_tasks(
@@ -125,6 +141,7 @@ async def create_task(
     session: AsyncSession,
 ):
     # Create new task based on the body.
+    await ensure_category(session, body.category_id)
     conv_duedate = to_due_date(body.due_date)
 
     task = Task(
@@ -135,6 +152,7 @@ async def create_task(
         due_date=conv_duedate,
         created_by=me.id,
     )
+    stamp_completion(task, body.status, me)
 
     if body.assignees:
         assignees = await session.scalars(
@@ -150,15 +168,30 @@ async def create_task(
     session.add(task)
     await session.flush()
 
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=body.status.value,
-        by_whom=me.id,
-    )
-    session.add(al)
+    # one row per field, same as create_ticket
+    audit_fields = {
+        "name": body.name,
+        "description": body.description,
+        "status": body.status.value,
+        "category_id": body.category_id,
+        "due_date": conv_duedate,
+        "assignees": ",".join(
+            sorted(str(assignee.id) for assignee in task.assignees)
+        )
+        or None,
+    }
+
+    for column_name, new_value in audit_fields.items():
+        session.add(
+            AuditLog(
+                from_table="task",
+                row_id=str(task.id),
+                column_name=column_name,
+                old_value=None,
+                new_value=None if new_value is None else str(new_value),
+                by_whom=me.id,
+            )
+        )
 
     await session.commit()
     await session.refresh(task)
@@ -220,10 +253,16 @@ async def update_task(
         task.description = body.description
 
     if body.status is not None:
-        audit_list.append(create_audit_log("status", task.status, body.status))
+        # .value, str() of the enum give "TaskStatus.COMPLETED"
+        audit_list.append(
+            create_audit_log("status", task.status.value, body.status.value)
+        )
+        if body.status is not task.status:
+            stamp_completion(task, body.status, me)
         task.status = body.status
 
     if body.category_id is not None:
+        await ensure_category(session, body.category_id)
         audit_list.append(
             create_audit_log("category_id", task.category_id, body.category_id)
         )
@@ -241,13 +280,17 @@ async def update_task(
 
         if current_assignee_ids != requested_assignee_ids:
             assignees = await session.scalars(
-                select(Account).where(
-                    Account.id.in_(requested_assignee_ids),
-                    Account.active.is_(True),
-                )
+                select(Account).where(Account.id.in_(requested_assignee_ids))
             )
             new_assignees = list(assignees.all())
-            if len(new_assignees) != len(requested_assignee_ids):
+            # only newly added must be active. one already on the task may
+            # stay after deactivation, so it does not block other edits
+            added_ids = requested_assignee_ids - current_assignee_ids
+            if len(new_assignees) != len(requested_assignee_ids) or any(
+                not assignee.active
+                for assignee in new_assignees
+                if assignee.id in added_ids
+            ):
                 raise HTTPException(status_code=400, detail="One or more assignees are invalid")
 
             old_assignee_value = ",".join(
@@ -293,7 +336,7 @@ async def delete_task(
     audit_fields = {
         "name": task.name,
         "description": task.description,
-        "status": task.status,
+        "status": task.status.value,
         "category_id": task.category_id,
         "due_date": task.due_date,
     }

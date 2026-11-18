@@ -96,7 +96,15 @@ export async function getMe({
   return (await getMeCached()) ?? undefined;
 }
 
+// true once endSession start, so nobody else redirect over its reason
+let sessionEnding = false;
+
+export function isSessionEnding() {
+  return sessionEnding;
+}
+
 async function endSession(search = "") {
+  sessionEnding = true;
   await clearAllApiCache();
   clearAuditLogCache();
   await createClient().auth.signOut();
@@ -143,6 +151,8 @@ async function fetchMe(): Promise<Account | null> {
     throw new Error(`${res.status} ${res.statusText || "Error"}: ${detail}`);
   }
 
+  // 404: login is fine but has no account row. sign out and say why
+  await endSession("?noaccount=1");
   return null;
 }
 
@@ -151,6 +161,7 @@ export type Member = {
   name: string;
   email: string;
   role: AccountRole;
+  active: boolean;
 };
 
 export type AccountPatch = {
@@ -323,6 +334,7 @@ export function useMembers() {
         name: account.username,
         email: account.email,
         role: account.role,
+        active: account.active,
       })) ?? [],
     [data],
   );

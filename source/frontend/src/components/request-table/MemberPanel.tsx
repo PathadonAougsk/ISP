@@ -23,8 +23,15 @@ export default function MemberPanel({
 }) {
   const { currentUserId } = useCurrentAccount();
 
+  // inactive can't be picked. one already picked stay shown, so it can be removed
+  const activeMembers = members.filter((member) => member.active);
+  const shownMembers = members.filter(
+    (member) => member.active || selectedIds.includes(member.id),
+  );
+
   const allSelected =
-    members.length > 0 && selectedIds.length === members.length;
+    activeMembers.length > 0 &&
+    activeMembers.every((member) => selectedIds.includes(member.id));
 
   function toggle(memberId: string) {
     onChange(
@@ -34,7 +41,7 @@ export default function MemberPanel({
     );
   }
 
-  const sortedMembers = [...members].sort((a, b) =>
+  const sortedMembers = [...shownMembers].sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
   );
 
@@ -46,15 +53,17 @@ export default function MemberPanel({
         <p className="text-base font-bold text-black">
           <span>Assignees</span>
           <span className="ml-2 text-green-800">
-            {selectedIds.length} / {members.length}
+            {selectedIds.length} / {activeMembers.length}
           </span>
         </p>
         <Button
           variant="green"
           onClick={() =>
-            onChange(allSelected ? [] : members.map((member) => member.id))
+            onChange(
+              allSelected ? [] : activeMembers.map((member) => member.id),
+            )
           }
-          disabled={members.length === 0}
+          disabled={activeMembers.length === 0}
           className="px-3 py-1 text-xs font-semibold"
         >
           {allSelected ? "Clear all" : "Assign all"}
@@ -90,6 +99,9 @@ export default function MemberPanel({
                   </span>
                   {member.id === currentUserId && (
                     <span className="shrink-0 text-gray-500"> (You)</span>
+                  )}
+                  {!member.active && (
+                    <span className="shrink-0 text-gray-500"> (inactive)</span>
                   )}
                 </div>
                 <div
