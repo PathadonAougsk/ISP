@@ -1,4 +1,5 @@
 import datetime as dt
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -30,6 +31,8 @@ class TicketUpdate(BaseModel):
     status: TicketStatus | None = None
     category_id: int | None = None
     due_date: dt.datetime | None = None
+    # only read on accept: who the new task goes to
+    assignees: list[uuid.UUID] | None = None
 
 
 ticketRouter = APIRouter(

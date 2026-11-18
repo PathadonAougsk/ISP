@@ -7,7 +7,7 @@ import { cached, withoutPagination } from "@/lib/cache/cache";
 import { loadLookups, type Lookups } from "@/lib/lookup";
 import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
-import { postTask, type TaskPayload } from "@/lib/task";
+import { tasksChanged, type TaskPayload } from "@/lib/task";
 
 export type TicketStatus = "pending" | "accepted" | "rejected" | (string & {});
 
@@ -55,6 +55,8 @@ export type TicketCreatePayload = {
 // Body for PUT /ticket/{id} (TicketUpdate in the backend, every field optional)
 export type TicketUpdatePayload = Partial<TicketCreatePayload> & {
   status?: TicketStatus;
+  // only read on accept: who the new task goes to
+  assignees?: string[];
 };
 
 // Shape the request-table UI renders
@@ -158,26 +160,22 @@ export async function putTicket(
   return res.json();
 }
 
-// Accept with these values and make the task from them.
-// Task fail = ticket back to pending, so it can be accepted again.
+// Accept with these values. Backend make the task from them too.
 export async function acceptTicket(
   id: number | string,
   task: TaskPayload,
 ): Promise<void> {
+  // one transaction on backend: task fail = ticket stay as it was
   await putTicket(id, {
     name: task.name,
     description: task.description,
     category_id: task.category_id,
     due_date: task.due_date,
+    assignees: task.assignees,
     status: "accepted",
   });
 
-  try {
-    await postTask(task);
-  } catch (taskError) {
-    await putTicket(id, { status: "pending" }).catch(() => {});
-    throw taskError;
-  }
+  await tasksChanged();
 }
 
 function mapTicket(

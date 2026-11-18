@@ -12,7 +12,7 @@ import pytest
 
 from sqlalchemy import func, select
 
-from app.model import Account, Category, Ticket, TicketStatus
+from app.model import Account, Category, Task, Ticket, TicketStatus
 from tests.integration.conftest import AUTH_HEADER
 
 DUE = dt.datetime(2030, 1, 15, 9, 0, tzinfo=dt.timezone.utc)
@@ -142,6 +142,49 @@ def test_update_persists_change_and_audits_only_changed_column(client, db):
     assert [(r.column_name, r.old_value, r.new_value) for r in audit] == [
         ("name", "pytest before", "pytest after")
     ]
+
+
+def test_status_only_put_keeps_description_and_due_date(client, db, lab_user_id):
+    ticket_id = db.seed_ticket(
+        name="pytest judged", description="keep me", due_date=DUE, created_by=lab_user_id
+    )
+
+    response = client.put(f"/ticket/{ticket_id}", json={"status": "rejected"}, headers=AUTH_HEADER)
+
+    assert response.status_code == 200, response.text
+    row = db.fetch(Ticket, ticket_id)
+    assert (row.status, row.description, row.due_date) == (
+        TicketStatus.REJECTED, "keep me", DUE_END_OF_DAY
+    )
+
+
+def test_accept_makes_the_task_and_stamps_the_ticket(client, db, lab_user_id):
+    name = f"pytest accept {uuid.uuid4().hex[:8]}"
+    ticket_id = db.seed_ticket(name=name, due_date=DUE, created_by=lab_user_id)
+
+    response = client.put(
+        f"/ticket/{ticket_id}",
+        json={"status": "accepted", "assignees": [str(db.me_id)]},
+        headers=AUTH_HEADER,
+    )
+
+    assert response.status_code == 200, response.text
+    task_id = db.scalar(select(Task.id).where(Task.name == name))
+    assert task_id is not None
+    db.track("task", task_id)
+
+    row = db.fetch(Ticket, ticket_id)
+    assert row.status is TicketStatus.ACCEPTED
+    assert row.completed_by == db.me_id and row.completed_at is not None
+
+
+def test_cannot_judge_your_own_ticket(client, db):
+    ticket_id = db.seed_ticket(name="pytest mine", due_date=DUE)
+
+    response = client.put(f"/ticket/{ticket_id}", json={"status": "accepted"}, headers=AUTH_HEADER)
+
+    assert response.status_code == 403
+    assert db.fetch(Ticket, ticket_id).status is TicketStatus.PENDING
 
 
 def test_delete_removes_row_and_keeps_audit_of_old_values(client, db):

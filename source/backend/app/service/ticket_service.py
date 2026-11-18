@@ -5,6 +5,8 @@ from sqlalchemy import select, case, update, func, or_, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.datetime_utils import to_due_date, to_utc
+from app.service.account_service import is_admin, outranks
+from app.service.task_service import TaskRequest, add_task
 from app.model import (
     Ticket,
     Account,
@@ -229,11 +231,30 @@ async def update_ticket(
             detail="You cannot update or edit accepted tickets",
         )
 
-    if data.status is not None and me.role == AccountRole.LAB_USER:
-        raise HTTPException(
-            status_code=403,
-            detail="You cannot update the ticket status",
-        )
+    # same status = no change, always fine
+    if data.status is not None and data.status is not ticket.status:
+        if data.status is TicketStatus.PENDING:
+            # resubmit: creator only, and only a rejected ticket
+            if (
+                me.id != ticket.created_by
+                or ticket.status is not TicketStatus.REJECTED
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only the creator can resubmit a rejected ticket",
+                )
+        else:
+            # judge: an admin above the creator, never your own ticket
+            creator = await session.get(Account, ticket.created_by)
+            if (
+                not is_admin(me)
+                or me.id == ticket.created_by
+                or not outranks(me, creator)
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only someone above the creator can accept or reject this ticket",
+                )
 
     if data.category_id is not None:
         category = await session.get(Category, data.category_id)
@@ -271,14 +292,17 @@ async def update_ticket(
         )
         ticket.name = data.name
 
-    description_changed = update_ticket_log(
-        "description",
-        ticket.description,
-        data.description,
-    )
-    
-    if description_changed:
-        audit_list.append(description_changed)
+    # only fields sent get touched. null = clear it
+    sent = data.model_fields_set
+
+    if "description" in sent:
+        audit_list.append(
+            update_ticket_log(
+                "description",
+                ticket.description,
+                data.description,
+            )
+        )
         ticket.description = data.description
 
     if data.status is not None:
@@ -311,20 +335,35 @@ async def update_ticket(
         )
         ticket.category_id = data.category_id
 
-    new_due_date = to_due_date(data.due_date)
-    due_date_changed = update_ticket_log(
-        "due_date",
-        to_utc(ticket.due_date),
-        new_due_date,
-    )
-
-    if due_date_changed:
-        audit_list.append(due_date_changed)
+    if "due_date" in sent:
+        new_due_date = to_due_date(data.due_date)
+        audit_list.append(
+            update_ticket_log(
+                "due_date",
+                to_utc(ticket.due_date),
+                new_due_date,
+            )
+        )
         ticket.due_date = new_due_date
 
     for audit in audit_list:
         if audit is not None:
             session.add(audit)
+
+    # accept make the task from the saved ticket, same transaction, so a
+    # failed task leaves the ticket as it was
+    if ticket.status is TicketStatus.ACCEPTED:
+        await add_task(
+            me,
+            TaskRequest(
+                name=ticket.name,
+                description=ticket.description,
+                category_id=ticket.category_id,
+                due_date=ticket.due_date,
+                assignees=data.assignees,
+            ),
+            session,
+        )
 
     await session.commit()
     await session.refresh(ticket)

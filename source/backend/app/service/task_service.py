@@ -140,6 +140,20 @@ async def create_task(
     body: TaskRequest,
     session: AsyncSession,
 ):
+    task = await add_task(me, body, session)
+
+    await session.commit()
+    await session.refresh(task)
+
+    return {"Task": task}
+
+
+# Task + its audit rows, no commit, so ticket accept can share the transaction
+async def add_task(
+    me: Account,
+    body: TaskRequest,
+    session: AsyncSession,
+) -> Task:
     # Create new task based on the body.
     await ensure_category(session, body.category_id)
     conv_duedate = to_due_date(body.due_date)
@@ -193,10 +207,7 @@ async def create_task(
             )
         )
 
-    await session.commit()
-    await session.refresh(task)
-
-    return {"Task": task}
+    return task
 
 
 async def update_task(
