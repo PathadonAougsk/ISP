@@ -28,3 +28,16 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
       - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
     restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+    restart: unless-stopped
+    depends_on:
+      nextjs:
+        condition: service_healthy
+      fastapi:
+        condition: service_healthy
