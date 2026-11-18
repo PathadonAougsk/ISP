@@ -118,6 +118,12 @@ function notifyTaskChange() {
   taskListeners.forEach((listener) => listener());
 }
 
+// a task was made somewhere else (ticket accept), so drop cached lists too
+export async function tasksChanged() {
+  await getTasks.clear();
+  notifyTaskChange();
+}
+
 // data changed, so drop cached lists
 async function sendTask(
   request: Promise<Response>,
