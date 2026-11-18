@@ -302,22 +302,21 @@ def outranks(actor: Account, target: Account) -> bool:
     return ROLE_RANK[actor.role] > ROLE_RANK[target.role]
 
 
+def assert_can_manage(me: Account, target: Account, action: str) -> None:
+    if not is_admin(me) or not outranks(me, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Only someone above {target.role.value} can {action}",
+        )
+
+
 async def resolve_login_target(
     session: AsyncSession, me: Account, account_id: uuid.UUID
 ) -> Account:
-    """Your own login, or one belonging to somebody you outrank - strictly, so no admin can reset a peer or a Lab Owner."""
+    """Your own login, or one belonging to somebody you outrank."""
     if account_id == me.id:
         return me
 
     target = await get_account_or_404(session, account_id)
-
-    if not is_admin(me) or not outranks(me, target):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                f"Only someone above {target.role.value} can reset that login. "
-                "Your own is always yours to change."
-            ),
-        )
-
+    assert_can_manage(me, target, "reset that login. Your own is always yours to change")
     return target
