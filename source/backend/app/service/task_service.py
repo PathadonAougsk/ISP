@@ -136,16 +136,6 @@ async def create_task(
         created_by=me.id,
     )
 
-    # Create an audit log for the creation!
-    al = AuditLog(
-        from_table="task",
-        row_id=str(task.id),
-        column_name="status",
-        old_value=None,
-        new_value=TaskStatus.IN_PROGRESS.value,
-        by_whom=me.id,
-    )
-
     if body.assignees:
         assignees = await session.scalars(
             select(Account).where(
@@ -157,9 +147,19 @@ async def create_task(
         if len(task.assignees) != len(set(body.assignees)):
             raise HTTPException(status_code=400, detail="One or more assignees are invalid")
 
-    # Add it to session, and update.
-    session.add(al)
     session.add(task)
+    await session.flush()
+
+    al = AuditLog(
+        from_table="task",
+        row_id=str(task.id),
+        column_name="status",
+        old_value=None,
+        new_value=body.status.value,
+        by_whom=me.id,
+    )
+    session.add(al)
+
     await session.commit()
     await session.refresh(task)
 
