@@ -164,34 +164,29 @@ async def update_account(
     session: Annotated[AsyncSession, Depends(getSession)],
     me: Annotated[Account, Depends(account_service.get_current_account)],
 ):
-    """Rename yourself; quota and active are admin only."""
-    caller_is_admin = account_service.is_admin(me)
-    if me.id != account_id and not caller_is_admin:
+    """Rename yourself; quota and active are admin only. Anyone else's row
+    needs you to outrank them, same as the login and role endpoints."""
+    # Before the lookup, so a member cannot probe which ids exist.
+    if me.id != account_id and not account_service.is_admin(me):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to edit this account",
         )
 
-    target = await account_service.get_account_or_404(session, account_id)
+    target =await account_service.get_account_or_404(session, account_id)
     sent = body.model_fields_set
 
-    if not caller_is_admin and ({"quota", "active"} & sent):
+    # Your own row is always yours; without the self check a Lab Admin could not even rename themselves.
+    if target.id != me.id:
+        account_service.assert_can_manage(me, target, "edit this account")
+
+    if not account_service.is_admin(me) and ({"quota", "active"} & sent):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only a Lab Owner or Lab Admin can change quota or active",
         )
 
     changed: list[str] = []
-
-    # Your own row is always yours; without the self check a Lab Admin could not even rename themselves.
-    if (
-        target.id != me.id
-        and me.role is not AccountRole.LAB_OWNER
-        and target.role is AccountRole.LAB_ADMIN
-    ):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Only Lab Owner could change details of other Admin"
-        )
 
     if "username" in sent and body.username is not None:
         username = body.username.strip()
@@ -340,6 +335,7 @@ async def delete_account(
             status_code=status.HTTP_409_CONFLICT,
             detail="A Lab Owner cannot be deleted here",
         )
+    account_service.assert_can_manage(me, target, "delete this account")
 
     account_service.audit_account(
         session, target.id, "deleted", target.username, None, me.id
@@ -473,6 +469,7 @@ async def assign_role(
             status_code=status.HTTP_409_CONFLICT,
             detail="You cannot change your own role",
         )
+    account_service.assert_can_manage(me, target, "change this role")
 
     if target.role is body.role:
         return {"Account": target, "Message": f"{target.username} is already {body.role.value}"}

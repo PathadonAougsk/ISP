@@ -7,6 +7,7 @@ the account row and the Supabase user even if the test fails halfway.
 import uuid
 
 import pytest
+from sqlalchemy import select
 from supabase_auth.errors import AuthApiError
 
 from app.dependencies import supabase
@@ -135,6 +136,46 @@ def test_assign_role_rules(client, db):
 
     me = client.put(f"/account/{db.me_id}/role", json={"role": "Lab User"}, headers=AUTH_HEADER)
     assert me.status_code == 409
+
+
+def test_admin_cannot_touch_a_peer_admin(client, db):
+    peer_id = create_user(client, db)
+    acting_id = create_user(client, db)
+    for user_id in (peer_id, acting_id):
+        response = client.put(f"/account/{user_id}/role", json={"role": "Lab Admin"}, headers=AUTH_HEADER)
+        assert response.status_code == 200, response.text
+
+    client.login(acting_id)
+    demote = client.put(f"/account/{peer_id}/role", json={"role": "Lab User"}, headers=AUTH_HEADER)
+    rename = client.put(f"/account/{peer_id}", json={"username": "pytest-hijack"}, headers=AUTH_HEADER)
+    delete = client.delete(f"/account/{peer_id}", headers=AUTH_HEADER)
+
+    assert (demote.status_code, rename.status_code, delete.status_code) == (403, 403, 403)
+    row = db.fetch(Account, peer_id)
+    assert row.role is AccountRole.LAB_ADMIN
+    assert row.username != "pytest-hijack"
+
+    # Their own row is still theirs.
+    own = client.put(f"/account/{acting_id}", json={"username": f"pytest-{uuid.uuid4().hex[:8]}"}, headers=AUTH_HEADER)
+    assert own.status_code == 200, own.text
+
+
+def test_admin_cannot_edit_a_lab_owner(client, db):
+    owner_id = db.scalar(select(Account.id).where(Account.role == AccountRole.LAB_OWNER).limit(1))
+    if owner_id is None:
+        pytest.skip("No Lab Owner in this database")
+    acting_id = create_user(client, db)
+    promoted = client.put(f"/account/{acting_id}/role", json={"role": "Lab Admin"}, headers=AUTH_HEADER)
+    if promoted.status_code != 200:
+        pytest.skip("Test admin cannot promote here")
+
+    before = db.fetch(Account, owner_id)
+    client.login(acting_id)
+    response = client.put(f"/account/{owner_id}", json={"username": "pytest-hijack", "quota": 1}, headers=AUTH_HEADER)
+
+    assert response.status_code == 403
+    after = db.fetch(Account, owner_id)
+    assert (after.username, after.quota) == (before.username, before.quota)
 
 
 def test_user_changes_own_password_and_email(client, db):
