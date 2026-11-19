@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Member } from "@/lib/account";
+import { toMember } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
 import Button from "@/components/ui/button";
@@ -59,13 +59,8 @@ export default function TaskSlideup({
 
   const verb = isCompleted ? "Unsubmit" : "Submit";
 
-  // panel want Member shape
-  const members = task.assignees.map((a) => ({
-    id: a.id,
-    name: a.username,
-    email: a.email,
-    active: true,
-  })) as Member[];
+  // real role and active, so a deactivated assignee show "(inactive)"
+  const members = task.assignees.map(toMember);
 
   return (
     <Slideup onClose={onClose}>

@@ -160,6 +160,17 @@ export type Member = {
   active: boolean;
 };
 
+// account row -> what MemberPanel show
+export function toMember(account: Account): Member {
+  return {
+    id: account.id,
+    name: account.username,
+    email: account.email,
+    role: account.role,
+    active: account.active,
+  };
+}
+
 export type AccountPatch = {
   username?: string;
   quota?: number | null;
@@ -323,17 +334,7 @@ export function useMembers() {
     true,
     onAccountChange,
   );
-  const members = useMemo(
-    () =>
-      data?.Accounts.map((account) => ({
-        id: account.id,
-        name: account.username,
-        email: account.email,
-        role: account.role,
-        active: account.active,
-      })) ?? [],
-    [data],
-  );
+  const members = useMemo(() => data?.Accounts.map(toMember) ?? [], [data]);
 
   return { members, membersLoading: loading, membersError: error };
 }

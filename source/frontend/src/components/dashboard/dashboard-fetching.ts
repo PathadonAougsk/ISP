@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getAccounts,
   onAccountChange,
+  toMember,
   type Account,
   type AccountRole,
 } from "@/lib/account";
@@ -349,13 +350,7 @@ export function useDashboardFetching(
     categories,
     usernames,
     creatorRoles,
-    members: accounts.map((item) => ({
-      id: item.id,
-      name: item.username,
-      email: item.email,
-      role: item.role,
-      active: item.active,
-    })),
+    members: accounts.map(toMember),
     loadingCategories: categoryState.loading,
     errorCategories: categoryState.error,
   };

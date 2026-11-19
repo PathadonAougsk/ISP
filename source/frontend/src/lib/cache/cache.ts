@@ -10,6 +10,8 @@ export { getUserId, withoutPagination } from "@/lib/cache/cache-utils";
 
 // Small in-memory cache for GET calls. Key = signed in user + args, so one
 // user never see another's data. Every write call clear(), so lists stay fresh.
+// Optional `family` (args minus paging) + `slice`: pages of the same filters
+// expire together, and a smaller page is cut from a bigger one already here.
 
 type CachedFunction<A extends unknown[], T> = ((...args: A) => Promise<T>) & {
   clear: () => Promise<void>;

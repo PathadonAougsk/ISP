@@ -3,7 +3,7 @@
 import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import type { Account } from "@/lib/account";
 import { formatShortDateTime, toDateInputValue } from "@/lib/format";
-import { cached } from "@/lib/cache/cache";
+import { cached, withoutPagination } from "@/lib/cache/cache";
 import { loadLookups, type Lookups } from "@/lib/lookup";
 import { usePagedList } from "@/lib/paged-list";
 import { buildQuery } from "@/lib/query";
@@ -91,7 +91,14 @@ async function fetchTasks(params: GetTasksParams = {}): Promise<TasksResponse> {
 const TASKS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
-export const getTasks = cached(fetchTasks, TASKS_CACHE_TTL);
+// same filters = one family, expire together. a bigger page (same offset)
+// replace smaller ones, and a smaller ask is cut from it
+export const getTasks = cached(
+  fetchTasks,
+  TASKS_CACHE_TTL,
+  withoutPagination,
+  (result, limit) => ({ ...result, Tasks: result.Tasks.slice(0, limit) }),
+);
 
 // Listener, so the dashboard refetch when a task change
 const taskListeners = new Set<() => void>();

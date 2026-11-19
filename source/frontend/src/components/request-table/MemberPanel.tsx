@@ -29,11 +29,14 @@ export default function MemberPanel({
 }) {
   const { currentUserId } = useCurrentAccount();
 
-  // inactive can't be picked. one already picked stay shown, so it can be removed
+  // inactive can't be picked. one already picked stay shown, so it can be
+  // removed. read only = just a list, show everyone
   const activeMembers = members.filter((member) => member.active);
-  const shownMembers = members.filter(
-    (member) => member.active || selectedIds.includes(member.id),
-  );
+  const shownMembers = readOnly
+    ? members
+    : members.filter(
+        (member) => member.active || selectedIds.includes(member.id),
+      );
 
   const allSelected =
     activeMembers.length > 0 &&
@@ -112,10 +115,12 @@ export default function MemberPanel({
                     {member.name}
                   </span>
                   {member.id === currentUserId && (
-                    <span className="shrink-0 text-gray-500"> (You)</span>
+                    <span className="ml-1 shrink-0 text-gray-500">(You)</span>
                   )}
                   {!member.active && (
-                    <span className="shrink-0 text-gray-500"> (inactive)</span>
+                    <span className="ml-1 shrink-0 text-gray-500">
+                      (inactive)
+                    </span>
                   )}
                 </div>
                 <div
