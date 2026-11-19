@@ -157,6 +157,8 @@ async def add_task(
 ) -> Task:
     # Create new task based on the body.
     await ensure_category(session, body.category_id)
+    if not body.assignees:
+        raise HTTPException(status_code=400, detail="Task needs at least one assignee")
     conv_duedate = to_due_date(body.due_date)
     if conv_duedate is not None and conv_duedate < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Due date cannot be in the past")
@@ -291,6 +293,8 @@ async def update_task(
         task.due_date = dt2
 
     if body.assignees is not None:
+        if not body.assignees:
+            raise HTTPException(status_code=400, detail="Task needs at least one assignee")
         current_assignee_ids = {assignee.id for assignee in task.assignees}
         requested_assignee_ids = set(body.assignees)
 
