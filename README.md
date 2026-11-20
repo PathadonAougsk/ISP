@@ -118,6 +118,39 @@ The first run builds both images and takes a few minutes. Then open:
 - Backend: <http://localhost:8000> (health check at `/health`)
 - Swagger UI: <http://localhost:8000/docs>
 
+### Create the database tables (first run only)
+
+The backend does **not** create tables on startup. On a fresh Supabase project, create them once from inside the backend container:
+
+```bash
+docker compose -f docker-compose.dev.yaml --env-file source/.env exec fastapi python -m app.database
+```
+
+This runs SQLAlchemy's `create_all` against `SUPABASE_DB_URL` using the models in `source/backend/app/model.py`. It's safe to rerun: existing tables are skipped. It does **not** alter tables that already exist, so after changing a column on an existing table you have to update the table in Supabase yourself.
+
+### Create the first Lab Owner (first run only)
+
+Only a Lab Owner or Lab Admin can create accounts in the app, and the Lab Owner role can't be granted through the API at all. So the first owner has to be set up in Supabase:
+
+1. In the Supabase dashboard, go to **Authentication → Users → Add user → Create new user**. Enter the owner's email and password, and tick **Auto Confirm User**.
+2. Open the **SQL Editor** and run this, with that email and the username you want:
+
+```sql
+insert into public.account (id, username, email, role)
+select id, 'owner', lower(email), 'Lab Owner'
+from auth.users
+where email = 'owner@example.com'
+on conflict (id) do update set role = 'Lab Owner';
+```
+
+The query links the login to a new `account` row with the Lab Owner role. If that user already has an account row, it promotes them instead. Then sign in at <http://localhost:3000> with that email and password, and add everyone else from the app.
+
+To change an owner back to a normal user later, use the SQL Editor again:
+
+```sql
+update public.account set role = 'Lab User' where email = 'owner@example.com';
+```
+
 Source folders are bind-mounted, so saving a file hot-reloads inside the container. Rebuild only after changing a `Dockerfile*`, `package.json`, or Python dependencies:
 
 ```bash
@@ -150,6 +183,14 @@ cp source/.env.sample source/.env   # then fill in production values
 
 docker compose -f docker-compose.prod.yaml --env-file source/.env up -d --build
 ```
+
+If the production Supabase project is new, create the tables once (see [Create the database tables](#create-the-database-tables-first-run-only)):
+
+```bash
+docker compose -f docker-compose.prod.yaml --env-file source/.env exec fastapi python -m app.database
+```
+
+Then create the first owner in the production Supabase project (see [Create the first Lab Owner](#create-the-first-lab-owner-first-run-only)).
 
 `--env-file source/.env` is required: the `NEXT_PUBLIC_*` values are baked into the frontend at **build** time, so compose must read them before building. After changing any `NEXT_PUBLIC_*` value, rebuild with `--build`.
 
@@ -191,6 +232,10 @@ docker compose -f docker-compose.prod.yaml --env-file source/.env --profile tunn
 ## Troubleshooting
 
 **`env file ./source/.env not found`** or **`set in source/.env`**: you skipped step 1, or left out `--env-file source/.env`.
+
+**`relation "…" does not exist`** in the backend logs: the tables haven't been created yet. Run `python -m app.database` in the `fastapi` container (see step 2).
+
+**"This login has no account in the lab"** when signing in: the Supabase user exists but has no `account` row. Run the insert from [Create the first Lab Owner](#create-the-first-lab-owner-first-run-only).
 
 **Port 3000 or 8000 already in use**: stop whatever holds it, or change the left side of the port mapping in the compose file.
 
