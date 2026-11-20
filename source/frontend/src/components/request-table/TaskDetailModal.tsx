@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { putTask, type TaskRow } from "@/lib/task";
-import { categoryOptions, type Category } from "@/lib/category";
-import type { Member, UserRole } from "@/lib/account";
-import DateInput from "@/components/ui/date-input";
-import { Select, TextArea, TextInput } from "@/components/ui/field";
+import type { Category } from "@/lib/category";
+import { isAdminRole, type AccountRole, type Member } from "@/lib/account";
+import { TextInput } from "@/components/ui/field";
 import {
   FormButton,
   FormColumn,
@@ -13,7 +12,11 @@ import {
   useFormSubmit,
 } from "@/components/ui/form-modal";
 import MemberPanel from "@/components/request-table/MemberPanel";
-import { formatDueDate } from "@/components/request-table/RequestList";
+import {
+  REQUIRED_MESSAGE,
+  RequestFields,
+  useRequestForm,
+} from "@/components/request-table/RequestForm";
 
 export default function TaskDetailModal({
   task,
@@ -25,82 +28,51 @@ export default function TaskDetailModal({
   onSaved,
 }: {
   task: TaskRow;
-  userRole: UserRole;
+  userRole: AccountRole;
   currentUserId: string;
   members: Member[];
   categories: Category[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [title, setTitle] = useState(task.title);
-  const [categoryId, setCategoryId] = useState<number | "">(task.categoryId);
-  const [description, setDescription] = useState(task.description);
-  const [dueDate, setDueDate] = useState(task.dueDateValue);
+  const form = useRequestForm(task);
   const [assignedIds, setAssignedIds] = useState<string[]>(task.assigneeIds);
   const { saving, error, setError, run } = useFormSubmit();
   const [action, setAction] = useState<"update" | "status" | null>(null);
 
-  const isAdmin = userRole === "Lab Admin";
-
-  // The date input only holds a day, so sending it back would drop the time
-  // the backend stored. Send the saved value instead unless it was edited.
-  const dueDateChanged = (dueDate || "") !== (task.dueDateValue || "");
-  const dueDatePayload = dueDateChanged ? dueDate || null : task.dueDateIso;
+  const isAdmin = isAdminRole(userRole);
 
   const hasChanges =
-    title.trim() !== task.title ||
-    categoryId !== task.categoryId ||
-    (description || "") !== (task.description || "") ||
-    dueDateChanged ||
+    form.hasChanges ||
     JSON.stringify([...assignedIds].sort()) !==
       JSON.stringify([...task.assigneeIds].sort());
 
-  // Submit and unsubmit only flip the status; other fields stay as saved.
-  async function handleSetStatus(
+  // One PUT for edits and status, so it all save or nothing save.
+  // Not admin or nothing edited: only the status go.
+  async function save(
     status: "completed" | "in_progress",
+    nextAction: "update" | "status",
     close: () => void,
   ) {
-    setAction("status");
-    const ok = await run(
-      () =>
-        putTask(task.id, {
-          name: task.title,
-          description: task.description || null,
-          status,
-          category_id: task.categoryId,
-          due_date: task.dueDateIso,
-        }),
-      status === "completed"
-        ? "Failed to submit task"
-        : "Failed to unsubmit task",
-    );
-
-    if (ok) {
-      onSaved();
-      close();
-    }
-  }
-
-  async function handleUpdate(close: () => void) {
-    if (!hasChanges) return;
-
-    if (!title.trim() || categoryId === "") {
-      setError("Title and category are required.");
+    const edits = isAdmin && hasChanges;
+    const values = form.values;
+    if (edits && !values) {
+      setError(REQUIRED_MESSAGE);
       return;
     }
 
-    setAction("update");
+    setAction(nextAction);
     const ok = await run(
       () =>
-        putTask(task.id, {
-          name: title.trim(),
-          description: description || null,
-          status: task.status === "Completed" ? "completed" : "in_progress",
-          category_id: categoryId,
-          due_date: dueDatePayload,
-          assignees: assignedIds,
-        }),
-      "Failed to update task",
+        putTask(
+          task.id,
+          edits ? { ...values, status, assignees: assignedIds } : { status },
+        ),
+      nextAction === "update"
+        ? "Failed to update task"
+        : status === "completed"
+          ? "Failed to submit task"
+          : "Failed to unsubmit task",
     );
 
     if (ok) {
@@ -110,6 +82,7 @@ export default function TaskDetailModal({
   }
 
   const completed = task.status === "Completed";
+  const status = completed ? "completed" : "in_progress";
 
   return (
     <FormModal
@@ -122,20 +95,20 @@ export default function TaskDetailModal({
           {isAdmin && (
             <FormButton
               variant="green"
-              onClick={() => handleUpdate(close)}
-              disabled={saving || !hasChanges}
+              onClick={() => save(status, "update", close)}
+              disabled={saving || !hasChanges || form.dateInvalid}
             >
               {saving && action === "update" ? "Saving…" : "Save"}
             </FormButton>
           )}
 
-          {(!isAdmin || task.assigneeIds.includes(currentUserId)) && (
+          {task.assigneeIds.includes(currentUserId) && (
             <FormButton
               variant={completed ? "red" : "green"}
               onClick={() =>
-                handleSetStatus(completed ? "in_progress" : "completed", close)
+                save(completed ? "in_progress" : "completed", "status", close)
               }
-              disabled={saving}
+              disabled={saving || form.dateInvalid}
             >
               {saving && action === "status"
                 ? completed
@@ -150,66 +123,23 @@ export default function TaskDetailModal({
       )}
     >
       <FormColumn>
-        <TextInput
-          name="title"
-          label="Title"
-          value={title}
-          onChange={setTitle}
-          placeholder="Enter a title"
-          maxLength={255}
-          readOnly={!isAdmin}
-        />
-
-        <div className="flex gap-4">
-          <Select
-            label="Category"
-            className="min-w-0 flex-1"
-            value={categoryId}
-            onChange={(value) => setCategoryId(value ? Number(value) : "")}
-            options={categoryOptions(categories)}
-            placeholder={{ value: "", label: "Select a category" }}
-            readOnly={!isAdmin}
-            readOnlyText={task.category}
+        <RequestFields form={form} categories={categories} readOnly={!isAdmin}>
+          <TextInput
+            name="created_by"
+            label="Created By"
+            className="min-w-35 flex-1"
+            value={task.createdBy}
+            readOnly
           />
 
           <TextInput
             name="status"
             label="Status"
-            className="min-w-0 flex-1"
+            className="min-w-35 flex-1"
             value={task.status}
             readOnly
           />
-        </div>
-
-        <div className="flex gap-4">
-          <TextInput
-            name="created_by"
-            label="Created By"
-            className="min-w-0 flex-1"
-            value={task.createdBy}
-            readOnly
-          />
-
-          <DateInput
-            label="Due Date"
-            className="min-w-0 flex-1"
-            value={dueDate}
-            onChange={setDueDate}
-            readOnly={!isAdmin}
-            readOnlyText={formatDueDate(task)}
-          />
-        </div>
-
-        <TextArea
-          name="description"
-          label="Description"
-          value={description}
-          onChange={setDescription}
-          placeholder="Add more details"
-          maxLength={1000}
-          readOnly={!isAdmin}
-          grow
-        />
+        </RequestFields>
 
         {!isAdmin && (
           <TextInput

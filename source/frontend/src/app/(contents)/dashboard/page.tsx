@@ -35,10 +35,9 @@ export default function Dashboard() {
     categories,
     usernames,
     creatorRoles,
+    members,
     loadingCategories,
     errorCategories,
-    reloadTasks,
-    reloadTickets,
   } = useDashboardFetching(currentAccount, accountLoading, accountError);
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -60,6 +59,7 @@ export default function Dashboard() {
     loading: loadingViewItems,
     error: errorViewItems,
     bucketCounts,
+    limits,
   } = useDashboardView(view, isAllScope, groups);
 
   return (
@@ -77,6 +77,7 @@ export default function Dashboard() {
           <Summary
             items={viewItems}
             counts={bucketCounts.total}
+            limits={limits}
             loading={loadingViewItems || errorViewItems}
             view={view}
           />
@@ -134,7 +135,6 @@ export default function Dashboard() {
           usernames={usernames}
           currentUserId={currentAccount?.id ?? null}
           onClose={() => setSelectedTask(null)}
-          onUpdated={reloadTasks}
         />
       )}
 
@@ -144,10 +144,10 @@ export default function Dashboard() {
           categoryMap={categoryMap}
           usernames={usernames}
           creatorRoles={creatorRoles}
+          members={members}
           currentUserId={currentAccount?.id ?? null}
           currentRole={currentAccount?.role ?? null}
           onClose={() => setSelectedTicket(null)}
-          onUpdated={reloadTickets}
         />
       )}
     </div>

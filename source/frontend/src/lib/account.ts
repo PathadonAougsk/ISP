@@ -4,6 +4,7 @@ import { apiFetch, apiOrThrow, apiSendJson } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMemo } from "react";
 import { cached, clearAllApiCache } from "@/lib/cache/cache";
+import { clearAuditLogCache } from "@/lib/audit_log";
 import { useFetched } from "@/lib/hooks";
 
 export type AccountRole = "Lab Owner" | "Lab Admin" | "Lab User";
@@ -30,10 +31,10 @@ const ADMIN_ROLES: AccountRole[] = ["Lab Owner", "Lab Admin"];
 // Several components (topbar, useCurrentAccount, page guards) ask for the same
 // row on every mount, so hold the answer here and share one request between
 // concurrent callers.
-const ME_CACHE_TTL = 2 * 60 * 1000; // an hour, so a role change is picked up soon enough
+const ME_CACHE_TTL = 2 * 60 * 1000; // 2 minutes, so a role change is picked up soon enough
 
 // Cache API, not memory. Clear also drop old in-flight saves.
-const getMeCached = cached(fetchMe, ME_CACHE_TTL, "me");
+const getMeCached = cached(fetchMe, ME_CACHE_TTL);
 
 // Drop every account related cache.
 export function clearAccountCache() {
@@ -55,7 +56,7 @@ function notifyAccountChange() {
   accountListeners.forEach((listener) => listener());
 }
 
-function isAdminRole(role: AccountRole): boolean {
+export function isAdminRole(role: AccountRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
@@ -79,11 +80,7 @@ async function fetchAccounts(): Promise<AccountsResponse> {
   return res.json();
 }
 
-export const getAccounts = cached(
-  fetchAccounts,
-  ACCOUNTS_CACHE_TTL,
-  "accounts",
-);
+export const getAccounts = cached(fetchAccounts, ACCOUNTS_CACHE_TTL);
 
 // The signed in user's own account row, straight from /account/{account_id}.
 // Cached - pass { force: true } to go back to the network.
@@ -95,8 +92,17 @@ export async function getMe({
   return (await getMeCached()) ?? undefined;
 }
 
+// true once endSession start, so nobody else redirect over its reason
+let sessionEnding = false;
+
+export function isSessionEnding() {
+  return sessionEnding;
+}
+
 async function endSession(search = "") {
+  sessionEnding = true;
   await clearAllApiCache();
+  clearAuditLogCache();
   await createClient().auth.signOut();
 
   if (typeof window !== "undefined") {
@@ -130,21 +136,40 @@ async function fetchMe(): Promise<Account | null> {
     return null;
   }
 
-  if (res.status !== 404) throw new Error(`HTTP ${res.status}`);
+  if (res.status !== 404) {
+    const body = await res.json().catch(() => null);
 
-  const { Accounts } = await getAccounts();
+    const detail =
+      typeof body?.detail === "string"
+        ? body.detail
+        : res.statusText || "Request failed";
 
-  return Accounts.find((user) => user.email === session.user.email) ?? null;
+    throw new Error(`${res.status} ${res.statusText || "Error"}: ${detail}`);
+  }
+
+  // 404: login is fine but has no account row. sign out and say why
+  await endSession("?noaccount=1");
+  return null;
 }
-
-export type UserRole = "Lab Admin" | "Lab User";
 
 export type Member = {
   id: string;
   name: string;
   email: string;
   role: AccountRole;
+  active: boolean;
 };
+
+// account row -> what MemberPanel show
+export function toMember(account: Account): Member {
+  return {
+    id: account.id,
+    name: account.username,
+    email: account.email,
+    role: account.role,
+    active: account.active,
+  };
+}
 
 export type AccountPatch = {
   username?: string;
@@ -240,6 +265,7 @@ export async function adminCreateAccount(
 
   const { Account: account } = (await res.json()) as AccountResponse;
   getAccounts.clear();
+  notifyAccountChange();
 
   return account;
 }
@@ -260,7 +286,7 @@ export type CurrentAccount = (
       loading: false;
       error: null;
       account: Account;
-      userRole: UserRole;
+      userRole: AccountRole;
       currentUserId: string;
       isAdmin: boolean;
     }
@@ -295,7 +321,7 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
     loading: false,
     error: null,
     account,
-    userRole: admin ? "Lab Admin" : "Lab User",
+    userRole: account.role,
     currentUserId: account.id,
     isAdmin: admin,
     reload,
@@ -303,17 +329,12 @@ export function useCurrentAccount(enabled: boolean = true): CurrentAccount {
 }
 
 export function useMembers() {
-  const { data, loading, error } = useFetched(getAccounts);
-  const members = useMemo(
-    () =>
-      data?.Accounts.map((account) => ({
-        id: account.id,
-        name: account.username,
-        email: account.email,
-        role: account.role,
-      })) ?? [],
-    [data],
+  const { data, loading, error } = useFetched(
+    getAccounts,
+    true,
+    onAccountChange,
   );
+  const members = useMemo(() => data?.Accounts.map(toMember) ?? [], [data]);
 
   return { members, membersLoading: loading, membersError: error };
 }

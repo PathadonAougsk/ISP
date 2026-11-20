@@ -15,13 +15,7 @@ export type PagedList<Row> = {
   reload: () => void;
 };
 
-type State<Row> = {
-  totalResults: number;
-  rows: Row[];
-  hasNext: boolean;
-  totalPages: number;
-  loading: boolean;
-  error: string | null;
+type State<Row> = Omit<PagedList<Row>, "reload"> & {
   // page the rows came from. differ from page = rows are stale
   loadedPage: number;
 };

@@ -152,8 +152,11 @@ export default function Sidebar() {
         }}
       >
         <div className="flex h-fit w-full flex-col items-center justify-evenly">
-          <div
+          <button
+            type="button"
             data-sidebar-toggle
+            aria-label={pinned ? "Unpin sidebar" : "Pin sidebar open"}
+            aria-pressed={pinned}
             onClick={() => {
               if (expandTimeout.current) {
                 clearTimeout(expandTimeout.current);
@@ -166,7 +169,7 @@ export default function Sidebar() {
             className={getItemClass()}
           >
             <NavigationIcon name="sidebar" />
-          </div>
+          </button>
 
           {renderItems(mainNavigation)}
         </div>

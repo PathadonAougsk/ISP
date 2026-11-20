@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { toMember } from "@/lib/account";
 import type { CategoryMap } from "@/lib/category";
 import { putTask, type Task } from "@/lib/task";
-import Avatar from "@/components/ui/avatar";
 import Button from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { renderWithLinks } from "@/components/ui/linkify";
 import { CloseButton, Slideup } from "@/components/ui/slideup";
+import MemberPanel from "@/components/request-table/MemberPanel";
 import {
   RequestTableButton,
   SlideupDescription,
@@ -23,14 +24,12 @@ export default function TaskSlideup({
   usernames,
   currentUserId,
   onClose,
-  onUpdated,
 }: {
   task: Task;
   categoryMap: CategoryMap;
   usernames: Record<string, string>;
   currentUserId: string | null;
   onClose: () => void;
-  onUpdated: () => void;
 }) {
   // local copy, task prop never change after putTask
   const [status, setStatus] = useState(task.status);
@@ -51,7 +50,6 @@ export default function TaskSlideup({
       await putTask(task.id, { status: next });
 
       setStatus(next);
-      onUpdated();
     } catch {
       setError(`Failed to ${action}`);
     } finally {
@@ -61,11 +59,8 @@ export default function TaskSlideup({
 
   const verb = isCompleted ? "Unsubmit" : "Submit";
 
-  const sortedAssignees = [...task.assignees].sort((a, b) => {
-    if (a.id === currentUserId) return -1;
-    if (b.id === currentUserId) return 1;
-    return a.username.localeCompare(b.username);
-  });
+  // real role and active, so a deactivated assignee show "(inactive)"
+  const members = task.assignees.map(toMember);
 
   return (
     <Slideup onClose={onClose}>
@@ -116,34 +111,15 @@ export default function TaskSlideup({
               <SlideupDescription description={task.description} />
             </div>
 
-            <div className="flex min-w-55 w-9/40 shrink-0 flex-col">
-              <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[20px] bg-(--panel-bg) p-3">
-                <h1 className="text-base font-bold text-black">
-                  Responsible person
-                </h1>
-
-                <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-                  <div className="flex flex-col gap-2">
-                    {sortedAssignees.map((assignee) => (
-                      <div
-                        key={assignee.id}
-                        className="flex items-center gap-2"
-                      >
-                        <Avatar
-                          name={assignee.username}
-                          className="h-5 w-auto shrink-0"
-                        />
-                        <span className="truncate text-base font-normal text-gray-800">
-                          {assignee.username}
-                        </span>
-                        {assignee.id === currentUserId && (
-                          <span className="text-gray-500"> (You)</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div className="flex min-w-55 w-1/4 shrink-0 flex-col">
+              <MemberPanel
+                readOnly
+                title="Responsible person"
+                members={members}
+                selectedIds={[]}
+                onChange={() => {}}
+                className="w-full flex-1"
+              />
 
               {error && (
                 <SlideupError message={error} className="mt-2 text-center" />

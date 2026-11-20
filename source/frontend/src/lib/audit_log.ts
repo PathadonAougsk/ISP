@@ -2,6 +2,7 @@
 
 import { apiFetch, apiOrThrow } from "@/lib/api";
 import { buildQuery } from "@/lib/query";
+import { getUserId } from "@/lib/cache/cache";
 
 // One row per changed column, written by the endpoint that made the change -
 // see the note in the API guide: there is no database trigger behind this.
@@ -30,8 +31,21 @@ export type AuditLogQuery = {
   by_whom?: string;
 };
 
-// Admin only on the server, so a 403 is expected for a Lab User - the panel
-// shows the server's `detail` rather than pretending the log is empty.
+const CACHE_TTL = 1000;
+
+type CacheEntry = {
+  data: AuditLogsResponse;
+  expiresAt: number;
+};
+
+const auditLogCache = new Map<string, CacheEntry>();
+
+// drop all cached logs, used on sign-out
+export function clearAuditLogCache() {
+  auditLogCache.clear();
+}
+
+// normal network request, also used by pagination
 export async function getAuditLogs(
   query: AuditLogQuery = {},
 ): Promise<AuditLogsResponse> {
@@ -40,4 +54,33 @@ export async function getAuditLogs(
   await apiOrThrow(res, `HTTP ${res.status}`);
 
   return res.json();
+}
+
+// show cached data immediately, then replace it with fresh data.
+export async function loadAuditLogs(
+  query: AuditLogQuery,
+  onData: (data: AuditLogsResponse, stale: boolean) => void,
+  onError: (error: unknown) => void,
+): Promise<void> {
+  const userId = await getUserId();
+  const key = userId ? `${userId}:${JSON.stringify(query)}` : null;
+  const saved = key ? auditLogCache.get(key) : undefined;
+
+  // expired entries are intentionally still displayed.
+  if (saved) onData(saved.data, saved.expiresAt <= Date.now());
+
+  try {
+    const fresh = await getAuditLogs(query);
+
+    if (key) {
+      auditLogCache.set(key, {
+        data: fresh,
+        expiresAt: Date.now() + CACHE_TTL,
+      });
+    }
+
+    onData(fresh, false);
+  } catch (error) {
+    onError(error);
+  }
 }

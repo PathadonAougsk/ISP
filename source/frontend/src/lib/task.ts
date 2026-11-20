@@ -91,17 +91,35 @@ async function fetchTasks(params: GetTasksParams = {}): Promise<TasksResponse> {
 const TASKS_CACHE_TTL = 5 * 60 * 1000;
 
 // same filters share expiration, different limits share the same family
+// same filters = one family, expire together. a bigger page (same offset)
+// replace smaller ones, and a smaller ask is cut from it
 export const getTasks = cached(
   fetchTasks,
   TASKS_CACHE_TTL,
-  "tasks",
   withoutPagination,
-  (result, limit) => ({
-    ...result,
-    Tasks: result.Tasks.slice(0, limit),
-  }),
-  (r) => r.TaskCount,
+  (result, limit) => ({ ...result, Tasks: result.Tasks.slice(0, limit) }),
 );
+
+// Listener, so the dashboard refetch when a task change
+const taskListeners = new Set<() => void>();
+
+export function onTaskChange(listener: () => void) {
+  taskListeners.add(listener);
+
+  return () => {
+    taskListeners.delete(listener);
+  };
+}
+
+function notifyTaskChange() {
+  taskListeners.forEach((listener) => listener());
+}
+
+// a task was made somewhere else (ticket accept), so drop cached lists too
+export async function tasksChanged() {
+  await getTasks.clear();
+  notifyTaskChange();
+}
 
 // data changed, so drop cached lists
 async function sendTask(
@@ -109,7 +127,8 @@ async function sendTask(
   fallback: string,
 ): Promise<TaskResponse> {
   const res = await apiOrThrow(await request, fallback);
-  getTasks.clear();
+  await getTasks.clear();
+  notifyTaskChange();
 
   return res.json();
 }

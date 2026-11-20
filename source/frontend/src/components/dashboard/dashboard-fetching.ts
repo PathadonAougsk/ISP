@@ -1,10 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getAccounts, type Account, type AccountRole } from "@/lib/account";
-import { getCategories, type Category } from "@/lib/category";
-import { getTasks } from "@/lib/task";
-import { getTickets } from "@/lib/ticket";
+import {
+  getAccounts,
+  onAccountChange,
+  toMember,
+  type Account,
+  type AccountRole,
+} from "@/lib/account";
+import { getCategories, onCategoryChange, type Category } from "@/lib/category";
+import { getTasks, onTaskChange, type GetTasksParams } from "@/lib/task";
+import {
+  getTickets,
+  onTicketChange,
+  type GetTicketsParams,
+} from "@/lib/ticket";
 import {
   type DashboardItem,
   type GroupState,
@@ -15,6 +25,62 @@ const INITIAL_LIMIT = 10;
 
 // limit increment when clicking Load More button
 const INCREMENT = 10;
+
+// one page size. backend default is 100, so ask for 100 on purpose
+const FETCH_LIMIT = 100;
+
+// First page ask the total too, then the rest come in parallel, so every
+// count on the dashboard see all items, not only the first 100.
+async function fetchAllPages<T extends { id: number }>(
+  fetchPage: (
+    offset: number,
+    getCount: boolean,
+  ) => Promise<{ items: T[]; count?: number }>,
+): Promise<T[]> {
+  const first = await fetchPage(0, true);
+  const total = first.count ?? first.items.length;
+
+  const offsets: number[] = [];
+  for (let offset = FETCH_LIMIT; offset < total; offset += FETCH_LIMIT) {
+    offsets.push(offset);
+  }
+
+  const rest = await Promise.all(
+    offsets.map((offset) => fetchPage(offset, false)),
+  );
+
+  // row can shift between pages, so drop repeat ids
+  const byId = new Map<number, T>();
+  for (const item of [first, ...rest].flatMap((page) => page.items)) {
+    byId.set(item.id, item);
+  }
+
+  return [...byId.values()];
+}
+
+function getAllTasks(params: GetTasksParams) {
+  return fetchAllPages(async (offset, get_count) => {
+    const body = await getTasks({
+      ...params,
+      limit: FETCH_LIMIT,
+      offset,
+      get_count,
+    });
+    return { items: body.Tasks, count: body.TaskCount };
+  });
+}
+
+function getAllTickets(params: GetTicketsParams) {
+  return fetchAllPages(async (offset, get_count) => {
+    const body = await getTickets({
+      ...params,
+      limit: FETCH_LIMIT,
+      offset,
+      get_count,
+    });
+    return { items: body.Tickets, count: body.TicketCount };
+  });
+}
 
 // loading + error flag of one request
 type Flags = { loading: boolean; error: boolean };
@@ -157,6 +223,21 @@ export function useDashboardFetching(
     error: false,
   });
 
+  // bump when settings change categories / accounts, so names refetch
+  const [categoriesKey, setCategoriesKey] = useState(0);
+  const [accountsKey, setAccountsKey] = useState(0);
+
+  useEffect(
+    () => onCategoryChange(() => setCategoriesKey((key) => key + 1)),
+    [],
+  );
+  useEffect(() => onAccountChange(() => setAccountsKey((key) => key + 1)), []);
+  useEffect(() => onTaskChange(() => setTasksReloadKey((key) => key + 1)), []);
+  useEffect(
+    () => onTicketChange(() => setTicketsReloadKey((key) => key + 1)),
+    [],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -177,7 +258,7 @@ export function useDashboardFetching(
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categoriesKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,40 +273,36 @@ export function useDashboardFetching(
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accountsKey]);
 
   // fetch all at the same time, no more sequential
   const groups = {
-    myTasks: useGroup(
-      account,
-      true,
-      tasksReloadKey,
-      async (id) =>
-        (await getTasks({ status: "in_progress", assignsTo: id })).Tasks,
+    myTasks: useGroup(account, true, tasksReloadKey, async (id) =>
+      getAllTasks({
+        status: "in_progress",
+        assignsTo: id,
+      }),
     ),
 
-    otherTasks: useGroup(
-      account,
-      canSeeOthers,
-      tasksReloadKey,
-      async (id) =>
-        (await getTasks({ status: "in_progress", notassignsTo: id })).Tasks,
+    otherTasks: useGroup(account, canSeeOthers, tasksReloadKey, async (id) =>
+      getAllTasks({
+        status: "in_progress",
+        notassignsTo: id,
+      }),
     ),
 
-    myRejectedTickets: useGroup(
-      account,
-      true,
-      ticketsReloadKey,
-      async () =>
-        (await getTickets({ status: "rejected", onlyOwned: true })).Tickets,
+    myRejectedTickets: useGroup(account, true, ticketsReloadKey, async () =>
+      getAllTickets({
+        status: "rejected",
+        onlyOwned: true,
+      }),
     ),
 
-    myPendingTickets: useGroup(
-      account,
-      true,
-      ticketsReloadKey,
-      async () =>
-        (await getTickets({ status: "pending", onlyOwned: true })).Tickets,
+    myPendingTickets: useGroup(account, true, ticketsReloadKey, async () =>
+      getAllTickets({
+        status: "pending",
+        onlyOwned: true,
+      }),
     ),
 
     otherRejectedTickets: useGroup(
@@ -233,7 +310,10 @@ export function useDashboardFetching(
       canSeeOthers,
       ticketsReloadKey,
       async () =>
-        (await getTickets({ status: "rejected", notOwned: true })).Tickets,
+        getAllTickets({
+          status: "rejected",
+          notOwned: true,
+        }),
     ),
 
     otherPendingTickets: useGroup(
@@ -241,7 +321,10 @@ export function useDashboardFetching(
       canSeeOthers,
       ticketsReloadKey,
       async () =>
-        (await getTickets({ status: "pending", notOwned: true })).Tickets,
+        getAllTickets({
+          status: "pending",
+          notOwned: true,
+        }),
     ),
   };
 
@@ -263,15 +346,13 @@ export function useDashboardFetching(
   );
 
   return {
-    // the six lists, each with items, count, flags and loadMore
     groups,
     categories,
     usernames,
     creatorRoles,
+    members: accounts.map(toMember),
     loadingCategories: categoryState.loading,
     errorCategories: categoryState.error,
-    reloadTasks: () => setTasksReloadKey((key) => key + 1),
-    reloadTickets: () => setTicketsReloadKey((key) => key + 1),
   };
 }
 

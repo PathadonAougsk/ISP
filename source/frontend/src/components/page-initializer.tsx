@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { clearAllApiCache, clearExpiredApiCache } from "@/lib/cache/cache";
-import { getMe } from "@/lib/account";
+import { clearAllApiCache } from "@/lib/cache/cache";
+import { getMe, isSessionEnding } from "@/lib/account";
+import Button from "@/components/ui/button";
 
 type Props = {
   children: React.ReactNode;
@@ -17,15 +18,14 @@ export default function PageInitializer({ children }: Props) {
 
     async function initialize() {
       try {
-        await clearExpiredApiCache();
-
-        if (cancelled) return;
-
         const account = await getMe();
 
         if (cancelled) return;
 
         if (!account) {
+          // getMe already sent them to /auth with a reason
+          if (isSessionEnding()) return;
+
           await clearAllApiCache();
 
           if (!cancelled) {
@@ -53,7 +53,24 @@ export default function PageInitializer({ children }: Props) {
   }, []);
 
   if (error) {
-    return <div>Failed to initialize application. Please reload.</div>;
+    return (
+      <div
+        role="alert"
+        className="flex h-full w-full flex-col items-center justify-center gap-4"
+      >
+        <p className="text-lg font-semibold text-red-700">
+          Failed to initialize application.
+        </p>
+        <Button
+          variant="green"
+          size="lg"
+          onClick={() => window.location.reload()}
+          className="font-semibold"
+        >
+          Reload
+        </Button>
+      </div>
+    );
   }
 
   if (!ready) {

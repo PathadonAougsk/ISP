@@ -11,23 +11,12 @@ import {
 import Button from "@/components/ui/button";
 import { TextInput } from "@/components/ui/field";
 import Row, { EditButton } from "./row";
-import { ERROR, MUTED, TITLE } from "./settings-style";
-
-const MIN_PASSWORD = 8;
-
-function passwordCharacterLength(value: string): number {
-  return Array.from(value).length;
-}
-
-function limitPasswordBytes(value: string): string {
-  let limited = "";
-  for (const character of value) {
-    const next = limited + character;
-    if (new TextEncoder().encode(next).length > 72) break;
-    limited = next;
-  }
-  return limited;
-}
+import { ERROR, MUTED } from "./settings-style";
+import {
+  MIN_PASSWORD,
+  limitPasswordBytes,
+  passwordCharacterLength,
+} from "@/lib/password";
 
 // the three things you can change about yourself, one open at a time
 type Editable = "username" | "email" | "password";
@@ -241,10 +230,11 @@ export default function AccountPanel({
         <div className="flex flex-col gap-1.5">
           <p className="font-semibold">Profile</p>
           <p className={MUTED}>
-            Your account information. You can change your username, and email address here.
+            Your account information. You can change your username, and email
+            address here.
           </p>
         </div>
-        
+
         <Row
           label="Username"
           value={account?.username ?? placeholder}
@@ -339,7 +329,6 @@ export default function AccountPanel({
             Your password is used to sign in to your account.
           </p>
         </div>
-        
 
         <Row label="Password" action={editAction("password")}>
           {open === "password" && (
@@ -349,8 +338,8 @@ export default function AccountPanel({
               disabled={!currentPassword || !newPassword}
             >
               <p className={MUTED}>
-                Keep your password somewhere safe. If you forget it, contact
-                an administrator to reset it.
+                Keep your password somewhere safe. If you forget it, contact an
+                administrator to reset it.
               </p>
 
               <div className="flex items-start gap-3">

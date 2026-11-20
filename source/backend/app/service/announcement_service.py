@@ -95,8 +95,10 @@ async def update_announcement(
             return al
 
     audit_list = []
+    # only fields sent get touched. description null = clear it
+    sent = data.model_fields_set
 
-    if data.name is not None:
+    if "name" in sent and data.name is not None:
         name_changed = update_announcement_log(
             "name",
             announcement.name,
@@ -108,15 +110,16 @@ async def update_announcement(
 
         announcement.name = data.name
 
-    description_changed = update_announcement_log(
-        "description",
-        announcement.description,
-        data.description
-    )
+    if "description" in sent:
+        description_changed = update_announcement_log(
+            "description",
+            announcement.description,
+            data.description
+        )
 
-    if description_changed:
-        audit_list.append(description_changed)
-        announcement.description = data.description
+        if description_changed:
+            audit_list.append(description_changed)
+            announcement.description = data.description
 
     for i in audit_list:
         session.add(i)

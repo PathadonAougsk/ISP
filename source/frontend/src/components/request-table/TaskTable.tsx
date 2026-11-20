@@ -1,13 +1,11 @@
 "use client";
 
 import type { TaskRow } from "@/lib/task";
-import type { Category } from "@/lib/category";
-import type { UserRole } from "@/lib/account";
-import { isPastDate } from "@/lib/format";
+import { isMissingItem } from "@/components/dashboard/dashboard-data";
 import {
   formatDueDate,
   RequestTableFrame,
-  type TableFilters,
+  type TableProps,
 } from "@/components/request-table/RequestList";
 
 const titles = [
@@ -31,60 +29,26 @@ const statusOptions = [
   { value: "completed", label: "Completed" },
 ];
 
-export default function TaskTable({
-  tasks,
-  loading,
-  error,
-  userRole,
-  categories,
-  filters,
-  onFilterChange,
-  onPageChange,
-  hasNext,
-  totalPages,
-  totalResults,
-  onSelect,
-  onCreate,
-}: {
-  tasks: TaskRow[];
-  loading: boolean;
-  error: string | null;
-  userRole: UserRole;
-  categories: Category[];
-  filters: TableFilters;
-  onFilterChange: (patch: Partial<Omit<TableFilters, "page">>) => void;
-  onPageChange: (page: number) => void;
-  hasNext: boolean;
-  totalPages: number;
-  totalResults: number;
-  onSelect: (task: TaskRow) => void;
-  onCreate: () => void;
-}) {
+export default function TaskTable(props: TableProps<TaskRow>) {
   // The backend already limits a Lab User to their own tasks, so no extra filter here
+  const now = new Date();
+
   return (
     <RequestTableFrame
+      {...props}
       title="Tasks"
       noun="tasks"
-      rows={tasks}
-      loading={loading}
-      error={error}
-      canCreate={userRole === "Lab Admin"}
-      onCreate={onCreate}
-      categories={categories}
       statusOptions={statusOptions}
-      filters={filters}
-      onFilterChange={onFilterChange}
-      onPageChange={onPageChange}
-      hasNext={hasNext}
-      totalPages={totalPages}
-      totalResults={totalResults}
       titles={titles}
       gridClassName={gridClassName}
-      onSelect={onSelect}
       getRow={(task) => {
         const completed = task.status === "Completed";
-        // only unfinished task can be overdue
-        const overdue = !completed && isPastDate(task.dueDateValue);
+        // same rule as dashboard: in progress + deadline passed
+        const overdue = isMissingItem(
+          { status: task.status, due_date: task.dueDateIso },
+          ["In progress"],
+          now,
+        );
 
         return {
           overdue,

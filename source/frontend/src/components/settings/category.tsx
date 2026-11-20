@@ -10,16 +10,9 @@ import {
   type Category,
 } from "@/lib/category";
 import Button from "@/components/ui/button";
+import ConfirmModal from "@/components/ui/confirm-modal";
 import { TextInput } from "@/components/ui/field";
-import {
-  ERROR,
-  HEAD,
-  LIST_PANEL,
-  MESSAGE,
-  MUTED,
-  ROW,
-  TITLE,
-} from "./settings-style";
+import { ERROR, HEAD, LIST_PANEL, MESSAGE, MUTED, ROW } from "./settings-style";
 
 export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -31,6 +24,8 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
+  // category waiting for delete confirm
+  const [deleting, setDeleting] = useState<Category | null>(null);
 
   // Caching. The request GET /Categories
   const refresh = useCallback(
@@ -55,14 +50,17 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
   }, [refresh]);
 
   // Try-Except helper -> Special thank to Wassawin.
+  // true when it worked
   async function run(action: () => Promise<void>, message: string) {
-    if (!isAdmin) return;
+    if (!isAdmin) return false;
 
     try {
       await action();
       await refresh();
+      return true;
     } catch {
       setError(message);
+      return false;
     }
   }
 
@@ -73,11 +71,13 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
     const name = newName.trim();
     if (!name) return;
 
-    setNewName("");
-    await run(
+    const ok = await run(
       () => createCategory(name),
       `Could not create the category "${name}".`,
     );
+
+    // keep the name on fail, so it can be tried again
+    if (ok) setNewName("");
   }
 
   async function handleRename(id: number) {
@@ -257,12 +257,10 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
                   <Button
                     variant="red"
                     size="base"
-                    onClick={() =>
-                      run(
-                        () => deleteCategory(category.id),
-                        `Could not delete the category "${category.name}".`,
-                      )
-                    }
+                    onClick={() => {
+                      setError(null);
+                      setDeleting(category);
+                    }}
                     className="w-25 font-bold"
                   >
                     Delete
@@ -273,6 +271,24 @@ export default function Categories({ isAdmin }: { isAdmin: boolean }) {
           ))
         )}
       </div>
+
+      {deleting && (
+        <ConfirmModal
+          title={`Delete the category "${deleting.name}"?`}
+          confirmLabel="Delete"
+          busyLabel="Deleting..."
+          error={error}
+          onConfirm={() =>
+            run(
+              () => deleteCategory(deleting.id),
+              `Could not delete the category "${deleting.name}".`,
+            )
+          }
+          onClose={() => setDeleting(null)}
+        >
+          <p>This action cannot be undone.</p>
+        </ConfirmModal>
+      )}
     </section>
   );
 }

@@ -4,8 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 
 // Load once on mount, ignore the result if unmounted. Pass a stable function:
 // `reload` bumps a counter the effect watches, so `load` itself has to stay
-// stable or the effect loops.
-export function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
+// stable or the effect loops. `subscribe` (also stable) = reload when data
+// change somewhere else, e.g. settings
+export function useFetched<T>(
+  load: () => Promise<T>,
+  enabled: boolean = true,
+  subscribe?: (listener: () => void) => () => void,
+) {
   const [state, setState] = useState<{
     data: T | null;
     loading: boolean;
@@ -35,6 +40,8 @@ export function useFetched<T>(load: () => Promise<T>, enabled: boolean = true) {
       cancelled = true;
     };
   }, [load, enabled, attempt]);
+
+  useEffect(() => subscribe?.(reload), [subscribe, reload]);
 
   return { ...state, reload };
 }

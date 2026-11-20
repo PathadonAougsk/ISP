@@ -25,10 +25,31 @@ async function fetchCategories(): Promise<CategoriesResponse> {
   return res.json();
 }
 
-export const getCategories = cached(fetchCategories, CACHE_TTL, "categories");
+export const getCategories = cached(fetchCategories, CACHE_TTL);
+
+// Listener, so pages already open pick up a change made in settings.
+const categoryListeners = new Set<() => void>();
+
+export function onCategoryChange(listener: () => void) {
+  categoryListeners.add(listener);
+
+  return () => {
+    categoryListeners.delete(listener);
+  };
+}
+
+// drop cache, then tell listeners
+function categoriesChanged() {
+  getCategories.clear();
+  categoryListeners.forEach((listener) => listener());
+}
 
 export function useCategories() {
-  const { data, loading, error } = useFetched(getCategories);
+  const { data, loading, error } = useFetched(
+    getCategories,
+    true,
+    onCategoryChange,
+  );
   const categories = useMemo(() => data?.Categories ?? [], [data]);
 
   return { categories, categoriesLoading: loading, categoriesError: error };
@@ -40,7 +61,7 @@ export async function createCategory(name: string): Promise<void> {
     "Could not create that category.",
   );
 
-  getCategories.clear();
+  categoriesChanged();
 }
 
 export async function updateCategory(id: number, name: string): Promise<void> {
@@ -49,7 +70,7 @@ export async function updateCategory(id: number, name: string): Promise<void> {
     "Could not rename that category.",
   );
 
-  getCategories.clear();
+  categoriesChanged();
 }
 
 export async function deleteCategory(id: number): Promise<void> {
@@ -58,7 +79,7 @@ export async function deleteCategory(id: number): Promise<void> {
     "Could not delete that category.",
   );
 
-  getCategories.clear();
+  categoriesChanged();
 }
 
 // id -> name lookup, e.g. { 1: "Report 1", 2: "Report 2" }

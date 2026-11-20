@@ -1,92 +1,47 @@
-import { buildHeaders, getKey, putJson, safe } from "@/lib/cache/cache-storage";
-
 export type FamilyPage = { key: string; offset: number; limit: number };
 
-export type Family = {
-  expiresAt: number;
-  count?: number;
-  pages: FamilyPage[];
-};
+export type Family = { expiresAt: number; pages: FamilyPage[] };
 
 export type Families = Map<string, Family>;
 
-export const familyRequest = (familyKey: string): Request =>
-  getKey(`family:${familyKey}`);
-
-// save family record, expiry header so sweep can clean it too
-export const persist = async (
-  cache: Cache | null,
-  familyKey: string,
-  family: Family,
-) => {
-  if (!cache) return;
-
-  await safe<void>(
-    () =>
-      putJson(
-        cache,
-        familyRequest(familyKey),
-        family,
-        buildHeaders(family.expiresAt),
-      ),
-    undefined,
-  );
-};
-
-// raw record from memory or Cache API, caller check expiry
-export const getFamily = async (
-  cache: Cache | null,
+// expiry set once at first init, pages never extend it
+// expired family drop all its pages, then born again
+export const resolveFamily = (
   families: Families,
   familyKey: string,
-): Promise<Family | null> => {
+  ttlMs: number,
+  onDrop: (key: string) => void,
+): Family => {
   const known = families.get(familyKey);
 
-  if (known) return known;
+  if (known && known.expiresAt > Date.now()) return known;
 
-  if (!cache) return null;
+  known?.pages.forEach((page) => onDrop(page.key));
 
-  const store = cache;
-
-  return safe<Family | null>(async () => {
-    const request = familyRequest(familyKey);
-    const response = await store.match(request);
-
-    if (!response) return null;
-
-    const family = (await response.json()) as Family;
-
-    if (!Number.isFinite(family.expiresAt) || !Array.isArray(family.pages)) {
-      await store.delete(request);
-      return null;
-    }
-
-    // another request may fill memory while we read
-    const current = families.get(familyKey);
-
-    if (current) return current;
-
-    families.set(familyKey, family);
-
-    return family;
-  }, null);
-};
-
-// get or create, so parallel first requests share one record
-export const createFamily = async (
-  cache: Cache | null,
-  families: Families,
-  familyKey: string,
-  expiresAt: number,
-): Promise<Family> => {
-  const current = families.get(familyKey);
-
-  if (current && current.expiresAt > Date.now()) return current;
-
-  const family: Family = { expiresAt, pages: [] };
+  const family: Family = { expiresAt: Date.now() + ttlMs, pages: [] };
 
   families.set(familyKey, family);
 
-  await persist(cache, familyKey, family);
-
   return family;
+};
+
+// bigger page, same offset
+export const findBigger = (family: Family, offset: number, limit: number) =>
+  family.pages.find((page) => page.offset === offset && page.limit > limit);
+
+// add fresh page, bigger overwrite smaller (same offset)
+export const savePage = (
+  family: Family,
+  page: FamilyPage,
+  onDrop: (key: string) => void,
+) => {
+  family.pages = family.pages.filter((item) => {
+    const smaller = item.offset === page.offset && item.limit < page.limit;
+
+    if (smaller) onDrop(item.key);
+
+    return !smaller && item.key !== page.key;
+  });
+
+  family.pages.push(page);
 };

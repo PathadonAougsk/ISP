@@ -48,7 +48,6 @@ const ANNOUNCEMENTS_CACHE_TTL = 5 * 60 * 1000;
 export const getAnnouncements = cached(
   fetchAnnouncements,
   ANNOUNCEMENTS_CACHE_TTL,
-  "announcements",
   withoutPagination,
   (result, limit) => result.slice(0, limit),
 );

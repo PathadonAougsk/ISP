@@ -62,36 +62,37 @@ function compareValues(
   return direction === "asc" ? result : -result;
 }
 
+// Due date sort by time (empty last), other keys by text. A key the list
+// does not have (status for tasks, created_by for tickets) give null = no move.
+function sortItems<T extends { due_date: string | null }>(
+  items: T[],
+  sort: SortState,
+  textOf: (item: T, key: SortKey) => string | null,
+) {
+  const byDate = sort.key === "due_date";
+
+  return [...items].sort((first, second) =>
+    byDate
+      ? compareValues(first.due_date, second.due_date, sort.direction, true)
+      : compareValues(
+          textOf(first, sort.key),
+          textOf(second, sort.key),
+          sort.direction,
+        ),
+  );
+}
+
 function sortTasks(
   tasks: Task[],
   sort: SortState,
   categoryMap: CategoryMap,
   usernames: Record<string, string>,
 ) {
-  return [...tasks].sort((first, second) => {
-    if (sort.key === "due_date") {
-      return compareValues(
-        first.due_date,
-        second.due_date,
-        sort.direction,
-        true,
-      );
-    }
-    if (sort.key === "status") return 0;
-
-    const values = {
-      name: [first.name, second.name],
-      created_by: [
-        usernames[first.created_by] ?? "-",
-        usernames[second.created_by] ?? "-",
-      ],
-      category: [
-        categoryMap[first.category_id] ?? "-",
-        categoryMap[second.category_id] ?? "-",
-      ],
-    } as const;
-    const [firstValue, secondValue] = values[sort.key];
-    return compareValues(firstValue, secondValue, sort.direction);
+  return sortItems(tasks, sort, (task, key) => {
+    if (key === "name") return task.name;
+    if (key === "created_by") return usernames[task.created_by] ?? "-";
+    if (key === "category") return categoryMap[task.category_id] ?? "-";
+    return null;
   });
 }
 
@@ -100,27 +101,11 @@ function sortTickets(
   sort: SortState,
   categoryMap: CategoryMap,
 ) {
-  return [...tickets].sort((first, second) => {
-    if (sort.key === "due_date") {
-      return compareValues(
-        first.due_date,
-        second.due_date,
-        sort.direction,
-        true,
-      );
-    }
-    if (sort.key === "created_by") return 0;
-
-    const values = {
-      name: [first.name, second.name],
-      status: [ticketStatusText[first.status], ticketStatusText[second.status]],
-      category: [
-        categoryMap[first.category_id] ?? "-",
-        categoryMap[second.category_id] ?? "-",
-      ],
-    } as const;
-    const [firstValue, secondValue] = values[sort.key];
-    return compareValues(firstValue, secondValue, sort.direction);
+  return sortItems(tickets, sort, (ticket, key) => {
+    if (key === "name") return ticket.name;
+    if (key === "status") return ticketStatusText[ticket.status];
+    if (key === "category") return categoryMap[ticket.category_id] ?? "-";
+    return null;
   });
 }
 

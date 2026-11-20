@@ -4,17 +4,6 @@ export type DueBucketKey = "missing" | "thisWeek" | "nextWeek" | "later";
 
 export type DashboardView = "task" | "ticket";
 
-// the six lists in dashboard
-export type DashboardGroup =
-  | "myTasks"
-  | "otherTasks"
-  | "myRejectedTickets"
-  | "myPendingTickets"
-  | "otherRejectedTickets"
-  | "otherPendingTickets";
-
-export type DashboardLimits = Record<DashboardGroup, number>;
-
 // fields that task and ticket share
 export type DashboardItem = {
   status: string;
