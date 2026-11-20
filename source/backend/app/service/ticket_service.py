@@ -40,11 +40,13 @@ async def retrieve_tickets(
     if search and search.strip():
         search = search.strip()
 
-        conditions = [Ticket.name.ilike(f"%{search}%")]
+        term = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+        conditions = [Ticket.name.ilike(f"%{term}%", escape="\\")]
 
         if search.isdecimal():
             conditions.append(
-                cast(Ticket.id, String).ilike(f"%{search}%")
+                cast(Ticket.id, String).ilike(f"%{term}%", escape="\\")
             )
 
         query = query.where(or_(*conditions))
@@ -114,12 +116,26 @@ async def create_ticket(
     me: Account,
     data,
 ):
+    if me.role == AccountRole.LAB_OWNER:
+        raise HTTPException(
+            status_code=403,
+            detail="Owner cannot create tickets",
+        )
+
     category = await session.get(Category, data.category_id)
 
     if category is None:
         raise HTTPException(
             status_code=404,
             detail="Category not found",
+        )
+
+    due_date = to_due_date(data.due_date)
+
+    if due_date is not None and due_date < dt.datetime.now(dt.timezone.utc):
+        raise HTTPException(
+            status_code=400,
+            detail="Due date cannot be in the past",
         )
 
     # Atomically decrement quota to prevent concurrent requests
@@ -146,8 +162,6 @@ async def create_ticket(
                     "quota": 0,
                 },
             )
-
-    due_date = to_due_date(data.due_date)
 
     ticket = Ticket(
         name=data.name,
@@ -231,6 +245,16 @@ async def update_ticket(
             detail="You cannot update or edit accepted tickets",
         )
 
+    # only creator edit fields. assignees ok for accept
+    if (
+        data.model_fields_set - {"status", "assignees"}
+        and me.id != ticket.created_by
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You can edit fields only on your own tickets",
+        )
+
     # same status = no change, always fine
     if data.status is not None and data.status is not ticket.status:
         if data.status is TicketStatus.PENDING:
@@ -250,6 +274,7 @@ async def update_ticket(
                 not is_admin(me)
                 or me.id == ticket.created_by
                 or not outranks(me, creator)
+                or ticket.status is not TicketStatus.PENDING
             ):
                 raise HTTPException(
                     status_code=403,
@@ -337,6 +362,17 @@ async def update_ticket(
 
     if "due_date" in sent:
         new_due_date = to_due_date(data.due_date)
+
+        if (
+            new_due_date is not None
+            and new_due_date != to_utc(ticket.due_date)
+            and new_due_date < dt.datetime.now(dt.timezone.utc)
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Due date cannot be in the past",
+            )
+
         audit_list.append(
             update_ticket_log(
                 "due_date",
