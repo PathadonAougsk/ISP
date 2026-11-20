@@ -73,11 +73,12 @@ async def retrieve_tasks(
 
     if search and search.strip():
         search = search.strip()
+        term = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
-        conditions = [Task.name.ilike(f"%{search}%")]
+        conditions = [Task.name.ilike(f"%{term}%", escape="\\")]
 
         if search.isdecimal():
-            conditions.append(cast(Task.id, String).ilike(f"%{search}%"))
+            conditions.append(cast(Task.id, String).ilike(f"%{term}%", escape="\\"))
 
         tasks = tasks.where(or_(*conditions))
 
@@ -156,7 +157,11 @@ async def add_task(
 ) -> Task:
     # Create new task based on the body.
     await ensure_category(session, body.category_id)
+    if not body.assignees:
+        raise HTTPException(status_code=400, detail="Task needs at least one assignee")
     conv_duedate = to_due_date(body.due_date)
+    if conv_duedate is not None and conv_duedate < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Due date cannot be in the past")
 
     task = Task(
         name=body.name,
@@ -282,10 +287,14 @@ async def update_task(
     if "due_date" in body.model_fields_set:
         dt1 = to_utc(task.due_date)
         dt2 = to_due_date(body.due_date)
+        if dt2 is not None and dt2 != dt1 and dt2 < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Due date cannot be in the past")
         audit_list.append(create_audit_log("due_date", dt1, dt2))
         task.due_date = dt2
 
     if body.assignees is not None:
+        if not body.assignees:
+            raise HTTPException(status_code=400, detail="Task needs at least one assignee")
         current_assignee_ids = {assignee.id for assignee in task.assignees}
         requested_assignee_ids = set(body.assignees)
 

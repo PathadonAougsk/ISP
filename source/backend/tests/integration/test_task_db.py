@@ -39,7 +39,7 @@ def test_create_task_persists_row_and_assignees(client, db):
 
 
 def test_create_task_audit_row_points_at_the_task(client, db):
-    response = client.post("/task/", json={"name": unique("task"), "category_id": db.category_id, "due_date": DUE, }, headers=AUTH_HEADER,)
+    response = client.post("/task/", json={"name": unique("task"), "category_id": db.category_id, "due_date": DUE, "assignees": [str(db.me_id)], }, headers=AUTH_HEADER,)
     assert response.status_code == 200, response.text
     task_id = response.json()["Task"]["id"]
     db.track("task", task_id)
@@ -89,12 +89,12 @@ def test_lab_user_only_sees_tasks_assigned_to_them(client, db, lab_user_id):
     assert [t["id"] for t in response.json()["Tasks"]] == [theirs]
 
 
-def test_update_task_persists_and_audits_changes(client, db):
+def test_update_task_persists_and_audits_changes(client, db, lab_user_id):
     task_id = db.seed_task(name="pytest before", assignees=[db.me_id])
 
     response = client.put(
         f"/task/{task_id}",
-        json={"name": "pytest after", "status": "completed", "assignees": []},
+        json={"name": "pytest after", "status": "completed", "assignees": [str(lab_user_id)]},
         headers=AUTH_HEADER,
     )
 
@@ -102,7 +102,7 @@ def test_update_task_persists_and_audits_changes(client, db):
     row = db.fetch(Task, task_id)
     assert (row.name, row.status) == ("pytest after", TaskStatus.COMPLETED)
     assert row.completed_by == db.me_id and row.completed_at is not None
-    assert response.json()["Task"]["assignees"] == []
+    assert [a["id"] for a in response.json()["Task"]["assignees"]] == [str(lab_user_id)]
 
     audit = {r.column_name: (r.old_value, r.new_value) for r in db.audit_rows("task", task_id)}
     assert audit["name"] == ("pytest before", "pytest after")
